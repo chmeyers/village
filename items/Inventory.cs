@@ -15,7 +15,7 @@ namespace Item
     private readonly object _itemsLock = new object();
 
     // The items in the inventory with their quantities.
-    private Dictionary<Item, int> _items;
+    private Dictionary<Item, int> _items = new Dictionary<Item, int>();
 
     // Craft an item, using the specified inputs. Fails if the input items don't exist in the inventory.
     public bool Craft(ItemType output, Dictionary<Item, int> inputs)
