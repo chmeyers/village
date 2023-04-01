@@ -63,7 +63,7 @@ namespace Item
     // Graphic asset used to display this item type.
     public readonly string uxAsset;
 
-    // The time it takes an item of this type to spoil, or zero if it never spoils.
+    // The time it takes an item of this type to spoil in hundredths of a turn, or zero if it never spoils.
     public readonly int spoilTime;
 
     // The default loss rate of an item of this type, or zero if it is not subject to loss.
@@ -78,6 +78,20 @@ namespace Item
     // What items and quantities this item will turn into if destroyed.
     // For example, a broken tool will turn into scrap metal.
     public readonly Dictionary<ItemType, int>? scrapItems;
+
+    public override bool Equals(object? obj)
+    {
+      // Check equality of the itemType only.
+      if (obj is ItemType other) {
+        return itemType == other.itemType;
+      }
+      return false;
+    }
+    public override int GetHashCode()
+    {
+      // Hash is based only off of the itemType since it is unique.
+      return itemType.GetHashCode();
+    }
   }
 
   // An Item is a specific instance of an ItemType.
@@ -88,6 +102,12 @@ namespace Item
     public Item(ItemType type)
     {
       itemType = type;
+      originalQuality = 100;
+      quality = 100;
+      timeUntilSpoilage = type.spoilTime;
+      if (timeUntilSpoilage == 0) {
+        timeUntilSpoilage = int.MaxValue;
+      }
     }
 
     // The type of this item.
@@ -96,16 +116,12 @@ namespace Item
     // The unique name of this item, or null if it is not a unique item.
     public string? uniqueName;
 
-    // The quantity of this item.
-    public int quantity;
-
     // The original quality of this item.
     public int originalQuality;
-    // The quality of this item.
+    // The quality of this item, in hundredths of a unit.
     public int quality;
 
-    // The turn this item was made or first bought.
-    // Used to determine when an item spoils.
-    public int creationTurn;
+    // How many hundredths of a turns until this item spoils, or MAX_INT if it never spoils.
+    public int timeUntilSpoilage;
   }
 }
