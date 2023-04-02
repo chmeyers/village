@@ -225,5 +225,24 @@ namespace Village.Item
 
     // How many hundredths of a turns until this item spoils, or MAX_INT if it never spoils.
     public int timeUntilSpoilage;
+
+    // Equals function compares the items by value.
+    public override bool Equals(object? obj)
+    {
+      if (obj is Item other) {
+        return itemType == other.itemType &&
+               uniqueName == other.uniqueName &&
+               originalQuality == other.originalQuality &&
+               quality == other.quality &&
+               timeUntilSpoilage == other.timeUntilSpoilage;
+      }
+      return false;
+    }
+
+    // Hash function hashes the item by value.
+    public override int GetHashCode()
+    {
+      return HashCode.Combine(itemType, uniqueName, originalQuality, quality, timeUntilSpoilage);
+    }
   }
 }

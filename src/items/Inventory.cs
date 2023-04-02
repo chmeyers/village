@@ -3,11 +3,11 @@ namespace Village.Item
 {
 
   // An Inventory is a collection of items, owned by a person, building, trader, village, etc.
-  class Inventory
+  public class Inventory
   {
     // Default quantity for items that don't specify a quantity.
     // Quantities are assumed to be specified in hundredths of a unit.
-    const int DEFAULT_QUANTITY = 100;
+    public const int DEFAULT_QUANTITY = 100;
 
     public Inventory() { }
 
@@ -135,6 +135,55 @@ namespace Village.Item
         return _RemoveNoLock(item, quantity);
       }
     }
+
+    // Count the number of unique items in the inventory.
+    public int Count()
+    {
+      lock (_itemsLock)
+      {
+        return _items.Count;
+      }
+    }
+
+    // Count the total quantity of items in the inventory.
+    public int CountAll()
+    {
+      lock (_itemsLock)
+      {
+        int count = 0;
+        foreach (var item in _items)
+        {
+          count += item.Value;
+        }
+        return count;
+      }
+    }
+
+    // Check whether a given item exists in the inventory, even if the quantity is zero.
+    public bool Contains(Item item)
+    {
+      lock (_itemsLock)
+      {
+        return _ContainsNoLock(item, 0);
+      }
+    }
+
+    // Bracket operator to get the quantity of an item in the inventory.
+    public int this[Item item]
+    {
+      get
+      {
+        lock (_itemsLock)
+        {
+          if (_items.ContainsKey(item))
+          {
+            return _items[item];
+          }
+          return 0;
+        }
+      }
+    }
+    
 
     // Internal function to remove items from the inventory with no locking.
     private bool _RemoveNoLock(Item item, int quantity)
