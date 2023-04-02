@@ -11,8 +11,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -55,8 +55,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -112,8 +112,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -129,7 +129,7 @@ public class InventoryUnitTest
     Assert.AreEqual(5, inventory[item2]);
     // Craft an item given item and item2 as inputs.
     var inputs = new Dictionary<Item, int> { { item, 2 }, { item2, 2 } };
-    ItemType outputType = new("output", ItemGroup.CURRENCY, null, "Output", "uxAsset1", 0, 0, false, null);
+    ItemType outputType = new("output", ItemGroup.CURRENCY, null, "Output", "uxAsset1", 0, 0, false, null, null);
     Item output = new Item(outputType);
     Assert.IsTrue(inventory.Craft(outputType, inputs));
     // Check that the item was added to the inventory.
@@ -154,8 +154,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -209,8 +209,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);

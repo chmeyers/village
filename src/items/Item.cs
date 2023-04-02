@@ -1,4 +1,6 @@
+using System.Runtime.CompilerServices;
 using Newtonsoft.Json;
+using Village.Ability;
 
 
 namespace Village.Item
@@ -36,6 +38,11 @@ namespace Village.Item
     // This is used to look up item types by name.
     private static Dictionary<string, ItemType> _itemTypes = new Dictionary<string, ItemType>();
 
+    // Clear the item types dictionary.
+    public static void Clear()
+    {
+      _itemTypes.Clear();
+    }
     // Readonly Accessor for the item types dictionary.
     public static IReadOnlyDictionary<string, ItemType> itemTypes
     {
@@ -102,8 +109,39 @@ namespace Village.Item
             scrapItems.Add(Find(scrapItem.Key)!, (int)(long)scrapItem.Value);
           }
         }
+        // Get the list of ability strings from the ability json field.
+        HashSet<string>? abilitySet = null;
+        if (itemData.ContainsKey("abilities")) {
+          // Check that the abilities are a list.
+          if (!(itemData["abilities"] is Newtonsoft.Json.Linq.JArray)) {
+            throw new Exception("Abilities must be a list for item type: " + name);
+          }
+          List<string>? abilities = ((Newtonsoft.Json.Linq.JArray)itemData["abilities"]).ToObject<List<string>>();
+          if (abilities == null) {
+            throw new Exception("Abilities must not be null for item type: " + name);
+          }
+          // Check that each ability in the list exists in the AbilityType dictionary.
+          foreach (var ability in abilities!) {
+            if (!AbilityType.abilityTypes.ContainsKey(ability)) {
+              throw new Exception("Ability not found: " + ability + " for item type: " + name);
+            }
+          }
+          // Create a set of ability subtype string with the subtypes of each ability already in the list.
+          abilitySet = new HashSet<string>();
+          foreach (var ability in abilities!) {
+            foreach (var subType in AbilityType.abilityTypes[ability].subTypes) {
+              abilitySet.Add(subType);
+            }
+          }
+          // Add the original abilities to the set.
+          foreach (var ability in abilities!) {
+            abilitySet.Add(ability);
+          }
+        }
+        
+
         // Create the item type.
-        ItemType itemType = new ItemType(name, group, parent, displayName, uxAsset, spoilTime, lossRate, flammable, scrapItems);
+        ItemType itemType = new ItemType(name, group, parent, displayName, uxAsset, spoilTime, lossRate, flammable, scrapItems, abilitySet);
         // Add the item type to the dictionary.
         _itemTypes.Add(name, itemType);
       }
@@ -135,7 +173,7 @@ namespace Village.Item
     // Constructor
     public ItemType(string name, ItemGroup group, ItemType? parent, string displayName,
                     string uxAsset, int spoilTime, int lossRate, bool flammable,
-                    Dictionary<ItemType, int>? scrapItems)
+                    Dictionary<ItemType, int>? scrapItems, HashSet<string>? abilities)
     {
       itemType = name;
       itemGroup = group;
@@ -146,6 +184,7 @@ namespace Village.Item
       this.lossRate = lossRate;
       this.flammable = flammable;
       this.scrapItems = scrapItems;
+      this.abilities = abilities;
     }
 
     // The name of the item type.
@@ -179,6 +218,9 @@ namespace Village.Item
     // What items and quantities this item will turn into if destroyed.
     // For example, a broken tool will turn into scrap metal.
     public readonly Dictionary<ItemType, int>? scrapItems;
+
+    // Set of abilities this item type provides.
+    public readonly HashSet<string>? abilities;
 
     public override bool Equals(object? obj)
     {

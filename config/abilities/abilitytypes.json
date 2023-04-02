@@ -1,0 +1,5 @@
+{
+  "chopping" : { "levels": 5 },
+  "cutting" : { "levels": 10 },
+  "mining" : { "levels": 10 }
+}
