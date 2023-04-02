@@ -1,2 +1,4 @@
-obj/
-bin/
+test/obj/
+test/bin/
+src/obj/
+src/bin/
