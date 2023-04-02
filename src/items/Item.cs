@@ -1,9 +1,9 @@
 using Newtonsoft.Json;
 
 
-namespace Item
+namespace Village.Item
 {
-  enum ItemGroup
+  public enum ItemGroup
   {
     // Currency is a special type of item that can be used to buy and sell other items.
     CURRENCY,
@@ -30,7 +30,7 @@ namespace Item
 
   // A ItemType describes a general item and stores information
   // related to all items of that type.
-  class ItemType
+  public class ItemType
   {
     // A static dictionary of all item types.
     // This is used to look up item types by name.
@@ -76,22 +76,30 @@ namespace Item
         // Get the item type UX asset.
         string uxAsset = (string)itemData.GetValueOrDefault("uxAsset", "");
         // Get the item type spoil time.
-        int spoilTime = (int)itemData.GetValueOrDefault("spoilTime", 0);
+        int spoilTime = (int)(long)itemData.GetValueOrDefault("spoilTime", 0L);
         // Get the item type loss rate.
-        int lossRate = (int)itemData.GetValueOrDefault("lossRate", 0);
+        int lossRate = (int)(long)itemData.GetValueOrDefault("lossRate", 0L);
         // Get the item type flammability or default to false.
         bool flammable = (bool)itemData.GetValueOrDefault("flammable", false);
         
         // Get the item type scrap items.
         Dictionary<ItemType, int>? scrapItems = null;
         if (itemData.ContainsKey("scrapItems")) {
+          // Check that the scrap items are a dictionary.
+          if (!(itemData["scrapItems"] is Newtonsoft.Json.Linq.JObject)) {
+            throw new Exception("Scrap items must be a dictionary for item type: " + name);
+          }
+          var dict = ((Newtonsoft.Json.Linq.JObject)itemData["scrapItems"]).ToObject<Dictionary<string, object>>();
+          if (dict == null) {
+            throw new Exception("Scrap items must not be null for item type: " + name);
+          }
           scrapItems = new Dictionary<ItemType, int>();
-          foreach (var scrapItem in (Dictionary<string, object>)itemData["scrapItems"]) {
+          foreach (var scrapItem in dict!) {
             // If the scrap item isn't already in the dictionary, throw an error.
             if (!_itemTypes.ContainsKey(scrapItem.Key)) {
               throw new Exception("Scrap item type not found: " + scrapItem.Key + " for item type: " + name);
             }
-            scrapItems.Add(Find(scrapItem.Key)!, (int)scrapItem.Value);
+            scrapItems.Add(Find(scrapItem.Key)!, (int)(long)scrapItem.Value);
           }
         }
         // Create the item type.
@@ -100,17 +108,27 @@ namespace Item
         _itemTypes.Add(name, itemType);
       }
     }
+    // Loader function to load all item types from a JSON string.
+    public static void LoadString(string json)
+    {
+      // Parse the JSON string into a dictionary of item type names and data.
+      Dictionary<string, Dictionary<string, object>>? data = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, object>>>(json);
+      if (data == null) {
+        throw new Exception("Failed to load item types from string");
+      }
+      Load(data);
+    }
     // Loader function to load all item types from a JSON file.
-    public static void Load(string filename)
+    public static void LoadFile(string filename)
     {
       // Load the JSON file.
       string json = File.ReadAllText(filename);
-      // Parse the JSON file into a dictionary of item type names and data.
-      Dictionary<string, Dictionary<string, object>>? data = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, object>>>(json);
-      if (data == null) {
-        throw new Exception("Failed to load item types from file: " + filename);
+      try {
+        LoadString(json);
       }
-      Load(data);
+      catch (Exception e) {
+        throw new Exception("Failed to load item types from file: " + filename + "\n" + e.Message);
+      }
     }
 
 
@@ -178,7 +196,7 @@ namespace Item
   }
 
   // An Item is a specific instance of an ItemType.
-  class Item
+  public class Item
   {
 
     // Constructor
@@ -187,10 +205,11 @@ namespace Item
       itemType = type;
       originalQuality = 100;
       quality = 100;
-      timeUntilSpoilage = type.spoilTime;
+      timeUntilSpoilage = (int)type.spoilTime;
       if (timeUntilSpoilage == 0) {
         timeUntilSpoilage = int.MaxValue;
       }
+      uniqueName = null;
     }
 
     // The type of this item.

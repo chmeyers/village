@@ -1,5 +1,5 @@
 
-namespace Item
+namespace Village.Item
 {
 
   // An Inventory is a collection of items, owned by a person, building, trader, village, etc.

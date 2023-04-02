@@ -4,6 +4,17 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
+
+    {
+      "name": "Unittests",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "test",
+      "program": "${workspaceFolder}/test/bin/Debug/net7.0/test.dll",
+      "cwd": "${workspaceFolder}",
+      "console": "internalConsole",
+      "stopAtEntry": false
+    },
     {
       "name": ".NET Core Launch (console)",
       "type": "coreclr",
