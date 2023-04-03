@@ -1,0 +1,4 @@
+{
+  "degrade_1" : { "target" : "Item", "effectType" : "Degrade", "config" : {"amount": 1} },
+  "skill_cutting_1" : { "target" : "Person", "effectType" : "Skill", "config" : {"skill": "cutting", "amount": 1, "maxLevel": 5} }
+}
