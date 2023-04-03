@@ -13,6 +13,7 @@ using Village.Items;
 
 namespace Village.Tasks
 {
+  // Named WorkTask instead of Task to avoid conflict with System.Task
   public class WorkTask
   {
     // Dictionary to store the loaded Tasks
