@@ -20,7 +20,7 @@ public class EffectUnitTest
     Assert.AreEqual(2, Effect.effects.Count);
     // Check that the effects were loaded correctly.
     Assert.AreEqual(EffectType.Degrade, Effect.effects["degrade_1"].effectType);
-    Assert.AreEqual(EffectTarget.Item, Effect.effects["degrade_1"].target);
+    Assert.AreEqual(EffectTargetType.Item, Effect.effects["degrade_1"].target);
     // Check that it's a DegradeEffect class.
     Assert.IsInstanceOfType(Effect.effects["degrade_1"], typeof(DegradeEffect));
     // Cast it to a DegradeEffect and check the amount.
@@ -28,7 +28,7 @@ public class EffectUnitTest
     Assert.AreEqual(1, degradeEffect.amount);
     // Check the second effect.
     Assert.AreEqual(EffectType.Skill, Effect.effects["skill_cutting_1"].effectType);
-    Assert.AreEqual(EffectTarget.Person, Effect.effects["skill_cutting_1"].target);
+    Assert.AreEqual(EffectTargetType.Person, Effect.effects["skill_cutting_1"].target);
     // Check that it's a SkillEffect class.
     Assert.IsInstanceOfType(Effect.effects["skill_cutting_1"], typeof(SkillEffect));
     // Cast it to a SkillEffect and check the members.

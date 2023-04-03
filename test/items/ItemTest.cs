@@ -1,6 +1,6 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Village.Ability;
-using Village.Item;
+using Village.Abilities;
+using Village.Items;
 namespace VillageTest;
 
 [TestClass]

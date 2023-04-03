@@ -1,5 +1,5 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
-using Village.Item;
+using Village.Items;
 namespace VillageTest;
 
 [TestClass]
