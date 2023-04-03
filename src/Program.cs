@@ -1,6 +1,7 @@
-﻿using Village.Ability;
+﻿using Village.Abilities;
 using Village.Effects;
-using Village.Item;
+using Village.Items;
+using Village.Tasks;
 
 namespace Village
 {
@@ -15,6 +16,8 @@ namespace Village
             ItemType.LoadFile("config/items/itemtypes.json");
             // Load the effects.
             Effect.LoadFile("config/effects/effects.json");
+            // Load the tasks.
+            WorkTask.LoadFile("config/tasks/tasks.json");
         }
         static void Main(string[] args)
         {
@@ -35,6 +38,11 @@ namespace Village
             foreach (Effect effect in Effect.effects.Values)
             {
                 Console.WriteLine(effect.effect);
+            }
+            // Print the tasks.
+            foreach (WorkTask workTask in WorkTask.tasks.Values)
+            {
+                Console.WriteLine(workTask.task);
             }
         }
     }

@@ -1,0 +1,6 @@
+{
+  "gather_wood": { "timeCost": 10, "requirements": ["chopping_1"], "repeatable": true, "outputs" : { "wood" : 100 }, "effects" : { "skill_chopping_1" : [""], "degrade_1": ["chopping_1"] } },
+  "teach_chopping_1": { "timeCost": 10, "requirements": ["chopping_2"],  "effects" : { "skill_chopping_1" : ["@1"] } },
+  "eat": { "timeCost": 0, "inputs" : { "grain" : 100 } },
+  "sleep": { "timeCost": 0, "requirements" : ["bed_1"] }
+}
