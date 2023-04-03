@@ -1,4 +1,5 @@
-﻿using Village.Item;
+﻿using Village.Ability;
+using Village.Item;
 
 namespace Village
 {
@@ -7,6 +8,8 @@ namespace Village
         // Load configurations from JSON files.
         public static void LoadConfig()
         {
+            // Load the ability types.
+            AbilityType.LoadFile("config/abilities/abilitytypes.json");
             // Load the item types.
             ItemType.LoadFile("config/items/itemtypes.json");
         }
