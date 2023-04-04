@@ -16,9 +16,12 @@ public class InventoryUnitTest
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
+    Assert.IsFalse(inventory.Contains(item));
+    Assert.IsFalse(inventory.Contains(item2));
     // Add an item to the inventory.
     inventory.Add(item, 1);
     // Check that the item was added to the inventory.
+    Assert.IsTrue(inventory.Contains(item));
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(1, inventory[item]);
     // Add another item to the inventory.
@@ -47,6 +50,10 @@ public class InventoryUnitTest
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(4, inventory[item2]);
     Assert.AreEqual(8, inventory.CountAll());
+    Assert.IsTrue(inventory.Contains(item));
+    Assert.IsTrue(inventory.Contains(item2));
+    Assert.IsTrue(inventory.Contains(new Dictionary<ItemType, int>() { { itemType, 1 }, { itemType2, 1 } }));
+
   }
 
   [TestMethod]

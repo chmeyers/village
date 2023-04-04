@@ -1,3 +1,4 @@
+using Village.Abilities;
 
 namespace Village.Items;
 
@@ -15,7 +16,21 @@ public class Inventory
   private readonly object _itemsLock = new object();
 
   // The items in the inventory with their quantities.
-  private Dictionary<Item, int> _items = new Dictionary<Item, int>();
+  private Dictionary<ItemType, Dictionary<Item, int>> _items = new Dictionary<ItemType, Dictionary<Item, int>>();
+
+  // Get a list of abilities granted by the items in the inventory.
+  public HashSet<AbilityType> GetAbilities()
+  {
+    HashSet<AbilityType> abilities = new HashSet<AbilityType>();
+    lock (_itemsLock)
+    {
+      foreach (ItemType itemType in _items.Keys)
+      {
+        abilities.UnionWith(itemType.abilities);
+      }
+    }
+    return abilities;
+  }
 
   // Craft an item, using the specified inputs. Fails if the input items don't exist in the inventory.
   public bool Craft(ItemType output, Dictionary<Item, int> inputs)
@@ -151,9 +166,11 @@ public class Inventory
     lock (_itemsLock)
     {
       int count = 0;
-      foreach (var item in _items)
+      foreach (var itemType in _items)
       {
-        count += item.Value;
+        foreach (var item in itemType.Value) {
+          count += item.Value;
+        }
       }
       return count;
     }
@@ -168,6 +185,15 @@ public class Inventory
     }
   }
 
+  // Check whether the given items exists in the inventory with at least the specified quantity.
+  public bool Contains(Dictionary<ItemType, int> items)
+  {
+    lock (_itemsLock)
+    {
+      return _ContainsNoLock(items);
+    }
+  }
+
   // Bracket operator to get the quantity of an item in the inventory.
   public int this[Item item]
   {
@@ -175,9 +201,9 @@ public class Inventory
     {
       lock (_itemsLock)
       {
-        if (_items.ContainsKey(item))
+        if (_items.ContainsKey(item.itemType) && _items[item.itemType].ContainsKey(item))
         {
-          return _items[item];
+          return _items[item.itemType][item];
         }
         return 0;
       }
@@ -188,16 +214,21 @@ public class Inventory
   // Internal function to remove items from the inventory with no locking.
   private bool _RemoveNoLock(Item item, int quantity)
   {
-    if (_items.ContainsKey(item))
+    if (_items.ContainsKey(item.itemType) && _items[item.itemType].ContainsKey(item))
     {
-      if (_items[item] > quantity)
+      
+      if (_items[item.itemType][item] > quantity)
       {
-        _items[item] -= quantity;
+        _items[item.itemType][item] -= quantity;
         return true;
       }
-      else if (_items[item] == quantity)
+      else if (_items[item.itemType][item] == quantity)
       {
-        _items.Remove(item);
+        _items[item.itemType].Remove(item);
+        if (_items[item.itemType].Count == 0)
+        {
+          _items.Remove(item.itemType);
+        }
         return true;
       }
     }
@@ -207,13 +238,20 @@ public class Inventory
   // Internal function to add items to the inventory with no locking.
   private void _AddNoLock(Item item, int quantity)
   {
-    if (_items.ContainsKey(item))
+    if (_items.ContainsKey(item.itemType))
     {
-      _items[item] += quantity;
+      if (_items[item.itemType].ContainsKey(item))
+      {
+        _items[item.itemType][item] += quantity;
+      }
+      else
+      {
+        _items[item.itemType].Add(item, quantity);
+      }
     }
     else
     {
-      _items.Add(item, quantity);
+      _items.Add(item.itemType, new Dictionary<Item, int> { { item, quantity } });
     }
   }
 
@@ -221,9 +259,31 @@ public class Inventory
   // in the inventory with no locking.
   private bool _ContainsNoLock(Item item, int quantity)
   {
-    if (_items.ContainsKey(item))
+    if (_items.ContainsKey(item.itemType) && _items[item.itemType].ContainsKey(item))
     {
-      return _items[item] >= quantity;
+      if (_items[item.itemType][item] >= quantity)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  // Internal function to check whether a given quantity of an itemType exists
+  // in the inventory with no locking.
+  private bool _ContainsNoLock(ItemType itemType, int quantity)
+  {
+    if (_items.ContainsKey(itemType))
+    {
+      int count = 0;
+      foreach (var item in _items[itemType])
+      {
+        count += item.Value;
+      }
+      if (count >= quantity)
+      {
+        return true;
+      }
     }
     return false;
   }
@@ -235,6 +295,20 @@ public class Inventory
     foreach (var item in items)
     {
       if (!_ContainsNoLock(item.Key, item.Value))
+      {
+        return false;
+      }
+    }
+    return true;
+  }
+
+  // Internal function to check whether a given quantity of all itemtypes exists
+  // in the inventory with no locking.
+  private bool _ContainsNoLock(Dictionary<ItemType, int> itemTypes)
+  {
+    foreach (var itemType in itemTypes)
+    {
+      if (!_ContainsNoLock(itemType.Key, itemType.Value))
       {
         return false;
       }
