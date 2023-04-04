@@ -39,8 +39,9 @@ public class AbilityType
       string name = ability.Key;
       // Get the levels setting from the Value
       int levels = (int)(long)ability.Value["levels"];
-      // Iterate over the levels.
-      for (int level = 0; level < levels; level++) {
+      // Iterate over the levels, starting at the highest level, so
+      // that the higher level abilities can be added to the sub types.
+      for (int level = levels - 1; level >= 0; level--) {
         // Create the ability type.
         AbilityType abilityType = new AbilityType(name, level);
         // Add the ability type to the dictionary.
@@ -88,14 +89,14 @@ public class AbilityType
     this.abilityType = GetAbilityName(abilityType, level);
     // Set the parent type.
     this.parentType = abilityType;
-    // Set the sub types by copying the sub types of the lower level ability with the same name.
-    // and adding the lower level ability to the list.
-    this.subTypes = new List<string>();
-    if (level != null && level > 0) {
-      AbilityType? lowerLevelAbility = Find(GetAbilityName(abilityType, level - 1));
-      if (lowerLevelAbility != null) {
-        this.subTypes.AddRange(lowerLevelAbility.subTypes);
-        this.subTypes.Add(lowerLevelAbility.abilityType);
+    // Set the super types by copying the super types of the higher level ability with
+    // the same name and adding the higher level ability to the list.
+    this.superTypes = new List<string>();
+    if (level != null) {
+      AbilityType? parent = Find(GetAbilityName(abilityType, level + 1));
+      if (parent != null) {
+        this.superTypes.AddRange(parent.superTypes);
+        this.superTypes.Add(parent.abilityType);
       }
     }
     
@@ -108,8 +109,8 @@ public class AbilityType
   // The name of the parent ability type.
   public readonly string parentType;
 
-  // The list of lower level abilities that this ability also grants.
-  public readonly List<string> subTypes;
+  // The list of higher level abilities that also grant this ability.
+  public readonly List<string> superTypes;
 
   public override bool Equals(object? obj)
   {

@@ -16,9 +16,9 @@ public class AbilityUnitTest
     Assert.AreEqual(10, AbilityType.abilityTypes.Count);
     // Check that the ability types were loaded correctly.
     Assert.AreEqual("cutting", AbilityType.abilityTypes["cutting_9"].parentType);
-    Assert.AreEqual(9, AbilityType.abilityTypes["cutting_9"].subTypes.Count);
-    Assert.IsTrue(AbilityType.abilityTypes["cutting_9"].subTypes.Contains("cutting_8"));
-    Assert.IsTrue(AbilityType.abilityTypes["cutting_9"].subTypes.Contains("cutting_0"));
+    Assert.AreEqual(2, AbilityType.abilityTypes["cutting_7"].superTypes.Count);
+    Assert.IsTrue(AbilityType.abilityTypes["cutting_7"].superTypes.Contains("cutting_8"));
+    Assert.IsTrue(AbilityType.abilityTypes["cutting_7"].superTypes.Contains("cutting_9"));
   }
     
 }

@@ -124,14 +124,8 @@ public class ItemType
             throw new Exception("Ability not found: " + ability + " for item type: " + name);
           }
         }
-        // Create a set of ability subtype string with the subtypes of each ability already in the list.
         abilitySet = new HashSet<string>();
-        foreach (var ability in abilities!) {
-          foreach (var subType in AbilityType.abilityTypes[ability].subTypes) {
-            abilitySet.Add(subType);
-          }
-        }
-        // Add the original abilities to the set.
+        // Add the abilities to the set.
         foreach (var ability in abilities!) {
           abilitySet.Add(ability);
         }
