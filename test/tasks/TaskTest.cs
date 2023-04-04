@@ -67,6 +67,15 @@ public class TaskUnitTest
       Assert.AreEqual(1, WorkTask.tasks["teach_chopping_1"].effects.Count);
       Assert.AreEqual(1, WorkTask.tasks["gather_wood"].effects[Effect.Find("skill_chopping_1")!].Count);
       Assert.AreEqual(EffectTargetType.Person, WorkTask.tasks["gather_wood"].effects[Effect.Find("skill_chopping_1")!][0].effectTargetType);
+      // Check the tasks by ability index.
+      Assert.AreEqual(2, WorkTask.tasksByAbility["chopping_2"].Count);
+      // chopping_2 should have gather_wood and teach_chopping_1.
+      Assert.IsTrue(WorkTask.tasksByAbility["chopping_2"].Contains(WorkTask.tasks["gather_wood"]));
+      Assert.IsTrue(WorkTask.tasksByAbility["chopping_2"].Contains(WorkTask.tasks["teach_chopping_1"]));
+      // chopping_1 should have gather_wood.
+      Assert.AreEqual(1, WorkTask.tasksByAbility["chopping_1"].Count);
+      Assert.IsTrue(WorkTask.tasksByAbility["chopping_1"].Contains(WorkTask.tasks["gather_wood"]));
+
     }
   }
 }

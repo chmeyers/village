@@ -19,15 +19,27 @@ namespace Village.Tasks
     // Dictionary to store the loaded Tasks
     private static Dictionary<string, WorkTask> _tasks = new Dictionary<string, WorkTask>();
 
-    // Clear the task dictionary.
+    // Index of tasks based on the abilities required to perform them.
+    // Tasks are listed under each ability they require, as well as under the
+    // super types of those abilities.
+    private static Dictionary<string, List<WorkTask>> _tasksByAbility = new Dictionary<string, List<WorkTask>>();
+
+    // Clear the task dictionaries.
     public static void Clear()
     {
       _tasks.Clear();
+      _tasksByAbility.Clear();
     }
     // Readonly Accessor for the task dictionary.
     public static IReadOnlyDictionary<string, WorkTask> tasks
     {
       get { return _tasks; }
+    }
+
+    // Readonly Accessor for the tasksByAbility dictionary.
+    public static IReadOnlyDictionary<string, List<WorkTask>> tasksByAbility
+    {
+      get { return _tasksByAbility; }
     }
 
     // Find a Task by name.
@@ -38,6 +50,41 @@ namespace Village.Tasks
         return _tasks[name];
       }
       return null;
+    }
+
+    // Get a list of potential tasks for given set of abilities, the passed in abilities
+    // should already be expanded to include all subtypes.
+    public static HashSet<WorkTask> GetTasksForAbilities(HashSet<AbilityType> abilities)
+    {
+      // Create a set to store the tasks.
+      HashSet<WorkTask> tasks = new HashSet<WorkTask>();
+      // Add all the tasks that have no requirements.
+      if (_tasksByAbility.ContainsKey(""))
+      {
+        foreach (WorkTask task in _tasksByAbility[""])
+        {
+          tasks.Add(task);
+        }
+      }
+      // Iterate over the abilities.
+      foreach (AbilityType ability in abilities)
+      {
+        // If the ability is in the tasksByAbility dictionary, add the tasks to the list.
+        if (_tasksByAbility.ContainsKey(ability.abilityType))
+        {
+          // For each task, check that all the requirements are met.
+          foreach (WorkTask task in _tasksByAbility[ability.abilityType])
+          {
+            // If the task has no requirements, or all the requirements are met, add it to the set.
+            if (abilities.IsSupersetOf(task.requirements))
+            {
+              tasks.Add(task);
+            }
+          }
+        }
+      }
+      // Return the list of tasks.
+      return tasks;
     }
 
     // Loader function to load all tasks from a JSON Dictionary.
@@ -203,6 +250,34 @@ namespace Village.Tasks
       
       // Add the task to the dictionary.
       _tasks.Add(task, this);
+
+      // Add the task to the tasks by ability index.
+      foreach (AbilityType ability in this.requirements)
+      {
+        // Add it for the ability type and all it's super types.
+        foreach (string superType in ability.superTypes)
+        {
+          if (!_tasksByAbility.ContainsKey(superType))
+          {
+            _tasksByAbility.Add(superType, new List<WorkTask>());
+          }
+          _tasksByAbility[superType].Add(this);
+        }
+        if (!_tasksByAbility.ContainsKey(ability.abilityType))
+        {
+          _tasksByAbility.Add(ability.abilityType, new List<WorkTask>());
+        }
+        _tasksByAbility[ability.abilityType].Add(this);
+      }
+      // If the task has no requirements, add it to the empty string key.
+      if (this.requirements.Count == 0)
+      {
+        if (!_tasksByAbility.ContainsKey(""))
+        {
+          _tasksByAbility.Add("", new List<WorkTask>());
+        }
+        _tasksByAbility[""].Add(this);
+      }
     }
 
 
