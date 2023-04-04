@@ -63,10 +63,7 @@ public class Person
       validTasks.Clear();
       CalculateAbilities();
       // Get Tasks based on abilities.
-      foreach (AbilityType abilityType in Abilities)
-      {
-        validTasks.UnionWith(WorkTask.GetTasksForAbilities(allAbilities));
-      }
+      validTasks.UnionWith(WorkTask.GetTasksForAbilities(allAbilities));
       // The valid tasks are no longer dirty.
       validTasksDirty = false;
     }
@@ -147,6 +144,15 @@ public class Person
 
   // The person's main inventory.
   protected Inventory inventory = new Inventory();
+
+  // readonly accessor for the inventory.
+  public Inventory Inventory
+  {
+    get
+    {
+      return inventory;
+    }
+  }
 
   // Set of permanant abilities the person has.
   protected HashSet<AbilityType> abilities = new HashSet<AbilityType>();
