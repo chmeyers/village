@@ -39,14 +39,14 @@ public class AbilityType
       string name = ability.Key;
       // Get the levels setting from the Value
       int levels = (int)(long)ability.Value["levels"];
-      // Iterate over the levels, starting at the highest level, so
-      // that the higher level abilities can be added to the sub types.
-      for (int level = levels - 1; level >= 0; level--) {
+      // Iterate over the levels of the ability type.
+      for (int level = 0; level < levels; level++) {
         // Create the ability type.
         AbilityType abilityType = new AbilityType(name, level);
         // Add the ability type to the dictionary.
         _abilityTypes.Add(abilityType.abilityType, abilityType);
       }
+      
     }
   }
 
@@ -89,14 +89,22 @@ public class AbilityType
     this.abilityType = GetAbilityName(abilityType, level);
     // Set the parent type.
     this.parentType = abilityType;
-    // Set the super types by copying the super types of the higher level ability with
-    // the same name and adding the higher level ability to the list.
-    this.superTypes = new List<string>();
+    // Set the sub types by copying the sub types of the lower level ability with
+    // the same name and adding the lower level ability to the list.
+    this.subTypes = new List<string>();
     if (level != null) {
-      AbilityType? parent = Find(GetAbilityName(abilityType, level + 1));
+      AbilityType? parent = Find(GetAbilityName(abilityType, level - 1));
       if (parent != null) {
-        this.superTypes.AddRange(parent.superTypes);
-        this.superTypes.Add(parent.abilityType);
+        this.subTypes.AddRange(parent.subTypes);
+        this.subTypes.Add(parent.abilityType);
+      }
+    }
+    // Add this ability to the super types of all sub types.
+    this.superTypes = new List<string>();
+    foreach (string subType in this.subTypes) {
+      AbilityType? sub = Find(subType);
+      if (sub != null) {
+        sub.superTypes.Add(this.abilityType);
       }
     }
     
@@ -108,6 +116,9 @@ public class AbilityType
 
   // The name of the parent ability type.
   public readonly string parentType;
+
+// The list of lower level abilities that are granted by this ability.
+  public readonly List<string> subTypes;
 
   // The list of higher level abilities that also grant this ability.
   public readonly List<string> superTypes;
