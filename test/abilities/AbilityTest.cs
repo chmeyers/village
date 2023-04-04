@@ -17,13 +17,16 @@ public class AbilityUnitTest
     // Check that the ability types were loaded correctly.
     Assert.AreEqual("cutting", AbilityType.abilityTypes["cutting_9"].parentType);
     Assert.AreEqual(2, AbilityType.abilityTypes["cutting_7"].superTypes.Count);
-    Assert.IsTrue(AbilityType.abilityTypes["cutting_7"].superTypes.Contains("cutting_8"));
-    Assert.IsTrue(AbilityType.abilityTypes["cutting_7"].superTypes.Contains("cutting_9"));
+    AbilityType c9 = AbilityType.abilityTypes["cutting_9"];
+    AbilityType c8 = AbilityType.abilityTypes["cutting_8"];
+    AbilityType c0 = AbilityType.abilityTypes["cutting_0"];
+    Assert.IsTrue(AbilityType.abilityTypes["cutting_7"].superTypes.Contains(c8));
+    Assert.IsTrue(AbilityType.abilityTypes["cutting_7"].superTypes.Contains(c9));
     Assert.AreEqual(9, AbilityType.abilityTypes["cutting_0"].superTypes.Count);
     // Check subtypes
     Assert.AreEqual(9, AbilityType.abilityTypes["cutting_9"].subTypes.Count);
-    Assert.IsTrue(AbilityType.abilityTypes["cutting_9"].subTypes.Contains("cutting_0"));
-    Assert.IsTrue(AbilityType.abilityTypes["cutting_9"].subTypes.Contains("cutting_8"));
+    Assert.IsTrue(AbilityType.abilityTypes["cutting_9"].subTypes.Contains(c0));
+    Assert.IsTrue(AbilityType.abilityTypes["cutting_9"].subTypes.Contains(c8));
   }
     
 }

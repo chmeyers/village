@@ -255,13 +255,13 @@ namespace Village.Tasks
       foreach (AbilityType ability in this.requirements)
       {
         // Add it for the ability type and all it's super types.
-        foreach (string superType in ability.superTypes)
+        foreach (AbilityType superType in ability.superTypes)
         {
-          if (!_tasksByAbility.ContainsKey(superType))
+          if (!_tasksByAbility.ContainsKey(superType.abilityType))
           {
-            _tasksByAbility.Add(superType, new List<WorkTask>());
+            _tasksByAbility.Add(superType.abilityType, new List<WorkTask>());
           }
-          _tasksByAbility[superType].Add(this);
+          _tasksByAbility[superType.abilityType].Add(this);
         }
         if (!_tasksByAbility.ContainsKey(ability.abilityType))
         {

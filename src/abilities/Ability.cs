@@ -91,21 +91,18 @@ public class AbilityType
     this.parentType = abilityType;
     // Set the sub types by copying the sub types of the lower level ability with
     // the same name and adding the lower level ability to the list.
-    this.subTypes = new List<string>();
+    this.subTypes = new List<AbilityType>();
     if (level != null) {
       AbilityType? parent = Find(GetAbilityName(abilityType, level - 1));
       if (parent != null) {
         this.subTypes.AddRange(parent.subTypes);
-        this.subTypes.Add(parent.abilityType);
+        this.subTypes.Add(parent);
       }
     }
     // Add this ability to the super types of all sub types.
-    this.superTypes = new List<string>();
-    foreach (string subType in this.subTypes) {
-      AbilityType? sub = Find(subType);
-      if (sub != null) {
-        sub.superTypes.Add(this.abilityType);
-      }
+    this.superTypes = new List<AbilityType>();
+    foreach (AbilityType subType in this.subTypes) {
+      subType.superTypes.Add(this);
     }
     
   }
@@ -118,10 +115,10 @@ public class AbilityType
   public readonly string parentType;
 
 // The list of lower level abilities that are granted by this ability.
-  public readonly List<string> subTypes;
+  public readonly List<AbilityType> subTypes;
 
   // The list of higher level abilities that also grant this ability.
-  public readonly List<string> superTypes;
+  public readonly List<AbilityType> superTypes;
 
   public override bool Equals(object? obj)
   {
