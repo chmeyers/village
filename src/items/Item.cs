@@ -88,7 +88,7 @@ public class ItemType
       bool flammable = (bool)itemData.GetValueOrDefault("flammable", false);
       
       // Get the item type scrap items.
-      Dictionary<ItemType, int>? scrapItems = null;
+      Dictionary<ItemType, int> scrapItems = new Dictionary<ItemType, int>();
       if (itemData.ContainsKey("scrapItems")) {
         // Check that the scrap items are a dictionary.
         if (!(itemData["scrapItems"] is Newtonsoft.Json.Linq.JObject)) {
@@ -98,7 +98,6 @@ public class ItemType
         if (dict == null) {
           throw new Exception("Scrap items must not be null for item type: " + name);
         }
-        scrapItems = new Dictionary<ItemType, int>();
         foreach (var scrapItem in dict!) {
           // If the scrap item isn't already in the dictionary, throw an error.
           if (!_itemTypes.ContainsKey(scrapItem.Key)) {
@@ -108,7 +107,7 @@ public class ItemType
         }
       }
       // Get the list of ability strings from the ability json field.
-      HashSet<string>? abilitySet = null;
+      HashSet<AbilityType> abilitySet = new HashSet<AbilityType>();
       if (itemData.ContainsKey("abilities")) {
         // Check that the abilities are a list.
         if (!(itemData["abilities"] is Newtonsoft.Json.Linq.JArray)) {
@@ -123,11 +122,7 @@ public class ItemType
           if (!AbilityType.abilityTypes.ContainsKey(ability)) {
             throw new Exception("Ability not found: " + ability + " for item type: " + name);
           }
-        }
-        abilitySet = new HashSet<string>();
-        // Add the abilities to the set.
-        foreach (var ability in abilities!) {
-          abilitySet.Add(ability);
+          abilitySet.Add(AbilityType.abilityTypes[ability]!);
         }
       }
       
@@ -165,7 +160,7 @@ public class ItemType
   // Constructor
   public ItemType(string name, ItemGroup group, ItemType? parent, string displayName,
                   string uxAsset, int spoilTime, int lossRate, bool flammable,
-                  Dictionary<ItemType, int>? scrapItems, HashSet<string>? abilities)
+                  Dictionary<ItemType, int>? scrapItems, HashSet<AbilityType>? abilities)
   {
     itemType = name;
     itemGroup = group;
@@ -175,8 +170,20 @@ public class ItemType
     this.spoilTime = spoilTime;
     this.lossRate = lossRate;
     this.flammable = flammable;
-    this.scrapItems = scrapItems;
-    this.abilities = abilities;
+    // If scrap items is null, set it to an empty dictionary.
+    if (scrapItems == null) {
+      this.scrapItems = new Dictionary<ItemType, int>();
+    }
+    else {
+      this.scrapItems = scrapItems;
+    }
+    // If abilities is null, set it to an empty set.
+    if (abilities == null) {
+      this.abilities = new HashSet<AbilityType>();
+    }
+    else {
+      this.abilities = abilities;
+    }
   }
 
   // The name of the item type.
@@ -209,10 +216,10 @@ public class ItemType
 
   // What items and quantities this item will turn into if destroyed.
   // For example, a broken tool will turn into scrap metal.
-  public readonly Dictionary<ItemType, int>? scrapItems;
+  public readonly Dictionary<ItemType, int> scrapItems;
 
   // Set of abilities this item type provides.
-  public readonly HashSet<string>? abilities;
+  public readonly HashSet<AbilityType> abilities;
 
   public override bool Equals(object? obj)
   {
@@ -257,7 +264,7 @@ public class Item
   // The quality of this item, in hundredths of a unit.
   public int quality;
 
-  // How many hundredths of a turns until this item spoils, or MAX_INT if it never spoils.
+  // How many tenths of a day until this item spoils, or MAX_INT if it never spoils.
   public int timeUntilSpoilage;
 
   // Equals function compares the items by value.

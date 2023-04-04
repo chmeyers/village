@@ -65,6 +65,7 @@ public class ItemUnitTest
     // Check that item2 contains the ability.
     Assert.IsNotNull(ItemType.itemTypes["type4"].abilities);
     Assert.AreEqual(1, ItemType.itemTypes["type4"].abilities!.Count);
-    Assert.IsTrue(ItemType.itemTypes["type4"].abilities!.Contains("cutting_2"));
+    AbilityType c2 = AbilityType.abilityTypes["cutting_2"];
+    Assert.IsTrue(ItemType.itemTypes["type4"].abilities!.Contains(c2));
   }
 }
