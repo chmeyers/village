@@ -188,6 +188,10 @@ public class Inventory
   // Check whether the given items exists in the inventory with at least the specified quantity.
   public bool Contains(Dictionary<ItemType, int> items)
   {
+    if (items == null || items.Count == 0)
+    {
+      return true;
+    }
     lock (_itemsLock)
     {
       return _ContainsNoLock(items);
