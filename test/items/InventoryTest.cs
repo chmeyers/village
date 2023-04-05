@@ -114,48 +114,6 @@ public class InventoryUnitTest
   }
 
   [TestMethod]
-  public void TestInventoryCraft()
-  {
-    // Create an inventory.
-    Inventory inventory = new();
-    // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 0, 0, false, null, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, "Type 2", "uxAsset1", 0, 0, false, null, null);
-    // Create some items.
-    Item item = new(itemType);
-    Item item2 = new(itemType2);
-    // Add an item to the inventory.
-    inventory.Add(item, 4);
-    // Check that the item was added to the inventory.
-    Assert.AreEqual(1, inventory.Count());
-    Assert.AreEqual(4, inventory[item]);
-    // Add an item to the inventory.
-    inventory.Add(item2, 5);
-    // Check that the item was added to the inventory.
-    Assert.AreEqual(2, inventory.Count());
-    Assert.AreEqual(5, inventory[item2]);
-    // Craft an item given item and item2 as inputs.
-    var inputs = new Dictionary<Item, int> { { item, 2 }, { item2, 2 } };
-    ItemType outputType = new("output", ItemGroup.CURRENCY, null, "Output", "uxAsset1", 0, 0, false, null, null);
-    Item output = new Item(outputType);
-    Assert.IsTrue(inventory.Craft(outputType, inputs));
-    // Check that the item was added to the inventory.
-    Assert.AreEqual(3, inventory.Count());
-    Assert.AreEqual(Inventory.DEFAULT_QUANTITY + 5, inventory.CountAll());
-    Assert.AreEqual(2, inventory[item]);
-    Assert.AreEqual(3, inventory[item2]);
-    Assert.AreEqual(Inventory.DEFAULT_QUANTITY, inventory[output]);
-    // Try to craft with insufficient inputs.
-    inventory.Remove(item, 1);
-    Assert.IsFalse(inventory.Craft(outputType, inputs));
-    // Check that the item was not added to the inventory.
-    Assert.AreEqual(3, inventory.Count());
-    Assert.AreEqual(1, inventory[item]);
-    Assert.AreEqual(3, inventory[item2]);
-    Assert.AreEqual(Inventory.DEFAULT_QUANTITY, inventory[output]);
-  }
-
-  [TestMethod]
   public void TestInventoryTransfer()
   {
     // Create an inventory.
@@ -252,5 +210,69 @@ public class InventoryUnitTest
     Assert.AreEqual(6, inventory[item2]);
     Assert.AreEqual(1, inventory2.Count());
     Assert.AreEqual(1, inventory2[item]);
+  }
+
+  [TestMethod]
+  public void TestInventoryRemoveTypes()
+  {
+    // Create an inventory.
+    Inventory inventory = new();
+    // Create item types.
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, "Type 1", "uxAsset1", 100, 0, false, null, null);
+    // Create some items.
+    Item item = new(itemType);
+    Item item2 = new(itemType);
+    Item item3 = new(itemType);
+    // Make item2 spoil sooner and item3 later.
+    item2.timeUntilSpoilage = 1;
+    item3.timeUntilSpoilage = 500;
+    // Add some of item and item2 to the inventory.
+    inventory.Add(item, 4);
+    inventory.Add(item2, 4);
+    inventory.Add(item3, 4);
+    // Check that the items were added to the inventory.
+    Assert.AreEqual(1, inventory.Count());
+    Assert.AreEqual(3, inventory.CountUnique());
+    Assert.AreEqual(12, inventory.CountAll());
+    Assert.AreEqual(4, inventory[item]);
+    Assert.AreEqual(4, inventory[item2]);
+    Assert.AreEqual(4, inventory[item3]);
+    // Create input dictionary for removing itemType.
+    var removing = new Dictionary<ItemType, int> { { itemType, 3 }};
+    // Remove 3 of itemType from the inventory.
+    Assert.IsTrue(inventory.Contains(removing));
+    Assert.IsTrue(inventory.Remove(removing));
+    // Check that the items were removed from the inventory, and
+    // that item2 was removed before item.
+    Assert.AreEqual(1, inventory.Count());
+    Assert.AreEqual(3, inventory.CountUnique());
+    Assert.AreEqual(9, inventory.CountAll());
+    Assert.AreEqual(4, inventory[item]);
+    Assert.AreEqual(1, inventory[item2]);
+    Assert.AreEqual(4, inventory[item3]);
+    // Remove more.
+    Assert.IsTrue(inventory.Remove(removing));
+    // Check that all of item2 was removed, and some of item.
+    Assert.AreEqual(1, inventory.Count());
+    Assert.AreEqual(2, inventory.CountUnique());
+    Assert.AreEqual(6, inventory.CountAll());
+    Assert.AreEqual(2, inventory[item]);
+    Assert.AreEqual(4, inventory[item3]);
+    // Remove more.
+    Assert.IsTrue(inventory.Remove(removing));
+    // Check that all of item was removed and one of item3.
+    Assert.AreEqual(1, inventory.Count());
+    Assert.AreEqual(1, inventory.CountUnique());
+    Assert.AreEqual(3, inventory.CountAll());
+    Assert.AreEqual(3, inventory[item3]);
+    // Remove more.
+    Assert.IsTrue(inventory.Remove(removing));
+    // Check that all of item3 was removed.
+    Assert.AreEqual(0, inventory.Count());
+    Assert.AreEqual(0, inventory.CountUnique());
+    Assert.AreEqual(0, inventory.CountAll());
+    // Try to remove more.
+    Assert.IsFalse(inventory.Remove(removing));
+    
   }
 }

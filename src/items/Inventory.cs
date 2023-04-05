@@ -16,7 +16,8 @@ public class Inventory
   private readonly object _itemsLock = new object();
 
   // The items in the inventory with their quantities.
-  private Dictionary<ItemType, Dictionary<Item, int>> _items = new Dictionary<ItemType, Dictionary<Item, int>>();
+  // Items of the same type are sorted so that the "worst" items are used first.
+  private Dictionary<ItemType, SortedDictionary<Item, int>> _items = new Dictionary<ItemType, SortedDictionary<Item, int>>();
 
   // Get a list of abilities granted by the items in the inventory.
   public HashSet<AbilityType> GetAbilities()
@@ -30,30 +31,6 @@ public class Inventory
       }
     }
     return abilities;
-  }
-
-  // Craft an item, using the specified inputs. Fails if the input items don't exist in the inventory.
-  public bool Craft(ItemType output, Dictionary<Item, int> inputs)
-  {
-    // First lock and remove the input items from the inventory.
-    lock (_itemsLock)
-    {
-      // First check that the items exist in the inventory.
-      if (!_ContainsNoLock(inputs))
-      {
-        return false;
-      }
-      // Then remove them.
-      foreach (var item in inputs)
-      {
-        // Ignore the return value since we already checked that the items exist.
-        _RemoveNoLock(item.Key, item.Value);
-      }
-    }
-
-    // Then add the output item to the inventory.
-    Add(new Item(output), DEFAULT_QUANTITY);
-    return true;
   }
 
   // Trade items between two inventories.
@@ -151,6 +128,20 @@ public class Inventory
     }
   }
 
+  // Remove itemTypes from the inventory, selecting the worst matching items first.
+  // Items are destroyed.
+  public bool Remove(Dictionary<ItemType, int> itemTypes)
+  {
+    if (itemTypes == null || itemTypes.Count == 0)
+    {
+      return true;
+    }
+    lock (_itemsLock)
+    {
+      return _RemoveNoLock(itemTypes);
+    }
+  }
+
   // Count the number of unique items in the inventory.
   public int Count()
   {
@@ -171,6 +162,20 @@ public class Inventory
         foreach (var item in itemType.Value) {
           count += item.Value;
         }
+      }
+      return count;
+    }
+  }
+
+  // Count the number of unique items in the inventory.
+  public int CountUnique()
+  {
+    lock (_itemsLock)
+    {
+      int count = 0;
+      foreach (var itemType in _items)
+      {
+        count += itemType.Value.Count;
       }
       return count;
     }
@@ -239,6 +244,50 @@ public class Inventory
     return false;
   }
 
+  // Internal function to remove itemTypes from the inventory with no locking.
+  private bool _RemoveNoLock(Dictionary<ItemType, int> itemTypes)
+  {
+    // First ensure that the inventory contains the items.
+    if (!_ContainsNoLock(itemTypes))
+    {
+      return false;
+    }
+    foreach (var itemType in itemTypes)
+    {
+      // Remove the items in sorted order so that the worst items go first.
+      // Keep removing until we have removed the required quantity.
+      int quantity = itemType.Value;
+      while (quantity > 0 && _items[itemType.Key].Count > 0) {
+        // Get the first item in the dictionary.
+        var item = _items[itemType.Key].First();
+        if (item.Value > quantity)
+        {
+          _items[itemType.Key][item.Key] -= quantity;
+          quantity = 0;
+          break;
+        }
+        else
+        {
+          quantity -= item.Value;
+          _items[itemType.Key].Remove(item.Key);
+          if (quantity == 0) break;
+        }
+      }
+
+      if (_items[itemType.Key].Count == 0)
+      {
+        _items.Remove(itemType.Key);
+      }
+      // Throw an exception if we didn't remove the required quantity.
+      if (quantity > 0)
+      {
+        // Should never happen, since we checked Contains above.
+        throw new System.Exception("Inventory.Remove: Failed to remove the required quantity of items with itemType " + itemType.Key + ".");
+      }
+    }
+    return true;
+  }
+
   // Internal function to add items to the inventory with no locking.
   private void _AddNoLock(Item item, int quantity)
   {
@@ -255,7 +304,7 @@ public class Inventory
     }
     else
     {
-      _items.Add(item.itemType, new Dictionary<Item, int> { { item, quantity } });
+      _items.Add(item.itemType, new SortedDictionary<Item, int> { { item, quantity } });
     }
   }
 

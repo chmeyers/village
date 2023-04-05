@@ -237,7 +237,7 @@ public class ItemType
 }
 
 // An Item is a specific instance of an ItemType.
-public class Item
+public class Item : IComparable<Item>
 {
 
   // Constructor
@@ -285,4 +285,52 @@ public class Item
   {
     return HashCode.Combine(itemType, uniqueName, originalQuality, quality, timeUntilSpoilage);
   }
+
+  // Comparer for items that sorts lowest time to spoil first,
+  // then lowest quality first, then lowest original quality first,
+  // then by unique name, then by item type.
+  public int CompareTo(Item? other)
+  {
+    // If either item is null, sort the other one first.
+    if (this == null) {
+      if (other == null) {
+        return 0;
+      }
+      return 1;
+    }
+    if (other == null) {
+      return -1;
+    }
+    // Sort by time until spoilage.
+    int timeCompare = this.timeUntilSpoilage.CompareTo(other.timeUntilSpoilage);
+    if (timeCompare != 0) {
+      return timeCompare;
+    }
+    // Sort by quality.
+    int qualityCompare = this.quality.CompareTo(other.quality);
+    if (qualityCompare != 0) {
+      return qualityCompare;
+    }
+    // Sort by original quality.
+    int originalQualityCompare = this.originalQuality.CompareTo(other.originalQuality);
+    if (originalQualityCompare != 0) {
+      return originalQualityCompare;
+    }
+    // Sort by unique name, nulls sort first.
+    int uniqueNameCompare = 0;
+    if (this.uniqueName != null) {
+      if (other.uniqueName != null) {
+        uniqueNameCompare = this.uniqueName.CompareTo(other.uniqueName);
+      }
+      else {
+        uniqueNameCompare = 1;
+      }
+    }
+    else if (other.uniqueName != null) {
+      uniqueNameCompare = -1;
+    }
+    // Sort by item type.
+    return this.itemType.itemType.CompareTo(other.itemType.itemType);
+  }
 }
+
