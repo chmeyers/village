@@ -20,14 +20,22 @@ public class Inventory
   private Dictionary<ItemType, SortedDictionary<Item, int>> _items = new Dictionary<ItemType, SortedDictionary<Item, int>>();
 
   // Get a list of abilities granted by the items in the inventory.
-  public HashSet<AbilityType> GetAbilities()
+  public Dictionary<AbilityType, List<ItemType>> GetAbilities()
   {
-    HashSet<AbilityType> abilities = new HashSet<AbilityType>();
+    Dictionary<AbilityType, List<ItemType>> abilities = new Dictionary<AbilityType, List<ItemType>>();
     lock (_itemsLock)
     {
       foreach (ItemType itemType in _items.Keys)
       {
-        abilities.UnionWith(itemType.abilities);
+        // Add the itemType's abilities to the list.
+        foreach (AbilityType ability in itemType.abilities)
+        {
+          if (!abilities.ContainsKey(ability))
+          {
+            abilities[ability] = new List<ItemType>();
+          }
+          abilities[ability].Add(itemType);
+        }
       }
     }
     return abilities;
@@ -114,6 +122,18 @@ public class Inventory
       foreach (var item in items)
       {
         _AddNoLock(item.Key, item.Value);
+      }
+    }
+  }
+
+  // Add itemTypes to the inventory.
+  public void Add(Dictionary<ItemType, int> items)
+  {
+    lock (_itemsLock)
+    {
+      foreach (var itemType in items)
+      {
+        _AddNoLock(itemType.Key, itemType.Value);
       }
     }
   }
@@ -306,6 +326,13 @@ public class Inventory
     {
       _items.Add(item.itemType, new SortedDictionary<Item, int> { { item, quantity } });
     }
+  }
+
+  private void _AddNoLock(ItemType item, int quantity)
+  {
+    // Make a new item of the given type.
+    var newItem = new Item(item);
+    _AddNoLock(newItem, quantity);
   }
 
   // Internal function to check whether a given quantity of an item exists

@@ -230,7 +230,7 @@ namespace Village.Tasks
       }
 
       // Target set starts empty.
-      this.targets = new HashSet<string>();
+      this.targets = new Dictionary<string, EffectTarget>();
       // Add any effect targets that are TargetStrings.
       foreach (var effect in this.effects)
       {
@@ -238,7 +238,19 @@ namespace Village.Tasks
         {
           if (EffectTarget.IsTargetString(target.target))
           {
-            this.targets.Add(target.target);
+            // If the target is already in the set, verify that it's the same target.
+            if (this.targets.ContainsKey(target.target))
+            {
+              if (this.targets[target.target] != target)
+              {
+                throw new Exception("Task " + task + " has duplicate effect target with different effect types: " + target.target);
+              }
+            }
+            else
+            {
+              // Add the target to the set.
+              this.targets.Add(target.target, target);
+            }
           }
         }
       }
@@ -280,7 +292,6 @@ namespace Village.Tasks
       }
     }
 
-
     // The name of the task.
     public string task;
     // The abilities required to perform the task.
@@ -301,7 +312,7 @@ namespace Village.Tasks
     public bool repeatable;
     // Set of targets for this task.
     // Targets are specified by @1, @2, etc in the config.
-    public HashSet<string> targets;
+    public Dictionary<string, EffectTarget> targets;
   }
 
 }

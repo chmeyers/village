@@ -28,9 +28,9 @@ public class Person
       // Recalculate the itemAbilities set if it's dirty.
       CalculateItemAbilities();
       // Add the itemAbilities set to the allAbilities set.
-      allAbilities.UnionWith(itemAbilities);
+      allAbilities.UnionWith(itemAbilities.Keys);
       // Add the sub-abilities of the itemAbilities set to the allAbilities set.
-      foreach (AbilityType abilityType in itemAbilities)
+      foreach (AbilityType abilityType in itemAbilities.Keys)
       {
         allAbilities.UnionWith(abilityType.subTypes);
       }
@@ -47,7 +47,7 @@ public class Person
     {
       // Clear the itemAbilities set.
       itemAbilities.Clear();
-      itemAbilities.UnionWith(inventory.GetAbilities());
+      itemAbilities = inventory.GetAbilities();
       // The item abilities are no longer dirty.
       itemAbilitiesDirty = false;
     }
@@ -109,13 +109,14 @@ public class Person
       return availableTasks;
     }
   }
+  
 
   // Add an item and quantity to the inventory. If an item with abilities is
   // added and the person doesn't already have the ability,
   // the itemAbilitiesDirty flag is set.
   public void AddItem(Item item, int quantity)
   {
-    if (item.itemType.abilities.Count > 0 && !itemAbilities.IsSupersetOf(item.itemType.abilities))
+    if (item.itemType.abilities.Count > 0 && !item.itemType.abilities.IsSubsetOf(itemAbilities.Keys))
     {
       // It might be more efficient to just add the new abilities to the itemAbilities set here,
       // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
@@ -157,10 +158,21 @@ public class Person
   // Set of permanant abilities the person has.
   protected HashSet<AbilityType> abilities = new HashSet<AbilityType>();
 
-  // Cache of temporary abilities the person has from items.
+  // Cache of temporary abilities the person has from items, along with the item
+  // that granted the ability.
   // This contains just the item's direct abilities, not the
   // sub-abilities of those abilities.
-  protected HashSet<AbilityType> itemAbilities = new HashSet<AbilityType>();
+  protected Dictionary<AbilityType, List<ItemType>> itemAbilities = new Dictionary<AbilityType, List<ItemType>>();
+
+  // Readonly accessor for the item abilities.
+  public Dictionary<AbilityType, List<ItemType>> ItemAbilities
+  {
+    get
+    {
+      CalculateItemAbilities();
+      return itemAbilities;
+    }
+  }
 
   // Dirty bit for the item abilities, it should be set to dirty
   // whenever the person loses an item that gives them an ability.
