@@ -267,6 +267,17 @@ public class Item : IComparable<Item>
   // How many tenths of a day until this item spoils, or MAX_INT if it never spoils.
   public int timeUntilSpoilage;
 
+  // Clone this item.
+  public Item Clone()
+  {
+    Item clone = new Item(itemType);
+    clone.uniqueName = uniqueName;
+    clone.originalQuality = originalQuality;
+    clone.quality = quality;
+    clone.timeUntilSpoilage = timeUntilSpoilage;
+    return clone;
+  }
+
   // Equals function compares the items by value.
   public override bool Equals(object? obj)
   {

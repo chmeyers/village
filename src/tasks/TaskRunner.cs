@@ -12,54 +12,17 @@ namespace Village.Tasks;
 // them to the person, the village, or the environment.
 public class TaskRunner
 {
-  // Resolve a given effect target, given a person.
-  // Returns a ChosenEffectTarget.
-  static ChosenEffectTarget? ResolveEffectTarget(EffectTarget effectTarget, Person person)
-  {
-    switch (effectTarget.effectTargetType)
-    {
-      case EffectTargetType.Village:
-      case EffectTargetType.Environment:
-        return new ChosenEffectTarget(effectTarget, null);
-      case EffectTargetType.Building:
-        // Not yet implemented, throw.
-        throw new Exception("Building targets not yet implemented.");
-      case EffectTargetType.Person:
-        // Always return the passed person.
-        return new ChosenEffectTarget(effectTarget, person);
-      case EffectTargetType.Item:
-        // Resolve the item from the person's inventory.
-        // Pick an item that gives the ability specified by the effect target.
-        // If no item is found, return null, as the effect will not be applied.
-        // This can happen if the person has the ability, but didn't get it from an item.
-        // First get the list of itemtypes that give the ability.
-        var targetAbility = AbilityType.Find(effectTarget.target);
-        if (targetAbility == null)
-        {
-          throw new Exception("Invalid ability target: " + effectTarget.target);
-        }
-        // Get the list of items that give the ability.
-        var items = person.ItemAbilities[targetAbility];
-        if (items != null && items.Count > 0)
-        {
-          // Chose the worst item that gives the ability. The logic behind this
-          // is that item effects are typically negative unless the item is
-          // specified. i.e. degrade a tool when used.
-          return new ChosenEffectTarget(effectTarget, items.Min());
-        }
-        // The person doesn't have an item that gives the ability,
-        // so return null and don't run the effect.
-        return null;
-    }
-    return null;
-  }
-
   // Have the person perform a task, with the given list of Chosen Targets
   // Returns true if the task was performed, false otherwise.
-  static bool PerformTask(Person person, WorkTask task, Dictionary<string, ChosenEffectTarget> chosenTargets)
+  public static bool PerformTask(Person person, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
   {
-    // Verify that the size of the chosenTargets list matches the size of the task's argets list.
-    if (chosenTargets.Count != task.targets.Count)
+    // Verify that the size of the chosenTargets list matches the size of the task's targets list.
+    // Or that the chosenTargets list is null iff the task's list is empty.
+    if (chosenTargets == null && task.targets.Count > 0)
+    {
+      throw new Exception("Invalid number of chosen targets for task: " + task + " ( null vs " + task.targets.Count + ")");
+    }
+    if (chosenTargets != null && chosenTargets.Count != task.targets.Count)
     {
       throw new Exception("Invalid number of chosen targets for task: " + task + " (" + chosenTargets.Count + " != " + task.targets.Count + ")");
     }
@@ -84,7 +47,7 @@ public class TaskRunner
           if (EffectTarget.IsTargetString(effectTarget.target))
           {
             // Match the target string to a chosen target.
-            if (!chosenTargets.ContainsKey(effectTarget.target))
+            if (chosenTargets == null || !chosenTargets.ContainsKey(effectTarget.target))
             {
               throw new Exception("Invalid target string: " + effectTarget.target + " for effect: " + effect.Key + " in task: " + task);
             }
@@ -93,7 +56,7 @@ public class TaskRunner
           else
           {
             // The target isn't a target string, so resolve it.
-            chosenTarget = ResolveEffectTarget(effectTarget, person);
+            chosenTarget = EffectTargetResolver.ResolveEffectTarget(effectTarget, person);
           }
           if (chosenTarget == null)
           {
@@ -104,10 +67,8 @@ public class TaskRunner
           effect.Key.Apply(chosenTarget);
         }
         
-
       }
-      
-
+      return true;
     }
     // The person did not perform the task.
     return false;

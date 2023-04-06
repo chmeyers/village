@@ -20,9 +20,9 @@ public class Inventory
   private Dictionary<ItemType, SortedDictionary<Item, int>> _items = new Dictionary<ItemType, SortedDictionary<Item, int>>();
 
   // Get a list of abilities granted by the items in the inventory.
-  public Dictionary<AbilityType, List<ItemType>> GetAbilities()
+  public Dictionary<AbilityType, List<Item>> GetAbilities()
   {
-    Dictionary<AbilityType, List<ItemType>> abilities = new Dictionary<AbilityType, List<ItemType>>();
+    Dictionary<AbilityType, List<Item>> abilities = new Dictionary<AbilityType, List<Item>>();
     lock (_itemsLock)
     {
       foreach (ItemType itemType in _items.Keys)
@@ -32,9 +32,13 @@ public class Inventory
         {
           if (!abilities.ContainsKey(ability))
           {
-            abilities[ability] = new List<ItemType>();
+            abilities[ability] = new List<Item>();
           }
-          abilities[ability].Add(itemType);
+          // Add every item of that type to the list.
+          foreach (Item item in _items[itemType].Keys)
+          {
+            abilities[ability].Add(item);
+          }
         }
       }
     }
@@ -235,6 +239,22 @@ public class Inventory
           return _items[item.itemType][item];
         }
         return 0;
+      }
+    }
+  }
+
+  // Bracket operator to get the dicationary of a given ItemType in the inventory.
+  public SortedDictionary<Item, int> this[ItemType itemType]
+  {
+    get
+    {
+      lock (_itemsLock)
+      {
+        if (_items.ContainsKey(itemType))
+        {
+          return _items[itemType];
+        }
+        return new SortedDictionary<Item, int>();
       }
     }
   }

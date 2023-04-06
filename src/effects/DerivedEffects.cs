@@ -22,18 +22,45 @@ public class DegradeEffect : Effect
     amount = (int)(long)data["amount"];
   }
 
-  // Apply the effect to the target.
-  public override void Apply(ChosenEffectTarget chosenEffectTarget)
+  private void DegradeItem(Item item)
   {
-    // Get the item from the chosen target.
-    Item item = (Item)chosenEffectTarget.target!;
-    // Decrease the item's quality by the specified amount.
+    // Decrease the new item's quality by the specified amount.
     // TODO(chmeyers): What should we do if the item's quality reaches 0?
     item.quality -= amount;
     if (item.quality < 0)
     {
       item.quality = 0;
     }
+  }
+  // Apply the effect to the target.
+  public override void Apply(ChosenEffectTarget chosenEffectTarget)
+  {
+    // Get the item from the chosen target.
+    Item item = (Item)chosenEffectTarget.target!;
+    // Get the person from the context.
+    Person person = (Person)chosenEffectTarget.context!;
+    // We are only degrading a single item, so if the item is a stack, we need to split the stack.
+    // So we create a new item that is a copy of the original item, remove it from the inventory,
+    // degrade it, then add it back to the inventory.
+    
+    // Check if person has more than one of the item.
+    if (person.Inventory[item] > Inventory.DEFAULT_QUANTITY)
+    {
+      Item newItem = item.Clone();
+      // Remove the original item from the inventory of the person in the context.
+      person.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
+      
+      DegradeItem(newItem);
+      // Add the new item back to the inventory of the person in the context.
+      person.AddItem(newItem, Inventory.DEFAULT_QUANTITY);
+    }
+    else
+    {
+      // Degrade the item.
+      DegradeItem(item);
+    }
+
+    
   }
 
   // The amount to degrade the item by.

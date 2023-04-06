@@ -116,7 +116,7 @@ public class Person
   // the itemAbilitiesDirty flag is set.
   public void AddItem(Item item, int quantity)
   {
-    if (item.itemType.abilities.Count > 0 && !item.itemType.abilities.IsSubsetOf(itemAbilities.Keys))
+    if (item.itemType.abilities.Count > 0)
     {
       // It might be more efficient to just add the new abilities to the itemAbilities set here,
       // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
@@ -126,8 +126,17 @@ public class Person
     inventory.Add(item, quantity);
   }
 
-  // TODO(chmeyers): RemoveItem, CraftItem, Trade, etc.
-
+  public void RemoveItem(Item item, int quantity)
+  {
+    if (item.itemType.abilities.Count > 0)
+    {
+      // It might be more efficient to just remove abilities to the itemAbilities set here,
+      // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
+      // Revisit this decision if it becomes a performance issue.
+      itemAbilitiesDirty = true;
+    }
+    inventory.Remove(item, quantity);
+  }
 
 
   // Constructor for a person.
@@ -162,10 +171,10 @@ public class Person
   // that granted the ability.
   // This contains just the item's direct abilities, not the
   // sub-abilities of those abilities.
-  protected Dictionary<AbilityType, List<ItemType>> itemAbilities = new Dictionary<AbilityType, List<ItemType>>();
+  protected Dictionary<AbilityType, List<Item>> itemAbilities = new Dictionary<AbilityType, List<Item>>();
 
   // Readonly accessor for the item abilities.
-  public Dictionary<AbilityType, List<ItemType>> ItemAbilities
+  public Dictionary<AbilityType, List<Item>> ItemAbilities
   {
     get
     {

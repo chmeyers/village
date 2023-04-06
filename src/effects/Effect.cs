@@ -83,11 +83,14 @@ public class ChosenEffectTarget
   public EffectTargetType effectTargetType;
   // The target.
   public object? target;
+  // Context for the effect, typically the person performing the task.
+  public object? context;
   // The effect target constructor.
-  public ChosenEffectTarget(EffectTarget effectTarget, object? target)
+  public ChosenEffectTarget(EffectTarget effectTarget, object? target, object? context)
   {
     this.effectTargetType = effectTarget.effectTargetType;
     this.target = target;
+    this.context = context;
   }
 }
 
@@ -126,7 +129,7 @@ public class Effect
     return null;
   }
 
-  // Apply the effect to the chosen target.
+  // Apply the effect to the chosen target, using the given person as context.
   public virtual void Apply(ChosenEffectTarget chosenEffectTarget)
   {
     throw new Exception("Effect.Apply not implemented for " + effectType);
