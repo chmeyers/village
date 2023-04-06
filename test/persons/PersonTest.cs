@@ -17,7 +17,7 @@ public class PersonUnitTest
     ItemType.Clear();
     WorkTask.Clear();
     // Load effects, abilities, items, and tasks.
-    Effect.LoadString(@"{ 'degrade_1' : { 'target' : 'Item', 'effectType' : 'Degrade', 'config' : {'amount': 1} } }");
+    EffectLoader.LoadString(@"{ 'degrade_1' : { 'target' : 'Item', 'effectType' : 'Degrade', 'config' : {'amount': 1} } }");
     AbilityType.LoadString(@"{ 'chopping' : { 'levels': 10 } }");
     ItemType.LoadString(@"{ 'axe': { 'group': 'TOOL', abilities: ['chopping_2'] }, 'wood': { 'group': 'RESOURCE' } }");
     WorkTask.LoadString(@"{ 'gather_wood': { 'timeCost': 10, 'requirements': ['chopping_1'], 'outputs' : { 'wood' : 100 }, 'effects' : { 'degrade_1': ['chopping_1'] } },

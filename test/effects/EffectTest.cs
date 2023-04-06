@@ -15,7 +15,7 @@ public class EffectUnitTest
   'skill_cutting_1' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'cutting', 'amount': 1, 'maxLevel': 5} }
 }";
     // Load the effects.
-    Effect.LoadString(json);
+    EffectLoader.LoadString(json);
     // Check that the effects were loaded.
     Assert.AreEqual(2, Effect.effects.Count);
     // Check that the effects were loaded correctly.

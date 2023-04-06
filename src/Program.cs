@@ -15,7 +15,7 @@ namespace Village
             // Load the item types.
             ItemType.LoadFile("config/items/itemtypes.json");
             // Load the effects.
-            Effect.LoadFile("config/effects/effects.json");
+            EffectLoader.LoadFile("config/effects/effects.json");
             // Load the tasks.
             WorkTask.LoadFile("config/tasks/tasks.json");
         }

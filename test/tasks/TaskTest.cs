@@ -39,7 +39,7 @@ public class TaskUnitTest
     'skill_chopping_1' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'chopping', 'amount': 1, 'maxLevel': 5} }
   }";
       // Load the item types.
-      Effect.LoadString(json);
+      EffectLoader.LoadString(json);
     }
     {
       WorkTask.Clear();
