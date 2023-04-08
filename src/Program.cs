@@ -1,6 +1,7 @@
 ﻿using Village.Abilities;
 using Village.Effects;
 using Village.Items;
+using Village.Skills;
 using Village.Tasks;
 
 namespace Village
@@ -18,6 +19,9 @@ namespace Village
             EffectLoader.LoadFile("config/effects/effects.json");
             // Load the tasks.
             WorkTask.LoadFile("config/tasks/tasks.json");
+            // Load the skills, followed by the skill tree.
+            Skill.LoadFile("config/skills/skills.json");
+            Skill.LoadParentsFile("config/skills/skilltree.json");
         }
         static void Main(string[] args)
         {
@@ -43,6 +47,11 @@ namespace Village
             foreach (WorkTask workTask in WorkTask.tasks.Values)
             {
                 Console.WriteLine(workTask.task);
+            }
+            // Print the skills.
+            foreach (Skill skill in Skill.skills.Values)
+            {
+                Console.WriteLine(skill.id + " " + skill.parents.Count);
             }
         }
     }

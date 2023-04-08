@@ -89,9 +89,9 @@ public class ChosenEffectTarget
   // Ability Context for the effect, typically the person performing the task.
   public IAbilityContext? abilityContext;
   // The effect target constructor.
-  public ChosenEffectTarget(EffectTarget effectTarget, object? target, object? context)
+  public ChosenEffectTarget(EffectTargetType effectTargetType, object? target, object? context)
   {
-    this.effectTargetType = effectTarget.effectTargetType;
+    this.effectTargetType = effectTargetType;
     this.target = target;
     this.context = context as IInventoryContext;
     this.abilityContext = context as IAbilityContext;

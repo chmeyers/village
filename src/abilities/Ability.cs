@@ -138,14 +138,20 @@ public class AbilityType
 public interface IAbilityContext
 {
   public HashSet<AbilityType> Abilities { get; }
+  public void GrantAbility(AbilityType ability);
 }
 
 public class ConcreteAbilityContext: IAbilityContext
 {
-  public HashSet<AbilityType> Abilities { get; }
+  private HashSet<AbilityType> _abilities = new HashSet<AbilityType>();
+  public HashSet<AbilityType> Abilities { get { return _abilities; } }
   public ConcreteAbilityContext(HashSet<AbilityType> abilities)
   {
-    this.Abilities = abilities;
+    this._abilities = abilities;
+  }
+  public void GrantAbility(AbilityType ability)
+  {
+    _abilities.Add(ability);
   }
   
 }

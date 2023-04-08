@@ -4,12 +4,13 @@
 using System;
 using Village.Abilities;
 using Village.Items;
+using Village.Skills;
 using Village.Tasks;
 
 namespace Village.Persons;
 
 
-public class Person : IAbilityContext, IInventoryContext
+public class Person : ISkillContext, IAbilityContext, IInventoryContext
 {
 
   // Calculate the ability sets for this Person.
@@ -179,6 +180,19 @@ public class Person : IAbilityContext, IInventoryContext
   {
     CalculateItemAbilities();
     return itemAbilities;
+  }
+
+  public void GrantAbility(AbilityType ability)
+  {
+    // Add the ability to the abilities set.
+    abilities.Add(ability);
+    // Set the dirty bit for the allAbilities set.
+    allAbilitiesDirty = true;
+  }
+
+  public PersonSkill GetSkill(Skill skill)
+  {
+    throw new NotImplementedException();
   }
 
   // Dirty bit for the item abilities, it should be set to dirty
