@@ -13,13 +13,13 @@ public class EffectTargetResolver
     {
       case EffectTargetType.Village:
       case EffectTargetType.Environment:
-        return new ChosenEffectTarget(effectTarget, null, null);
+        return new ChosenEffectTarget(effectTarget, null, null, person);
       case EffectTargetType.Building:
         // Not yet implemented, throw.
         throw new Exception("Building targets not yet implemented.");
       case EffectTargetType.Person:
         // Always return the passed person.
-        return new ChosenEffectTarget(effectTarget, person, null);
+        return new ChosenEffectTarget(effectTarget, person, null, person);
       case EffectTargetType.Item:
         // Resolve the item from the person's inventory.
         // Pick an item that gives the ability specified by the effect target.
@@ -38,7 +38,7 @@ public class EffectTargetResolver
           // Chose the worst item that gives the ability. The logic behind this
           // is that item effects are typically negative unless the item is
           // specified. i.e. degrade a tool when used.
-          return new ChosenEffectTarget(effectTarget, items.Min(), person);
+          return new ChosenEffectTarget(effectTarget, items.Min(), person, person);
         }
         // The person doesn't have an item that gives the ability,
         // so return null and don't run the effect.

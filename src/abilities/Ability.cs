@@ -134,3 +134,8 @@ public class AbilityType
     return abilityType.GetHashCode();
   }
 }
+
+public interface IAbilityContext
+{
+  public HashSet<AbilityType> Abilities { get; }
+}

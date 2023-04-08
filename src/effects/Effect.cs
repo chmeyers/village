@@ -4,6 +4,7 @@
 using Newtonsoft.Json;
 using System;
 using Village.Abilities;
+using Village.Items;
 
 namespace Village.Effects;
 
@@ -83,14 +84,17 @@ public class ChosenEffectTarget
   public EffectTargetType effectTargetType;
   // The target.
   public object? target;
-  // Context for the effect, typically the person performing the task.
-  public object? context;
+  // Inventory Context for the effect, typically the person performing the task.
+  public IInventoryContext? context;
+  // Ability Context for the effect, typically the person performing the task.
+  public IAbilityContext? abilityContext;
   // The effect target constructor.
-  public ChosenEffectTarget(EffectTarget effectTarget, object? target, object? context)
+  public ChosenEffectTarget(EffectTarget effectTarget, object? target, IInventoryContext? inventory, IAbilityContext? abilityContext)
   {
     this.effectTargetType = effectTarget.effectTargetType;
     this.target = target;
-    this.context = context;
+    this.context = inventory;
+    this.abilityContext = abilityContext;
   }
 }
 

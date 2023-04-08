@@ -417,3 +417,9 @@ public class Inventory
   }
 
 }
+
+public interface IInventoryContext
+{
+  public void AddItem(Item item, int quantity);
+  public bool RemoveItem(Item item, int quantity);
+}

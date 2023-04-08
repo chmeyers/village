@@ -8,7 +8,8 @@ using Village.Tasks;
 
 namespace Village.Persons;
 
-public class Person
+
+public class Person : IAbilityContext, IInventoryContext
 {
 
   // Calculate the ability sets for this Person.
@@ -126,7 +127,7 @@ public class Person
     inventory.Add(item, quantity);
   }
 
-  public void RemoveItem(Item item, int quantity)
+  public bool RemoveItem(Item item, int quantity)
   {
     if (item.itemType.abilities.Count > 0)
     {
@@ -135,7 +136,7 @@ public class Person
       // Revisit this decision if it becomes a performance issue.
       itemAbilitiesDirty = true;
     }
-    inventory.Remove(item, quantity);
+    return inventory.Remove(item, quantity);
   }
 
 
