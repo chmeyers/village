@@ -14,12 +14,6 @@ public class TaskUnitTest
   public void TestLoadTasks()
   {
     {
-      AbilityType.Clear();
-      string json = @"{ 'chopping' : { 'levels': 3 } }";
-      // Load the ability types.
-      AbilityType.LoadString(json);
-    }
-    {
       ItemType.Clear();
       string json = @"{
     'wood': { 'group': 'RESOURCE', 'displayName': 'Wood'},
@@ -30,7 +24,7 @@ public class TaskUnitTest
     }
     {
       AbilityType.Clear();
-      string json = @"{ 'chopping' : { 'levels': 4 } }";
+      string json = @"{ 'chopping' : { 'levels': 5 } }";
       // Load the ability types.
       AbilityType.LoadString(json);
     }
@@ -48,7 +42,7 @@ public class TaskUnitTest
       string json = @"{
     'gather_wood': { 'timeCost': 10, 'requirements': ['chopping_1'], 'repeatable': true, 'outputs' : { 'wood' : 100 }, 'effects' : { 'skill_chopping_1' : [''], 'degrade_1': ['chopping_1'] } },
     'teach_chopping_1': { 'timeCost': 10, 'requirements': ['chopping_2'],  'effects' : { 'skill_chopping_1' : ['@1'] } },
-    'gather_wood2': { 'timeCost': 10, 'requirements': ['chopping_3'], 'inputs' : { 'wood' : {'val' : 50 } } },
+    'gather_wood2': { 'timeCost': 10, 'requirements': ['chopping_3'], 'inputs' : { 'wood' : {'val' : 50 } }, 'outputs' : { 'wood' : {'val': 100, 'modifiers': {'chopping_4': {'add': 5}}} } },
       }";
       // Load the tasks.
       WorkTask.LoadString(json);
@@ -64,7 +58,7 @@ public class TaskUnitTest
       Assert.AreEqual("chopping_2", WorkTask.tasks["teach_chopping_1"].requirements[0].abilityType);
       // Check that the outputs were loaded correctly.
       Assert.AreEqual(1, WorkTask.tasks["gather_wood"].outputs.Count);
-      Assert.AreEqual(100, WorkTask.tasks["gather_wood"].outputs[ItemType.Find("wood")!]);
+      Assert.AreEqual(100, WorkTask.tasks["gather_wood"].outputs[ItemType.Find("wood")!].GetBaseValue());
       // Check that the effects were loaded correctly.
       Assert.AreEqual(2, WorkTask.tasks["gather_wood"].effects.Count);
       Assert.AreEqual(1, WorkTask.tasks["teach_chopping_1"].effects.Count);
@@ -81,12 +75,21 @@ public class TaskUnitTest
       // Check that gather_wood2 was loaded correctly.
       Assert.AreEqual(1, WorkTask.tasks["gather_wood2"].inputs.Count);
       Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].inputs[ItemType.Find("wood")!].GetBaseValue());
+      Assert.AreEqual(100, WorkTask.tasks["gather_wood2"].outputs[ItemType.Find("wood")!].GetBaseValue());
+      
 
       HashSet<AbilityType> abilityTypes = new HashSet<AbilityType>();
       abilityTypes.Add(AbilityType.abilityTypes["chopping_1"]);
       ConcreteAbilityContext context = new ConcreteAbilityContext(abilityTypes);
 
       Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].Inputs(context)[ItemType.Find("wood")!]);
+      Assert.AreEqual(100, WorkTask.tasks["gather_wood2"].Outputs(context)[ItemType.Find("wood")!]);
+
+      // Add chopping_4 to the context.
+      abilityTypes.Add(AbilityType.abilityTypes["chopping_4"]);
+      context = new ConcreteAbilityContext(abilityTypes);
+      Assert.AreEqual(105, WorkTask.tasks["gather_wood2"].Outputs(context)[ItemType.Find("wood")!]);
+      
 
       // Create a Person to run tasks on.
       Person person = new Person("bob", "Bob");

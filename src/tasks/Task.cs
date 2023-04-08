@@ -100,7 +100,7 @@ namespace Village.Tasks
         Dictionary<string, AbilityValue>? inputs = task.Value.ContainsKey("inputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["inputs"]).ToObject<Dictionary<string, AbilityValue>>() : null;
 
         // If present, get the outputs setting from the Value
-        Dictionary<string, int>? outputs = task.Value.ContainsKey("outputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["outputs"]).ToObject<Dictionary<string, int>>() : null;
+        Dictionary<string, AbilityValue>? outputs = task.Value.ContainsKey("outputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["outputs"]).ToObject<Dictionary<string, AbilityValue>>() : null;
         // If present, get the effects setting from the Value
         Dictionary<string, List<string>>? effects = task.Value.ContainsKey("effects") ? ((Newtonsoft.Json.Linq.JObject)task.Value["effects"]).ToObject<Dictionary<string, List<string>>>() : null;
         // Get the time setting from the Value, this setting is required.
@@ -135,7 +135,7 @@ namespace Village.Tasks
     }
 
     // Constructor for a WorkTask.
-    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, int>? outputs, Dictionary<string, List<string>>? effects, int timeCost, bool repeatable)
+    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, AbilityValue>? outputs, Dictionary<string, List<string>>? effects, int timeCost, bool repeatable)
     {
       // Set the task name.
       this.task = task;
@@ -183,7 +183,7 @@ namespace Village.Tasks
       if (outputs != null)
       {
         this.outputs = outputs.ToDictionary(
-          (KeyValuePair<string, int> output) =>
+          (KeyValuePair<string, AbilityValue> output) =>
           {
             ItemType? itemType = ItemType.Find(output.Key);
             if (itemType == null)
@@ -192,12 +192,12 @@ namespace Village.Tasks
             }
             return itemType;
           },
-          (KeyValuePair<string, int> output) => output.Value
+          (KeyValuePair<string, AbilityValue> output) => output.Value
         );
       }
       else
       {
-        this.outputs = new Dictionary<ItemType, int>();
+        this.outputs = new Dictionary<ItemType, AbilityValue>();
       }
 
       // Verify that the effects are all valid Effects,
@@ -301,6 +301,16 @@ namespace Village.Tasks
       return inputs;
     }
 
+    public Dictionary<ItemType, int> Outputs(IAbilityContext context)
+    {
+      Dictionary<ItemType, int> outputs = new Dictionary<ItemType, int>();
+      foreach (var output in this.outputs)
+      {
+        outputs.Add(output.Key, output.Value.GetValue(context));
+      }
+      return outputs;
+    }
+
     // The name of the task.
     public string task;
     // The abilities required to perform the task.
@@ -308,7 +318,7 @@ namespace Village.Tasks
     // The ItemType and quantities of inputs required to perform the task.
     public Dictionary<ItemType, AbilityValue> inputs;
     // The outputs produced by the task.
-    public Dictionary<ItemType, int> outputs;
+    public Dictionary<ItemType, AbilityValue> outputs;
     // The side effects of the task, along with their targets.
     // Duplicate Effects are allowed with different targets.
     public Dictionary<Effect, List<EffectTarget>> effects;
