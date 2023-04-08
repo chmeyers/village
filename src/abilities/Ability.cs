@@ -139,3 +139,13 @@ public interface IAbilityContext
 {
   public HashSet<AbilityType> Abilities { get; }
 }
+
+public class ConcreteAbilityContext: IAbilityContext
+{
+  public HashSet<AbilityType> Abilities { get; }
+  public ConcreteAbilityContext(HashSet<AbilityType> abilities)
+  {
+    this.Abilities = abilities;
+  }
+  
+}
