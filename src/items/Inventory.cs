@@ -3,8 +3,15 @@ using Village.Abilities;
 namespace Village.Items;
 
 
+public interface IInventoryContext
+{
+  public void AddItem(Item item, int quantity);
+  public bool RemoveItem(Item item, int quantity);
+  Dictionary<AbilityType, List<Item>> ItemAbilities();
+}
+
 // An Inventory is a collection of items, owned by a person, building, trader, village, etc.
-public class Inventory
+public class Inventory : IInventoryContext
 {
   // Default quantity for items that don't specify a quantity.
   // Quantities are assumed to be specified in hundredths of a unit.
@@ -20,7 +27,7 @@ public class Inventory
   private Dictionary<ItemType, SortedDictionary<Item, int>> _items = new Dictionary<ItemType, SortedDictionary<Item, int>>();
 
   // Get a list of abilities granted by the items in the inventory.
-  public Dictionary<AbilityType, List<Item>> GetAbilities()
+  public Dictionary<AbilityType, List<Item>> ItemAbilities()
   {
     Dictionary<AbilityType, List<Item>> abilities = new Dictionary<AbilityType, List<Item>>();
     lock (_itemsLock)
@@ -108,9 +115,8 @@ public class Inventory
     return true;
   }
 
-
   // Add an item to the inventory.
-  public void Add(Item item, int quantity)
+  public void AddItem(Item item, int quantity)
   {
     lock (_itemsLock)
     {
@@ -144,7 +150,7 @@ public class Inventory
 
   // Remove an exact item quantity from the inventory.
   // Items are destroyed.
-  public bool Remove(Item item, int quantity)
+  public bool RemoveItem(Item item, int quantity)
   {
     lock (_itemsLock)
     {
@@ -183,7 +189,8 @@ public class Inventory
       int count = 0;
       foreach (var itemType in _items)
       {
-        foreach (var item in itemType.Value) {
+        foreach (var item in itemType.Value)
+        {
           count += item.Value;
         }
       }
@@ -258,14 +265,14 @@ public class Inventory
       }
     }
   }
-  
+
 
   // Internal function to remove items from the inventory with no locking.
   private bool _RemoveNoLock(Item item, int quantity)
   {
     if (_items.ContainsKey(item.itemType) && _items[item.itemType].ContainsKey(item))
     {
-      
+
       if (_items[item.itemType][item] > quantity)
       {
         _items[item.itemType][item] -= quantity;
@@ -297,7 +304,8 @@ public class Inventory
       // Remove the items in sorted order so that the worst items go first.
       // Keep removing until we have removed the required quantity.
       int quantity = itemType.Value;
-      while (quantity > 0 && _items[itemType.Key].Count > 0) {
+      while (quantity > 0 && _items[itemType.Key].Count > 0)
+      {
         // Get the first item in the dictionary.
         var item = _items[itemType.Key].First();
         if (item.Value > quantity)
@@ -416,10 +424,4 @@ public class Inventory
     return true;
   }
 
-}
-
-public interface IInventoryContext
-{
-  public void AddItem(Item item, int quantity);
-  public bool RemoveItem(Item item, int quantity);
 }

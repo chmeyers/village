@@ -19,33 +19,33 @@ public class InventoryUnitTest
     Assert.IsFalse(inventory.Contains(item));
     Assert.IsFalse(inventory.Contains(item2));
     // Add an item to the inventory.
-    inventory.Add(item, 1);
+    inventory.AddItem(item, 1);
     // Check that the item was added to the inventory.
     Assert.IsTrue(inventory.Contains(item));
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(1, inventory[item]);
     // Add another item to the inventory.
-    inventory.Add(item, 1);
+    inventory.AddItem(item, 1);
     // Check that the item was added to the inventory.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(2, inventory[item]);
     // Add two more of item to the inventory.
-    inventory.Add(item, 2);
+    inventory.AddItem(item, 2);
     // Check that the item was added to the inventory.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(4, inventory[item]);
     // Add an item to the inventory.
-    inventory.Add(item2, 1);
+    inventory.AddItem(item2, 1);
     // Check that the item was added to the inventory.
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(1, inventory[item2]);
     // Add another item to the inventory.
-    inventory.Add(item2, 1);
+    inventory.AddItem(item2, 1);
     // Check that the item was added to the inventory.
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(2, inventory[item2]);
     // Add two more of item to the inventory.
-    inventory.Add(item2, 2);
+    inventory.AddItem(item2, 2);
     // Check that the item was added to the inventory.
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(4, inventory[item2]);
@@ -68,48 +68,48 @@ public class InventoryUnitTest
     Item item = new(itemType);
     Item item2 = new(itemType2);
     // Add an item to the inventory.
-    inventory.Add(item, 1);
+    inventory.AddItem(item, 1);
     // Check that the item was added to the inventory.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(1, inventory[item]);
     // Add another item to the inventory.
-    inventory.Add(item, 1);
+    inventory.AddItem(item, 1);
     // Check that the item was added to the inventory.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(2, inventory[item]);
     // Add two more of item to the inventory.
-    inventory.Add(item, 2);
+    inventory.AddItem(item, 2);
     // Check that the item was added to the inventory.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(4, inventory[item]);
     // Add an item to the inventory.
-    inventory.Add(item2, 1);
+    inventory.AddItem(item2, 1);
     // Check that the item was added to the inventory.
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(1, inventory[item2]);
     // Add another item to the inventory.
-    inventory.Add(item2, 1);
+    inventory.AddItem(item2, 1);
     // Check that the item was added to the inventory.
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(2, inventory[item2]);
     // Add two more of item to the inventory.
-    inventory.Add(item2, 2);
+    inventory.AddItem(item2, 2);
     // Check that the item was added to the inventory.
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(4, inventory[item2]);
     // Remove an item from the inventory.
-    inventory.Remove(item, 1);
+    inventory.RemoveItem(item, 1);
     // Check that the item was removed from the inventory.
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(3, inventory[item]);
     // Remove another item from the inventory.
-    inventory.Remove(item, 3);
+    inventory.RemoveItem(item, 3);
     // Check that the item was removed from the inventory.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(0, inventory[item]);
     Assert.AreEqual(4, inventory[item2]);
     // Remove another item from the inventory.
-    inventory.Remove(item2, 4);
+    inventory.RemoveItem(item2, 4);
     Assert.AreEqual(0, inventory.Count());
   }
 
@@ -125,20 +125,20 @@ public class InventoryUnitTest
     Item item = new(itemType);
     Item item2 = new(itemType2);
     // Add an item to the inventory.
-    inventory.Add(item, 4);
+    inventory.AddItem(item, 4);
     // Check that the item was added to the inventory.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(4, inventory[item]);
     // Add an item to the inventory.
-    inventory.Add(item2, 5);
+    inventory.AddItem(item2, 5);
     // Check that the item was added to the inventory.
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(5, inventory[item2]);
     // Create a second inventory.
     Inventory inventory2 = new();
     // Transfer an item from inventory to inventory2.
-    var transfering = new Dictionary<Item, int> { { item, 1 }};
-    var transfering2 = new Dictionary<Item, int> { { item, 2 }};
+    var transfering = new Dictionary<Item, int> { { item, 1 } };
+    var transfering2 = new Dictionary<Item, int> { { item, 2 } };
     Assert.IsTrue(inventory.Transfer(inventory2, transfering2));
     // Check that the item was transferred to the second inventory.
     Assert.AreEqual(2, inventory.Count());
@@ -180,20 +180,20 @@ public class InventoryUnitTest
     Item item = new(itemType);
     Item item2 = new(itemType2);
     // Add an item to the inventory.
-    inventory.Add(item, 4);
+    inventory.AddItem(item, 4);
     // Check that the item was added to the inventory.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(4, inventory[item]);
     // Add an item to the inventory.
-    inventory.Add(item2, 5);
+    inventory.AddItem(item2, 5);
     // Check that the item was added to the inventory.
     Assert.AreEqual(2, inventory.Count());
     Assert.AreEqual(5, inventory[item2]);
     // Create a second inventory.
     Inventory inventory2 = new();
     // Fail to trade an item from inventory to inventory2, as inventory2 has no items.
-    var trading = new Dictionary<Item, int> { { item, 1 }};
-    var trading2 = new Dictionary<Item, int> { { item2, 1 }};
+    var trading = new Dictionary<Item, int> { { item, 1 } };
+    var trading2 = new Dictionary<Item, int> { { item2, 1 } };
     Assert.IsFalse(inventory.Trade(inventory2, trading, trading2));
     // Check that the item was not traded to the second inventory.
     Assert.AreEqual(2, inventory.Count());
@@ -201,7 +201,7 @@ public class InventoryUnitTest
     Assert.AreEqual(0, inventory2.Count());
     Assert.AreEqual(0, inventory2[item]);
     // Add an item to the second inventory.
-    inventory2.Add(item2, 1);
+    inventory2.AddItem(item2, 1);
     // Trade an item from inventory to inventory2.
     Assert.IsTrue(inventory.Trade(inventory2, trading, trading2));
     // Check that the item was traded to the second inventory.
@@ -227,9 +227,9 @@ public class InventoryUnitTest
     item2.timeUntilSpoilage = 1;
     item3.timeUntilSpoilage = 500;
     // Add some of item and item2 to the inventory.
-    inventory.Add(item, 4);
-    inventory.Add(item2, 4);
-    inventory.Add(item3, 4);
+    inventory.AddItem(item, 4);
+    inventory.AddItem(item2, 4);
+    inventory.AddItem(item3, 4);
     // Check that the items were added to the inventory.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(3, inventory.CountUnique());
@@ -238,7 +238,7 @@ public class InventoryUnitTest
     Assert.AreEqual(4, inventory[item2]);
     Assert.AreEqual(4, inventory[item3]);
     // Create input dictionary for removing itemType.
-    var removing = new Dictionary<ItemType, int> { { itemType, 3 }};
+    var removing = new Dictionary<ItemType, int> { { itemType, 3 } };
     // Remove 3 of itemType from the inventory.
     Assert.IsTrue(inventory.Contains(removing));
     Assert.IsTrue(inventory.Remove(removing));
@@ -273,6 +273,6 @@ public class InventoryUnitTest
     Assert.AreEqual(0, inventory.CountAll());
     // Try to remove more.
     Assert.IsFalse(inventory.Remove(removing));
-    
+
   }
 }

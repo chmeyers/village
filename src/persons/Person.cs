@@ -48,12 +48,12 @@ public class Person : IAbilityContext, IInventoryContext
     {
       // Clear the itemAbilities set.
       itemAbilities.Clear();
-      itemAbilities = inventory.GetAbilities();
+      itemAbilities = inventory.ItemAbilities();
       // The item abilities are no longer dirty.
       itemAbilitiesDirty = false;
     }
   }
-  
+
   // Calculate the valid tasks for this Person.
   public void CalculateValidTasks()
   {
@@ -110,7 +110,7 @@ public class Person : IAbilityContext, IInventoryContext
       return availableTasks;
     }
   }
-  
+
 
   // Add an item and quantity to the inventory. If an item with abilities is
   // added and the person doesn't already have the ability,
@@ -124,7 +124,7 @@ public class Person : IAbilityContext, IInventoryContext
       // Revisit this decision if it becomes a performance issue.
       itemAbilitiesDirty = true;
     }
-    inventory.Add(item, quantity);
+    inventory.AddItem(item, quantity);
   }
 
   public bool RemoveItem(Item item, int quantity)
@@ -136,7 +136,7 @@ public class Person : IAbilityContext, IInventoryContext
       // Revisit this decision if it becomes a performance issue.
       itemAbilitiesDirty = true;
     }
-    return inventory.Remove(item, quantity);
+    return inventory.RemoveItem(item, quantity);
   }
 
 
@@ -146,7 +146,7 @@ public class Person : IAbilityContext, IInventoryContext
     this.id = id;
     this.name = name;
   }
-  
+
   // Unique ID for the person.
   public readonly string id;
 
@@ -174,14 +174,11 @@ public class Person : IAbilityContext, IInventoryContext
   // sub-abilities of those abilities.
   protected Dictionary<AbilityType, List<Item>> itemAbilities = new Dictionary<AbilityType, List<Item>>();
 
-  // Readonly accessor for the item abilities.
-  public Dictionary<AbilityType, List<Item>> ItemAbilities
+  // Item abilities for the inventory interface.
+  public Dictionary<AbilityType, List<Item>> ItemAbilities()
   {
-    get
-    {
-      CalculateItemAbilities();
-      return itemAbilities;
-    }
+    CalculateItemAbilities();
+    return itemAbilities;
   }
 
   // Dirty bit for the item abilities, it should be set to dirty
