@@ -2,6 +2,7 @@
 using Village.Abilities;
 using Village.Items;
 using Village.Persons;
+using Village.Skills;
 
 namespace Village.Effects;
 
@@ -94,13 +95,35 @@ public class SkillEffect : Effect
   public override void Apply(ChosenEffectTarget chosenEffectTarget)
   {
     // Get the person from the chosen target.
-    Person person = (Person)chosenEffectTarget.target!;
-    // Increase the skill.
-    // TODO(chmeyers): Skills aren't implemented yet.
+    ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
+    // Make sure person is not null.
+    if (person == null)
+    {
+      // We ignore this effect if the person is null.
+      return;
+    }
+
+    if (_skill == null)
+    {
+      _skill = Skill.Find(skill);
+      // Make sure the skill exists.
+      if (_skill == null)
+      {
+        throw new Exception("Skill does not exist: " + skill + " in skill effect " + effect);
+      }
+    }
+
+    // Increase the skill of the target.
+    // Note that the amount uses the ability context which may be a different context
+    // than the target, for example if one person is teaching another person.
+    // TODO(chmeyers): Use the maxLevel setting.
+    PersonSkill.GrantXP(person, _skill, amount.GetValue(chosenEffectTarget.abilityContext));
   }
 
   // The name of the skill to increase.
   public string skill;
+  // Cached Skill object.
+  private Skill? _skill;
   // The amount to increase the skill by.
   public AbilityValue amount;
   // The maximum level the skill can be increased to.

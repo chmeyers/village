@@ -3,6 +3,7 @@ using Village.Abilities;
 using Village.Effects;
 using Village.Items;
 using Village.Persons;
+using Village.Skills;
 using Village.Tasks;
 namespace VillageTest;
 
@@ -36,6 +37,14 @@ public class TaskUnitTest
   }";
       // Load the item types.
       EffectLoader.LoadString(json);
+    }
+    {
+      Skill.Clear();
+      string json = @"{
+        'chopping' : [ {'xp': 100 } ]
+  }";
+      // Load the skills.
+      Skill.LoadString(json);
     }
     {
       WorkTask.Clear();

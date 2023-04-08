@@ -190,9 +190,9 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     allAbilitiesDirty = true;
   }
 
-  public PersonSkill GetSkill(Skill skill)
+  public PersonSkill? GetSkill(Skill skill)
   {
-    throw new NotImplementedException();
+    return null;
   }
 
   // Dirty bit for the item abilities, it should be set to dirty

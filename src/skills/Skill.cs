@@ -13,26 +13,8 @@ public class SkillLevel
   public HashSet<AbilityType> requirements { get; private set; } = new HashSet<AbilityType>();
   // Abilities gained by reaching this level.
   public HashSet<AbilityType> abilities { get; private set; } = new HashSet<AbilityType>();
-  // Effects run when this level is reached.
-  // default get, but set must check that the effect target is the person.
-  public HashSet<Effect> effects
-  {
-    get
-    {
-      return effects;
-    }
-    private set
-    {
-      foreach (Effect effect in value)
-      {
-        if (effect.target != EffectTargetType.Person)
-        {
-          throw new Exception("SkillLevel effects must target the person.");
-        }
-      }
-      effects = value;
-    }
-  }
+  // Effects run when this level is reached. Every effect must target the person.
+  public HashSet<Effect> effects { get; private set; } = new HashSet<Effect>();
 
   public static SkillLevel FromJson(Newtonsoft.Json.Linq.JToken? json)
   {
@@ -111,6 +93,10 @@ public class Skill
     }
     return null;
   }
+  public static void Clear()
+  {
+    skills.Clear();
+  }
   // ID of the skill.
   public string id { get; }
   // List of skill levels.
@@ -120,6 +106,14 @@ public class Skill
   // Pointers to the child skills.
   public HashSet<Skill> children { get; private set; } = new HashSet<Skill>();
 
+  // The bracket operator allows you to get the skill level by index.
+  public SkillLevel this[int index]
+  {
+    get
+    {
+      return levels[index];
+    }
+  }
   // Constructor.
   private Skill(string id)
   {
@@ -228,7 +222,7 @@ public class Skill
 public interface ISkillContext : IAbilityContext
 {
   // Get the skill for the given skill ID.
-  public PersonSkill GetSkill(Skill skill);
+  public PersonSkill? GetSkill(Skill skill);
 }
 
 // A skill for a particular person.
@@ -237,7 +231,7 @@ public class PersonSkill
   // Pointer to the skill.
   public Skill skill { get; }
   // Current level of the skill. 1-based.
-  public int level { get { return level; } private set { level = value; } }
+  public int level { get ; private set; }
   // XP that was required to reach the current level.
   private int xpBase;
   // Current XP of the skill since the last level.
@@ -304,16 +298,16 @@ public class PersonSkill
     this.level = level;
     // Sum the XP required to reach this level and save that as the base.
     this.xpBase = 0;
-    for (int i = 0; i < level - 1; i++)
+    for (int i = 0; i <= level - 1; i++)
     {
       this.xpBase += skill.levels[i].xp;
     }
     this.xp = 0;
-    foreach (var ability in skill.levels[level].abilities)
+    foreach (var ability in skill.levels[level - 1].abilities)
     {
       context.GrantAbility(ability);
     }
-    foreach (var effect in skill.levels[level].effects)
+    foreach (var effect in skill.levels[level - 1].effects)
     {
       // Apply the effect, the target is always the person whose skill this is.
       effect.Apply(new ChosenEffectTarget(EffectTargetType.Person, context, context));
@@ -338,7 +332,12 @@ public class PersonSkill
     bool gaveXP = false;
     while (xp > 0)
     {
-      // Check the requirements for this level to see if we are allowed to give xp.
+      // If we are at the max level, we can't give any more XP.
+      if (level >= skill.levels.Count)
+      {
+        return gaveXP;
+      }
+      // Check the requirements for the next level to see if we are allowed to give xp.
       if (!meetsRequirements(context, skill.levels[level]))
       {
         return gaveXP;
@@ -365,18 +364,51 @@ public class PersonSkill
   // we look up the skill ourselves to ensure it's given in the correct context.
   public static bool GrantLevel(ISkillContext context, Skill skill, int level)
   {
-    return context.GetSkill(skill).GrantLevel(context, level);
+    var personSkill = context.GetSkill(skill);
+    if (personSkill == null)
+    {
+      return false;
+    }
+    return personSkill.GrantLevel(context, level);
   }
 
   public static bool GrantLevel(ISkillContext context, Skill skill)
   {
-    return context.GetSkill(skill).GrantLevel(context);
+    var personSkill = context.GetSkill(skill);
+    if (personSkill == null)
+    {
+      return false;
+    }
+    return personSkill.GrantLevel(context);
   }
 
   public static bool GrantXP(ISkillContext context, Skill skill, int xp)
   {
-    return context.GetSkill(skill).GrantXP(context, xp);
+    var personSkill = context.GetSkill(skill);
+    if (personSkill == null)
+    {
+      return false;
+    }
+    return personSkill.GrantXP(context, xp);
   }
 
+}
 
+// Concrete implementation of the skill context.
+public class ConcreteSkillContext : ConcreteAbilityContext, ISkillContext
+{
+  // Set of PersonSkills.
+  public HashSet<PersonSkill> skills { get; } = new HashSet<PersonSkill>();
+  // Constructor.
+  public ConcreteSkillContext(HashSet<AbilityType> abilities, HashSet<PersonSkill> skills)
+    : base(abilities)
+  {
+    this.skills = skills;
+  }
+
+  // Get the skill for the given skill ID.
+  public PersonSkill? GetSkill(Skill skill)
+  {
+    return skills.FirstOrDefault(s => s.skill == skill);
+  }
 }
