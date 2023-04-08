@@ -31,7 +31,7 @@ public class TaskRunner
     {
       // Remove the inputs from the inventory or return false if they are not present.
       // The inventory will choose the worst version of the item that matches.
-      if (!person.Inventory.Remove(task.inputs))
+      if (!person.Inventory.Remove(task.Inputs(person)))
       {
         return false;
       }

@@ -102,7 +102,7 @@ public class Person : IAbilityContext, IInventoryContext
       foreach (WorkTask task in validTasks)
       {
         // Check that all the inputs required for the task are in the inventory.
-        if (inventory.Contains(task.inputs))
+        if (inventory.Contains(task.Inputs(this)))
         {
           availableTasks.Add(task);
         }

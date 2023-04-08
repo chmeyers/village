@@ -1,4 +1,7 @@
 
+using Newtonsoft.Json;
+using Newtonsoft.Json.Linq;
+
 namespace Village.Abilities;
 
 
@@ -6,6 +9,7 @@ namespace Village.Abilities;
 
 // An AbilityValue is a value that can be modified by the presence of abilities.
 // The value is not concrete until the abilities are applied.
+[JsonConverter(typeof(AbilityValueConverter))]
 public class AbilityValue
 {
   // The base value of the AbilityValue.
@@ -18,28 +22,18 @@ public class AbilityValue
   {
     this.baseValue = baseValue;
   }
-
-  // Read AbilityValue from JSON.
-  public static AbilityValue FromJson(object input)
+  
+  public AbilityValue(Newtonsoft.Json.Linq.JToken? json)
   {
-    if (input == null)
+    if (json == null)
     {
-      throw new Exception("Failed to load ability value from null");
+      this.baseValue = 0;
+      return;
     }
-    // If the JSON is just an int, set the base value to that.
-    // Otherwise parse the JSON as a dictionary.
-    if (input is long)
-    {
-      return new AbilityValue((int)(long)input);
-    }
-    if (input is not Newtonsoft.Json.Linq.JToken)
-    {
-      throw new Exception("Failed to load ability value from type: " + input.GetType().Name);
-    }
-    Newtonsoft.Json.Linq.JToken json = (Newtonsoft.Json.Linq.JToken)input;
     if (json.Type == Newtonsoft.Json.Linq.JTokenType.Integer)
     {
-      return new AbilityValue((int)(long)json);
+      this.baseValue = ((int)(long)json);
+      return;
     }
     var dict = json.ToObject<Dictionary<string, object>>();
     if (dict == null)
@@ -49,7 +43,7 @@ public class AbilityValue
     // Get the base value.
     int baseValue = (int)(long)dict["val"];
     // Create the AbilityValue.
-    AbilityValue abilityValue = new AbilityValue(baseValue);
+    this.baseValue = baseValue;
     // Get the abilities.
     Newtonsoft.Json.Linq.JObject? abilities = (Newtonsoft.Json.Linq.JObject?)json["modifiers"];
     if (abilities != null)
@@ -75,18 +69,46 @@ public class AbilityValue
         }
         if (abilityModifier.ContainsKey("add"))
         {
-          abilityValue.addAbilities.Add(abilityType, (int)(long)abilityModifier["add"]);
+          this.addAbilities.Add(abilityType, (int)(long)abilityModifier["add"]);
         }
-        
+
         if (abilityModifier.ContainsKey("mult"))
         {
-          abilityValue.multAbilities.Add(abilityType, (float)(double)abilityModifier["mult"]);
+          this.multAbilities.Add(abilityType, (float)(double)abilityModifier["mult"]);
         }
-        
+
       }
     }
-    // Return the ability value.
-    return abilityValue;
+  }
+  public static implicit operator AbilityValue(long x) 
+  {
+    return new AbilityValue((int)x);
+  }
+
+  public static implicit operator AbilityValue(Newtonsoft.Json.Linq.JToken x)
+  {
+    return new AbilityValue((int)x);
+  }
+
+  // Read AbilityValue from JSON.
+  public static AbilityValue FromJson(object? input)
+  {
+    if (input == null)
+    {
+      throw new Exception("Failed to load ability value from null");
+    }
+    // If the JSON is just an int, set the base value to that.
+    // Otherwise parse the JSON as a dictionary.
+    if (input is long)
+    {
+      return new AbilityValue((int)(long)input);
+    }
+    if (input is not Newtonsoft.Json.Linq.JToken)
+    {
+      throw new Exception("Failed to load ability value from type: " + input.GetType().Name);
+    }
+    
+    return new AbilityValue((Newtonsoft.Json.Linq.JToken)input);
   }
 
   // Return the value of the AbilityValue.
@@ -120,5 +142,23 @@ public class AbilityValue
   public int GetBaseValue()
   {
     return baseValue;
+  }
+}
+
+public class AbilityValueConverter : JsonConverter<AbilityValue>
+{
+  public override AbilityValue ReadJson(JsonReader reader, Type objectType, AbilityValue? existingValue, bool hasExistingValue, JsonSerializer serializer)
+  {
+    var token = Newtonsoft.Json.Linq.JToken.ReadFrom(reader);
+    return AbilityValue.FromJson(token);
+  }
+
+  public override bool CanWrite
+  {
+    get { return false; }
+  }
+  public override void WriteJson(JsonWriter writer, AbilityValue? value, JsonSerializer serializer)
+  {
+    throw new NotImplementedException();
   }
 }

@@ -30,7 +30,7 @@ public class TaskUnitTest
     }
     {
       AbilityType.Clear();
-      string json = @"{ 'chopping' : { 'levels': 3 } }";
+      string json = @"{ 'chopping' : { 'levels': 4 } }";
       // Load the ability types.
       AbilityType.LoadString(json);
     }
@@ -48,11 +48,12 @@ public class TaskUnitTest
       string json = @"{
     'gather_wood': { 'timeCost': 10, 'requirements': ['chopping_1'], 'repeatable': true, 'outputs' : { 'wood' : 100 }, 'effects' : { 'skill_chopping_1' : [''], 'degrade_1': ['chopping_1'] } },
     'teach_chopping_1': { 'timeCost': 10, 'requirements': ['chopping_2'],  'effects' : { 'skill_chopping_1' : ['@1'] } },
+    'gather_wood2': { 'timeCost': 10, 'requirements': ['chopping_3'], 'inputs' : { 'wood' : {'val' : 50 } } },
       }";
       // Load the tasks.
       WorkTask.LoadString(json);
       // Check that the tasks were loaded.
-      Assert.AreEqual(2, WorkTask.tasks.Count);
+      Assert.AreEqual(3, WorkTask.tasks.Count);
       // Check that the tasks were loaded correctly.
       Assert.AreEqual(10, WorkTask.tasks["gather_wood"].timeCost);
       Assert.AreEqual(10, WorkTask.tasks["teach_chopping_1"].timeCost);
@@ -77,6 +78,15 @@ public class TaskUnitTest
       // chopping_1 should have gather_wood.
       Assert.AreEqual(1, WorkTask.tasksByAbility["chopping_1"].Count);
       Assert.IsTrue(WorkTask.tasksByAbility["chopping_1"].Contains(WorkTask.tasks["gather_wood"]));
+      // Check that gather_wood2 was loaded correctly.
+      Assert.AreEqual(1, WorkTask.tasks["gather_wood2"].inputs.Count);
+      Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].inputs[ItemType.Find("wood")!].GetBaseValue());
+
+      HashSet<AbilityType> abilityTypes = new HashSet<AbilityType>();
+      abilityTypes.Add(AbilityType.abilityTypes["chopping_1"]);
+      ConcreteAbilityContext context = new ConcreteAbilityContext(abilityTypes);
+
+      Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].Inputs(context)[ItemType.Find("wood")!]);
 
       // Create a Person to run tasks on.
       Person person = new Person("bob", "Bob");

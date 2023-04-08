@@ -4,7 +4,6 @@
 // by Persons with the correct abilities.
 
 using Newtonsoft.Json;
-using System;
 using Village.Abilities;
 using Village.Effects;
 using Village.Items;
@@ -98,7 +97,7 @@ namespace Village.Tasks
         // If present, get the requirements setting from the Value
         List<string>? requirements = task.Value.ContainsKey("requirements") ? ((Newtonsoft.Json.Linq.JArray)task.Value["requirements"]).ToObject<List<string>>() : null;
         // If present, get the inputs setting from the Value
-        Dictionary<string, int>? inputs = task.Value.ContainsKey("inputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["inputs"]).ToObject<Dictionary<string, int>>() : null;
+        Dictionary<string, AbilityValue>? inputs = task.Value.ContainsKey("inputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["inputs"]).ToObject<Dictionary<string, AbilityValue>>() : null;
 
         // If present, get the outputs setting from the Value
         Dictionary<string, int>? outputs = task.Value.ContainsKey("outputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["outputs"]).ToObject<Dictionary<string, int>>() : null;
@@ -136,7 +135,7 @@ namespace Village.Tasks
     }
 
     // Constructor for a WorkTask.
-    public WorkTask(string task, List<string>? requirements, Dictionary<string, int>? inputs, Dictionary<string, int>? outputs, Dictionary<string, List<string>>? effects, int timeCost, bool repeatable)
+    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, int>? outputs, Dictionary<string, List<string>>? effects, int timeCost, bool repeatable)
     {
       // Set the task name.
       this.task = task;
@@ -163,7 +162,7 @@ namespace Village.Tasks
       if (inputs != null)
       {
         this.inputs = inputs.ToDictionary(
-          (KeyValuePair<string, int> input) =>
+          (KeyValuePair<string, AbilityValue> input) =>
           {
             ItemType? itemType = ItemType.Find(input.Key);
             if (itemType == null)
@@ -172,12 +171,12 @@ namespace Village.Tasks
             }
             return itemType;
           },
-          (KeyValuePair<string, int> input) => input.Value
+          (KeyValuePair<string, AbilityValue> input) => input.Value
         );
       }
       else
       {
-        this.inputs = new Dictionary<ItemType, int>();
+        this.inputs = new Dictionary<ItemType, AbilityValue>();
       }
       // Verify that the outputs are all valid ItemTypes,
       // and convert the strings to ItemTypes.
@@ -292,12 +291,22 @@ namespace Village.Tasks
       }
     }
 
+    public Dictionary<ItemType, int> Inputs(IAbilityContext context)
+    {
+      Dictionary<ItemType, int> inputs = new Dictionary<ItemType, int>();
+      foreach (var input in this.inputs)
+      {
+        inputs.Add(input.Key, input.Value.GetValue(context));
+      }
+      return inputs;
+    }
+
     // The name of the task.
     public string task;
     // The abilities required to perform the task.
     public List<AbilityType> requirements;
     // The ItemType and quantities of inputs required to perform the task.
-    public Dictionary<ItemType, int> inputs;
+    public Dictionary<ItemType, AbilityValue> inputs;
     // The outputs produced by the task.
     public Dictionary<ItemType, int> outputs;
     // The side effects of the task, along with their targets.
