@@ -1,4 +1,5 @@
 // Classes that inherit from Effect
+using Village.Abilities;
 using Village.Items;
 using Village.Persons;
 
@@ -19,14 +20,14 @@ public class DegradeEffect : Effect
       throw new Exception("Degrade effect must have a config dictionary: " + effect);
     }
     // Get the degrade amount setting from the config
-    amount = (int)(long)data["amount"];
+    amount = AbilityValue.FromJson(data["amount"]);
   }
 
-  private void DegradeItem(Item item)
+  private void DegradeItem(IAbilityContext? context, Item item)
   {
     // Decrease the new item's quality by the specified amount.
     // TODO(chmeyers): What should we do if the item's quality reaches 0?
-    item.quality -= amount;
+    item.quality -= amount.GetValue(context);
     if (item.quality < 0)
     {
       item.quality = 0;
@@ -50,21 +51,21 @@ public class DegradeEffect : Effect
       // Remove the original item from the inventory of the person in the context.
       person.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
       
-      DegradeItem(newItem);
+      DegradeItem(chosenEffectTarget.abilityContext, newItem);
       // Add the new item back to the inventory of the person in the context.
       person.AddItem(newItem, Inventory.DEFAULT_QUANTITY);
     }
     else
     {
       // Degrade the item.
-      DegradeItem(item);
+      DegradeItem(chosenEffectTarget.abilityContext, item);
     }
 
     
   }
 
   // The amount to degrade the item by.
-  public int amount;
+  public AbilityValue amount;
 }
 
 // Increase a Person's skill level.
@@ -84,9 +85,9 @@ public class SkillEffect : Effect
     // Which Skill to increase.
     skill = (string)data["skill"];
     // How much to increase the skill by.
-    amount = (int)(long)data["amount"];
+    amount = AbilityValue.FromJson(data["amount"]);
     // The maximum level the skill can be increased to.
-    maxLevel = (int)(long)data["maxLevel"];
+    maxLevel = AbilityValue.FromJson(data["maxLevel"]);
   }
 
   // Apply the effect to the target.
@@ -101,7 +102,7 @@ public class SkillEffect : Effect
   // The name of the skill to increase.
   public string skill;
   // The amount to increase the skill by.
-  public int amount;
+  public AbilityValue amount;
   // The maximum level the skill can be increased to.
-  public int maxLevel;
+  public AbilityValue maxLevel;
 }
