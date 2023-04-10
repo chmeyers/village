@@ -8,24 +8,19 @@ public class AbilityType
 {
   // A static dictionary of all ability types.
   // This is used to look up ability types by name.
-  private static Dictionary<string, AbilityType> _abilityTypes = new Dictionary<string, AbilityType>();
+  public static Dictionary<string, AbilityType> abilityTypes { get; private set;} = new Dictionary<string, AbilityType>();
 
   // Clear the types dictionary.
   public static void Clear()
   {
-    _abilityTypes.Clear();
-  }
-  // Readonly Accessor for the ability types dictionary.
-  public static IReadOnlyDictionary<string, AbilityType> abilityTypes
-  {
-    get { return _abilityTypes; }
+    abilityTypes.Clear();
   }
 
   // Find a AbilityType by name.
   public static AbilityType? Find(string name)
   {
-    if (_abilityTypes.ContainsKey(name)) {
-      return _abilityTypes[name];
+    if (abilityTypes.ContainsKey(name)) {
+      return abilityTypes[name];
     }
     return null;
   }
@@ -44,7 +39,7 @@ public class AbilityType
         // Create the ability type.
         AbilityType abilityType = new AbilityType(name, level);
         // Add the ability type to the dictionary.
-        _abilityTypes.Add(abilityType.abilityType, abilityType);
+        abilityTypes.Add(abilityType.abilityType, abilityType);
       }
       
     }
