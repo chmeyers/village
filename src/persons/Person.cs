@@ -3,6 +3,7 @@
 
 using System;
 using Village.Abilities;
+using Village.Attributes;
 using Village.Items;
 using Village.Skills;
 using Village.Tasks;
@@ -16,7 +17,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   // Calculate the ability sets for this Person.
   public void CalculateAbilities()
   {
-    if (itemAbilitiesDirty || allAbilitiesDirty)
+    if (_attributeAbilitiesDirty || _itemAbilitiesDirty || _allAbilitiesDirty)
     {
       // Clear the allAbilities set.
       allAbilities.Clear();
@@ -36,8 +37,17 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       {
         allAbilities.UnionWith(abilityType.subTypes);
       }
+      // Get the attribute abilities
+      var attributeAbilities = attributes.AttributeAbilities();
+      // Add the attributeAbilities set to the allAbilities set.
+      allAbilities.UnionWith(attributeAbilities);
+      // Add the sub-abilities of the attributeAbilities set to the allAbilities set.
+      foreach (AbilityType abilityType in attributeAbilities)
+      {
+        allAbilities.UnionWith(abilityType.subTypes);
+      }
       // The ability set is no longer dirty.
-      allAbilitiesDirty = false;
+      _allAbilitiesDirty = false;
     }
   }
 
@@ -45,13 +55,13 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   public void CalculateItemAbilities()
   {
     // Only recalculate the itemAbilities set if it's dirty.
-    if (itemAbilitiesDirty)
+    if (_itemAbilitiesDirty)
     {
       // Clear the itemAbilities set.
       itemAbilities.Clear();
       itemAbilities = inventory.ItemAbilities();
       // The item abilities are no longer dirty.
-      itemAbilitiesDirty = false;
+      _itemAbilitiesDirty = false;
     }
   }
 
@@ -59,7 +69,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   public void CalculateValidTasks()
   {
     // Only recalculate the validTasks set if it's dirty.
-    if (validTasksDirty || itemAbilitiesDirty || allAbilitiesDirty)
+    if (validTasksDirty || _itemAbilitiesDirty || _allAbilitiesDirty)
     {
       // Clear the validTasks set.
       validTasks.Clear();
@@ -123,7 +133,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       // It might be more efficient to just add the new abilities to the itemAbilities set here,
       // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
       // Revisit this decision if it becomes a performance issue.
-      itemAbilitiesDirty = true;
+      _itemAbilitiesDirty = true;
     }
     inventory.AddItem(item, quantity);
   }
@@ -135,9 +145,21 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       // It might be more efficient to just remove abilities to the itemAbilities set here,
       // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
       // Revisit this decision if it becomes a performance issue.
-      itemAbilitiesDirty = true;
+      _itemAbilitiesDirty = true;
     }
     return inventory.RemoveItem(item, quantity);
+  }
+
+  public int SetAttribute(AttributeType attributeType, int value)
+  {
+    _attributeAbilitiesDirty = attributes.SetValue(attributeType, value);
+    return attributes.GetValue(attributeType);
+  }
+
+  public int AddAttribute(AttributeType attributeType, int value)
+  {
+    _attributeAbilitiesDirty = attributes.AddValue(attributeType, value);
+    return attributes.GetValue(attributeType);
   }
 
 
@@ -146,6 +168,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   {
     this.id = id;
     this.name = name;
+    // Target and Context for Attribute effects point back at this Person.
+    this.attributes = new AttributeSet(this, this);
   }
 
   // Unique ID for the person.
@@ -155,16 +179,10 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   public string name;
 
   // The person's main inventory.
-  protected Inventory inventory = new Inventory();
+  public Inventory inventory { get ; protected set; } = new Inventory();
 
-  // readonly accessor for the inventory.
-  public Inventory Inventory
-  {
-    get
-    {
-      return inventory;
-    }
-  }
+  // The person's attributes.
+  public AttributeSet attributes { get ; protected set; }
 
   // Set of permanant abilities the person has.
   protected HashSet<AbilityType> abilities = new HashSet<AbilityType>();
@@ -187,7 +205,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     // Add the ability to the abilities set.
     abilities.Add(ability);
     // Set the dirty bit for the allAbilities set.
-    allAbilitiesDirty = true;
+    _allAbilitiesDirty = true;
   }
 
   public PersonSkill? GetSkill(Skill skill)
@@ -195,9 +213,12 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     return null;
   }
 
+  // Dirty bit for attribute abilities.
+  protected bool _attributeAbilitiesDirty = true;
+
   // Dirty bit for the item abilities, it should be set to dirty
   // whenever the person loses an item that gives them an ability.
-  protected bool itemAbilitiesDirty = true;
+  protected bool _itemAbilitiesDirty = true;
 
   // Cache for all the abilities the person currently has.
   // This is the union of the abilities and itemAbilities sets, as
@@ -207,7 +228,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
 
   // Dirty bit for the all abilities, it should be set to dirty
   // whenever the person's abilities change.
-  protected bool allAbilitiesDirty = true;
+  protected bool _allAbilitiesDirty = true;
 
   // Cache of work tasks the person can do, based on their abilities.
   // They may not have the required item inputs to do the task.
