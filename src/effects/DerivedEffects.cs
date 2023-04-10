@@ -35,34 +35,34 @@ public class DegradeEffect : Effect
     }
   }
   // Apply the effect to the target.
-  public override void Apply(ChosenEffectTarget chosenEffectTarget)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
   {
     // Get the item from the chosen target.
     Item item = (Item)chosenEffectTarget.target!;
     // Get the person from the context.
-    Person person = (Person)chosenEffectTarget.context!;
+    Person person = (Person)chosenEffectTarget.targetContext!;
     // We are only degrading a single item, so if the item is a stack, we need to split the stack.
     // So we create a new item that is a copy of the original item, remove it from the inventory,
     // degrade it, then add it back to the inventory.
-    
+
     // Check if person has more than one of the item.
-    if (person.Inventory[item] > Inventory.DEFAULT_QUANTITY)
+    if (person.inventory[item] > Inventory.DEFAULT_QUANTITY)
     {
       Item newItem = item.Clone();
       // Remove the original item from the inventory of the person in the context.
       person.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
-      
-      DegradeItem(chosenEffectTarget.abilityContext, newItem);
+
+      DegradeItem(chosenEffectTarget.runningContext, newItem);
       // Add the new item back to the inventory of the person in the context.
       person.AddItem(newItem, Inventory.DEFAULT_QUANTITY);
     }
     else
     {
       // Degrade the item.
-      DegradeItem(chosenEffectTarget.abilityContext, item);
+      DegradeItem(chosenEffectTarget.runningContext, item);
     }
 
-    
+
   }
 
   // The amount to degrade the item by.
@@ -92,7 +92,7 @@ public class SkillEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void Apply(ChosenEffectTarget chosenEffectTarget)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
   {
     // Get the person from the chosen target.
     ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
@@ -117,7 +117,7 @@ public class SkillEffect : Effect
     // Note that the amount uses the ability context which may be a different context
     // than the target, for example if one person is teaching another person.
     // TODO(chmeyers): Use the maxLevel setting.
-    PersonSkill.GrantXP(person, _skill, amount.GetValue(chosenEffectTarget.abilityContext));
+    PersonSkill.GrantXP(person, _skill, amount.GetValue(chosenEffectTarget.runningContext));
   }
 
   // The name of the skill to increase.

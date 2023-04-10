@@ -84,17 +84,20 @@ public class ChosenEffectTarget
   public EffectTargetType effectTargetType;
   // The target.
   public object? target;
-  // Inventory Context for the effect, typically the person performing the task.
-  public IInventoryContext? context;
-  // Ability Context for the effect, typically the person performing the task.
-  public IAbilityContext? abilityContext;
+  // Inventory Context for the effect, typically the person performing the task,
+  // but could be the person who owns the item being used for the task, or a
+  // building that owns the item being used for the task, etc.
+  public IInventoryContext? targetContext;
+  // Context of the object that is running the effect, typically the person performing the task.
+  // Used to see what abilities the person has.
+  public IAbilityContext? runningContext;
   // The effect target constructor.
-  public ChosenEffectTarget(EffectTargetType effectTargetType, object? target, object? context)
+  public ChosenEffectTarget(EffectTargetType effectTargetType, object? target, object? targetContext, object? runningContext)
   {
     this.effectTargetType = effectTargetType;
     this.target = target;
-    this.context = context as IInventoryContext;
-    this.abilityContext = context as IAbilityContext;
+    this.targetContext = targetContext as IInventoryContext;
+    this.runningContext = runningContext as IAbilityContext;
   }
 }
 
@@ -134,9 +137,28 @@ public class Effect
   }
 
   // Apply the effect to the chosen target, using the given person as context.
-  public virtual void Apply(ChosenEffectTarget chosenEffectTarget)
+  public void Apply(ChosenEffectTarget chosenEffectTarget)
   {
-    throw new Exception("Effect.Apply not implemented for " + effectType);
+    // Effects that target the same person as the task or an item in
+    // their inventory are applied synchronously.
+    if (chosenEffectTarget.runningContext == chosenEffectTarget.targetContext)
+    {
+      // debug print
+      Console.WriteLine("Apply effect " + effect + " to " + chosenEffectTarget.target + " in " + chosenEffectTarget.targetContext + " from " + chosenEffectTarget.runningContext);
+      ApplySync(chosenEffectTarget);
+    }
+    // Everything else is applied asynchronously.
+    else
+    {
+      // debug print
+      Console.WriteLine("Apply async effect " + effect + " to " + chosenEffectTarget.target + " in " + chosenEffectTarget.targetContext + " from " + chosenEffectTarget.runningContext);
+      Task.Run(() => ApplySync(chosenEffectTarget));
+    }
+  }
+
+  public virtual void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  {
+    throw new Exception("Effect.ApplySync not implemented for " + effectType);
   }
 
   public Effect(string effect, EffectTargetType target, EffectType effectType)

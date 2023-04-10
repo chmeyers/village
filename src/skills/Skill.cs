@@ -310,7 +310,7 @@ public class PersonSkill
     foreach (var effect in skill.levels[level - 1].effects)
     {
       // Apply the effect, the target is always the person whose skill this is.
-      effect.Apply(new ChosenEffectTarget(EffectTargetType.Person, context, context));
+      effect.Apply(new ChosenEffectTarget(EffectTargetType.Person, context, context, context));
     }
     return true;
   }
@@ -392,23 +392,4 @@ public class PersonSkill
     return personSkill.GrantXP(context, xp);
   }
 
-}
-
-// Concrete implementation of the skill context.
-public class ConcreteSkillContext : ConcreteAbilityContext, ISkillContext
-{
-  // Set of PersonSkills.
-  public HashSet<PersonSkill> skills { get; } = new HashSet<PersonSkill>();
-  // Constructor.
-  public ConcreteSkillContext(HashSet<AbilityType> abilities, HashSet<PersonSkill> skills)
-    : base(abilities)
-  {
-    this.skills = skills;
-  }
-
-  // Get the skill for the given skill ID.
-  public PersonSkill? GetSkill(Skill skill)
-  {
-    return skills.FirstOrDefault(s => s.skill == skill);
-  }
 }

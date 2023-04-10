@@ -85,7 +85,7 @@ public class TaskUnitTest
       Assert.AreEqual(1, WorkTask.tasks["gather_wood2"].inputs.Count);
       Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].inputs[ItemType.Find("wood")!].GetBaseValue());
       Assert.AreEqual(100, WorkTask.tasks["gather_wood2"].outputs[ItemType.Find("wood")!].GetBaseValue());
-      
+
 
       HashSet<AbilityType> abilityTypes = new HashSet<AbilityType>();
       abilityTypes.Add(AbilityType.abilityTypes["chopping_1"]);
@@ -98,27 +98,27 @@ public class TaskUnitTest
       abilityTypes.Add(AbilityType.abilityTypes["chopping_4"]);
       context = new ConcreteAbilityContext(abilityTypes);
       Assert.AreEqual(105, WorkTask.tasks["gather_wood2"].Outputs(context)[ItemType.Find("wood")!]);
-      
+
 
       // Create a Person to run tasks on.
       Person person = new Person("bob", "Bob");
       // Can't perform task because person doesn't have the ability.
       Assert.IsFalse(TaskRunner.PerformTask(person, WorkTask.tasks["gather_wood"], null));
       // Person should have no wood.
-      Assert.IsFalse(person.Inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 1 } }));
+      Assert.IsFalse(person.inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 1 } }));
       // Give them two axes.
       Item axe = new Item(ItemType.Find("axe")!);
       person.AddItem(axe, 200);
-      var axes = person.Inventory[ItemType.Find("axe")!];
+      var axes = person.inventory[ItemType.Find("axe")!];
       Assert.AreEqual(1, axes.Count);
       Assert.AreEqual(100, axes.First().Key.quality);
       Assert.AreEqual(200, axes.First().Value);
       // Try to perform the task again
       Assert.IsTrue(TaskRunner.PerformTask(person, WorkTask.tasks["gather_wood"], null));
       // Person should have 100 wood.
-      Assert.IsTrue(person.Inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 100 } }));
+      Assert.IsTrue(person.inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 100 } }));
       // Person should have one axe with full quality, and one degrade axe.
-      axes = person.Inventory[ItemType.Find("axe")!];
+      axes = person.inventory[ItemType.Find("axe")!];
       Assert.AreEqual(2, axes.Count);
       // The lower quality one should be sorted first.
       Assert.AreEqual(99, axes.First().Key.quality);
@@ -128,9 +128,9 @@ public class TaskUnitTest
       // Try to perform the task again
       Assert.IsTrue(TaskRunner.PerformTask(person, WorkTask.tasks["gather_wood"], null));
       // Person should have 200 wood.
-      Assert.IsTrue(person.Inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 200 } }));
+      Assert.IsTrue(person.inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 200 } }));
       // Person should have one axe with full quality, and one axe degraded two times.
-      axes = person.Inventory[ItemType.Find("axe")!];
+      axes = person.inventory[ItemType.Find("axe")!];
       Assert.AreEqual(2, axes.Count);
       // The lower quality one should be sorted first.
       Assert.AreEqual(98, axes.First().Key.quality);

@@ -41,7 +41,7 @@ public class PersonUnitTest
     Assert.AreEqual(1, person.AvailableTasks.Count);
     Assert.IsTrue(person.AvailableTasks.Contains(sleepTask));
     // Check that the person has no inventory.
-    Assert.AreEqual(0, person.Inventory.Count());
+    Assert.AreEqual(0, person.inventory.Count());
 
     // Add an item to the person's inventory.
     person.AddItem(new Item(ItemType.itemTypes["axe"]), 100);

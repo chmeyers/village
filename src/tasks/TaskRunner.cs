@@ -31,12 +31,12 @@ public class TaskRunner
     {
       // Remove the inputs from the inventory or return false if they are not present.
       // The inventory will choose the worst version of the item that matches.
-      if (!person.Inventory.Remove(task.Inputs(person)))
+      if (!person.inventory.Remove(task.Inputs(person)))
       {
         return false;
       }
       // Add the outputs to the inventory.
-      person.Inventory.Add(task.Outputs(person));
+      person.inventory.Add(task.Outputs(person));
       // For each effect, resolve the target and apply the effect.
       foreach (var effect in task.effects)
       {
@@ -56,7 +56,7 @@ public class TaskRunner
           else
           {
             // The target isn't a target string, so resolve it.
-            chosenTarget = EffectTargetResolver.ResolveEffectTarget(effectTarget, person);
+            chosenTarget = EffectTargetResolver.ResolveEffectTarget(effectTarget, person, person);
           }
           if (chosenTarget == null)
           {
@@ -66,7 +66,7 @@ public class TaskRunner
           // Apply the effect to the chosen target.
           effect.Key.Apply(chosenTarget);
         }
-        
+
       }
       return true;
     }

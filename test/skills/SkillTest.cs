@@ -11,6 +11,40 @@ namespace VillageTest;
 [TestClass]
 public class SkillUnitTest
 {
+  // Concrete implementation of the skill context.
+  public class ConcreteSkillContext : ConcreteAbilityContext, ISkillContext, IInventoryContext
+  {
+    // Set of PersonSkills.
+    public HashSet<PersonSkill> skills { get; } = new HashSet<PersonSkill>();
+    // Constructor.
+    public ConcreteSkillContext(HashSet<AbilityType> abilities, HashSet<PersonSkill> skills)
+      : base(abilities)
+    {
+      this.skills = skills;
+    }
+
+    // Get the skill for the given skill ID.
+    public PersonSkill? GetSkill(Skill skill)
+    {
+      return skills.FirstOrDefault(s => s.skill == skill);
+    }
+
+    public void AddItem(Item item, int quantity)
+    {
+      throw new NotImplementedException();
+    }
+
+    public bool RemoveItem(Item item, int quantity)
+    {
+      throw new NotImplementedException();
+    }
+
+    public Dictionary<AbilityType, List<Item>> ItemAbilities()
+    {
+      throw new NotImplementedException();
+    }
+  }
+
   [TestMethod]
   public void TestLoadSkills()
   {
