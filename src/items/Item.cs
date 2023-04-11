@@ -9,6 +9,8 @@ public enum ItemGroup
   CURRENCY,
   // A resource is a raw material that can be used to craft other items.
   RESOURCE,
+  // Seeds including cuttings, bulbs, seedlings. Anything that can be planted.
+  SEED,
   // Food or drink.
   FOOD,
   // A tool is an item that can be used to complete job tasks.
@@ -76,10 +78,6 @@ public class ItemType
         }
         parent = Find((string)itemData["parent"]);
       }
-      // Get the item type display name.
-      string displayName = (string)itemData.GetValueOrDefault("displayName", name);
-      // Get the item type UX asset.
-      string uxAsset = (string)itemData.GetValueOrDefault("uxAsset", "");
       // Get the item type spoil time.
       int spoilTime = (int)(long)itemData.GetValueOrDefault("spoilTime", 0L);
       // Get the item type loss rate.
@@ -128,7 +126,7 @@ public class ItemType
       
 
       // Create the item type.
-      ItemType itemType = new ItemType(name, group, parent, displayName, uxAsset, spoilTime, lossRate, flammable, scrapItems, abilitySet);
+      ItemType itemType = new ItemType(name, group, parent, spoilTime, lossRate, flammable, scrapItems, abilitySet);
       // Add the item type to the dictionary.
       _itemTypes.Add(name, itemType);
     }
@@ -158,15 +156,11 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, ItemType? parent, string displayName,
-                  string uxAsset, int spoilTime, int lossRate, bool flammable,
-                  Dictionary<ItemType, int>? scrapItems, HashSet<AbilityType>? abilities)
+  public ItemType(string name, ItemGroup group, ItemType? parent, int spoilTime, int lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, HashSet<AbilityType>? abilities)
   {
     itemType = name;
     itemGroup = group;
     parentType = parent;
-    this.displayName = displayName;
-    this.uxAsset = uxAsset;
     this.spoilTime = spoilTime;
     this.lossRate = lossRate;
     this.flammable = flammable;
@@ -195,12 +189,6 @@ public class ItemType
 
   // The parent type of this item type, or null if this is a root type.
   public readonly ItemType? parentType;
-
-  // Localized/Pretty display name of the item type.
-  public readonly string displayName;
-
-  // Graphic asset used to display this item type.
-  public readonly string uxAsset;
 
   // The time it takes an item of this type to spoil in hundredths of a turn, or zero if it never spoils.
   public readonly int spoilTime;

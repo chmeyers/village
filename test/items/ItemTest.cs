@@ -11,8 +11,8 @@ public class ItemUnitTest
   {
     ItemType.Clear();
     string json = @"{
-  'type1': { 'group': 'CURRENCY', 'displayName': 'Type 1', uxAsset: 'uxAsset1'},
-  'type2': { 'parent': 'type1', 'group': 'RESOURCE', 'displayName': 'Type 2', uxAsset: 'uxAsset2', spoilTime: 2, lossRate: 2, flammable: true, scrapItems: { 'type1': 50 } }
+  'type1': { 'group': 'CURRENCY' },
+  'type2': { 'parent': 'type1', 'group': 'RESOURCE', spoilTime: 2, lossRate: 2, flammable: true, scrapItems: { 'type1': 50 } }
 }";
     // Load the item types.
     ItemType.LoadString(json);
@@ -27,12 +27,8 @@ public class ItemUnitTest
     Assert.AreEqual(ItemType.itemTypes["type1"], ItemType.itemTypes["type2"].parentType);
 
 
-    Assert.AreEqual("Type 1", ItemType.itemTypes["type1"].displayName);
-    Assert.AreEqual("uxAsset1", ItemType.itemTypes["type1"].uxAsset);
     Assert.AreEqual("type2", ItemType.itemTypes["type2"].itemType);
     Assert.AreEqual("RESOURCE", ItemType.itemTypes["type2"].itemGroup.ToString());
-    Assert.AreEqual("Type 2", ItemType.itemTypes["type2"].displayName);
-    Assert.AreEqual("uxAsset2", ItemType.itemTypes["type2"].uxAsset);
     Assert.AreEqual(2, ItemType.itemTypes["type2"].spoilTime);
     Assert.AreEqual(2, ItemType.itemTypes["type2"].lossRate);
     Assert.AreEqual(true, ItemType.itemTypes["type2"].flammable);
@@ -50,8 +46,8 @@ public class ItemUnitTest
     // Load ability types.
     AbilityType.LoadString(@"{ 'cutting' : { 'levels': 10 } }");
     string json = @"{
-  'type3': { 'group': 'CURRENCY', 'displayName': 'Type 1', uxAsset: 'uxAsset1'},
-  'type4': { 'parent': 'type3', 'group': 'RESOURCE', 'displayName': 'Type 2', uxAsset: 'uxAsset2', spoilTime: 2, lossRate: 2, flammable: true, scrapItems: { 'type3': 50 }, abilities: ['cutting_2'] }
+  'type3': { 'group': 'CURRENCY'},
+  'type4': { 'parent': 'type3', 'group': 'RESOURCE', spoilTime: 2, lossRate: 2, flammable: true, scrapItems: { 'type3': 50 }, abilities: ['cutting_2'] }
 }";
     // Load the item types.
     ItemType.LoadString(json);
