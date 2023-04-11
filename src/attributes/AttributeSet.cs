@@ -6,7 +6,7 @@ namespace Village.Attributes;
 public class AttributeSet
 {
   // The attributes.
-  private Dictionary<AttributeType, Attribute> attributes = new Dictionary<AttributeType, Attribute>();
+  private Dictionary<AttributeType, Attribute> _attributes = new Dictionary<AttributeType, Attribute>();
   // Cache of the abilities given by the attributes.
   private HashSet<AbilityType> attributeAbilities = new HashSet<AbilityType>();
   // Dirty bit for the attribute abilities.
@@ -41,7 +41,7 @@ public class AttributeSet
   {
     lock (_lock)
     {
-      return attributes.ContainsKey(attributeType);
+      return _attributes.ContainsKey(attributeType);
     }
   }
 
@@ -49,7 +49,7 @@ public class AttributeSet
   private void AddNoLock(AttributeType attributeType)
   {
     var attribute = new Attribute(attributeType, effectTarget, effectContext);
-    attributes.Add(attributeType, attribute);
+    _attributes.Add(attributeType, attribute);
     if (attribute.GetAbilities().Count > 0)
     {
       attributeAbilitiesDirty = true;
@@ -66,7 +66,7 @@ public class AttributeSet
         return attributeAbilities;
       }
       attributeAbilities.Clear();
-      foreach (Attribute attribute in attributes.Values)
+      foreach (Attribute attribute in _attributes.Values)
       {
         attributeAbilities.UnionWith(attribute.GetAbilities());
       }
@@ -82,11 +82,11 @@ public class AttributeSet
   {
     lock (_lock)
     {
-      if (!attributes.ContainsKey(attributeType))
+      if (!_attributes.ContainsKey(attributeType))
       {
         AddNoLock(attributeType);
       }
-      attributeAbilitiesDirty |= attributes[attributeType].SetValue(value);
+      attributeAbilitiesDirty |= _attributes[attributeType].SetValue(value);
       return attributeAbilitiesDirty;
     }
   }
@@ -98,11 +98,11 @@ public class AttributeSet
   {
     lock(_lock)
     {
-      if (!attributes.ContainsKey(attributeType))
+      if (!_attributes.ContainsKey(attributeType))
       {
         AddNoLock(attributeType);
       }
-      attributeAbilitiesDirty |= attributes[attributeType].AddValue(value);
+      attributeAbilitiesDirty |= _attributes[attributeType].AddValue(value);
       return attributeAbilitiesDirty;
     }
   }
@@ -114,11 +114,11 @@ public class AttributeSet
   {
     lock (_lock)
     {
-      if (!attributes.ContainsKey(attributeType))
+      if (!_attributes.ContainsKey(attributeType))
       {
         return attributeType.initialValue;
       }
-      return attributes[attributeType].value;
+      return _attributes[attributeType].value;
     }
   }
 }
