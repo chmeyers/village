@@ -1,4 +1,5 @@
 using Village.Abilities;
+using Village.Items;
 
 namespace Village.Attributes;
 
@@ -16,11 +17,11 @@ public class AttributeSet
 
   // The target and context for any effects run.
   // Typically this will be the person the attributes belong to.
-  private object? effectTarget;
+  private IInventoryContext? effectTarget;
   private IAbilityContext? effectContext;
 
   // Constructor for an AttributeSet.
-  public AttributeSet(object? effectTarget, IAbilityContext? effectContext)
+  public AttributeSet(IInventoryContext? effectTarget, IAbilityContext? effectContext)
   {
     this.effectTarget = effectTarget;
     this.effectContext = effectContext;

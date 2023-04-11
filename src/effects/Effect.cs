@@ -82,7 +82,8 @@ public class ChosenEffectTarget
 {
   // The type of target.
   public EffectTargetType effectTargetType;
-  // The target.
+  // The target item. Should be owned by the target context,
+  // but that is not checked.
   public object? target;
   // Inventory Context for the effect, typically the person performing the task,
   // but could be the person who owns the item being used for the task, or a
@@ -92,12 +93,12 @@ public class ChosenEffectTarget
   // Used to see what abilities the person has.
   public IAbilityContext? runningContext;
   // The effect target constructor.
-  public ChosenEffectTarget(EffectTargetType effectTargetType, object? target, object? targetContext, object? runningContext)
+  public ChosenEffectTarget(EffectTargetType effectTargetType, object? target, IInventoryContext? targetContext, IAbilityContext? runningContext)
   {
     this.effectTargetType = effectTargetType;
     this.target = target;
-    this.targetContext = targetContext as IInventoryContext;
-    this.runningContext = runningContext as IAbilityContext;
+    this.targetContext = targetContext;
+    this.runningContext = runningContext;
   }
 }
 

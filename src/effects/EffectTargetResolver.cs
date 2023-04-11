@@ -8,7 +8,7 @@ public class EffectTargetResolver
 {
   // Resolve a given effect target, given a person.
   // Returns a ChosenEffectTarget.
-  public static ChosenEffectTarget? ResolveEffectTarget(EffectTarget effectTarget, object? targetContext, object? runningContext)
+  public static ChosenEffectTarget? ResolveEffectTarget(EffectTarget effectTarget, IInventoryContext? targetContext, IAbilityContext? runningContext)
   {
     switch (effectTarget.effectTargetType)
     {
@@ -23,9 +23,9 @@ public class EffectTargetResolver
         var person = targetContext as Person;
         if (person == null)
         {
-          throw new Exception("Invalid effect context for person target: " + targetContext);
+          throw new Exception("Invalid effect target context for person target: " + targetContext);
         }
-        return new ChosenEffectTarget(effectTarget.effectTargetType, person, targetContext, runningContext);
+        return new ChosenEffectTarget(effectTarget.effectTargetType, null, person, runningContext);
       case EffectTargetType.Item:
         // Resolve the item from the person's inventory.
         // Pick an item that gives the ability specified by the effect target.

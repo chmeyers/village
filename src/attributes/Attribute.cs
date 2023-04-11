@@ -6,6 +6,7 @@
 using Newtonsoft.Json;
 using Village.Abilities;
 using Village.Effects;
+using Village.Items;
 
 namespace Village.Attributes;
 
@@ -221,14 +222,14 @@ public class Attribute
   // The attribute type.
   public AttributeType attributeType;
   // target for effects
-  private object? target;
+  private IInventoryContext? target;
   // context for effects
   private IAbilityContext? context;
 
   // List of async effects that are currently running.
   List<Task> _asyncEffects = new List<Task>();
 
-  public Attribute(AttributeType attributeType, object? effectTarget, IAbilityContext? effectContext)
+  public Attribute(AttributeType attributeType, IInventoryContext? effectTarget, IAbilityContext? effectContext)
   {
     this.attributeType = attributeType;
     this.value = attributeType.initialValue;
@@ -291,7 +292,7 @@ public class Attribute
         foreach (var effect in newInterval.effects)
         {
           // Apply the effect, the target is always the person whose attribute this is.
-          effect.Apply(new ChosenEffectTarget(effect.target, target, context, context));
+          effect.Apply(new ChosenEffectTarget(effect.target, null, target, context));
         }
       }
       return !newInterval.abilities.SetEquals(oldInterval.abilities);

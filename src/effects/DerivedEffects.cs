@@ -95,7 +95,7 @@ public class SkillEffect : Effect
   public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
   {
     // Get the person from the chosen target.
-    ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
+    ISkillContext person = (ISkillContext)chosenEffectTarget.targetContext!;
     // Make sure person is not null.
     if (person == null)
     {
@@ -117,7 +117,8 @@ public class SkillEffect : Effect
     // Note that the amount uses the ability context which may be a different context
     // than the target, for example if one person is teaching another person.
     // TODO(chmeyers): Use the maxLevel setting.
-    PersonSkill.GrantXP(person, _skill, amount.GetValue(chosenEffectTarget.runningContext));
+    
+    person.GrantXP(_skill, amount.GetValue(chosenEffectTarget.runningContext));
   }
 
   // The name of the skill to increase.
