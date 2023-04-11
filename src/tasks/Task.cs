@@ -104,9 +104,14 @@ namespace Village.Tasks
         // If present, get the effects setting from the Value
         Dictionary<string, List<string>>? effects = task.Value.ContainsKey("effects") ? ((Newtonsoft.Json.Linq.JObject)task.Value["effects"]).ToObject<Dictionary<string, List<string>>>() : null;
         // Get the time setting from the Value, this setting is required.
-        int time = (int)(long)task.Value["timeCost"];
+        AbilityValue time = AbilityValue.FromJson(task.Value["timeCost"]);
+        // Time values get a default min of 0, unless it's already set to something higher.
+        if (time.min < 0)
+        {
+          time.min = 0;
+        }
         // Get the repeatable setting, defaulting to true unless timeCost is zero.
-        bool repeatable = task.Value.ContainsKey("repeatable") ? (bool)task.Value["repeatable"] : time == 0;
+        bool repeatable = task.Value.ContainsKey("repeatable") ? (bool)task.Value["repeatable"] : time.GetBaseValue() == 0;
 
         // Create the task.
         WorkTask newTask = new WorkTask(name, requirements, inputs, outputs, effects, time, repeatable);
@@ -135,7 +140,7 @@ namespace Village.Tasks
     }
 
     // Constructor for a WorkTask.
-    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, AbilityValue>? outputs, Dictionary<string, List<string>>? effects, int timeCost, bool repeatable)
+    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, AbilityValue>? outputs, Dictionary<string, List<string>>? effects, AbilityValue timeCost, bool repeatable)
     {
       // Set the task name.
       this.task = task;
@@ -326,7 +331,7 @@ namespace Village.Tasks
     // Measured in tenths of a day, so Persons can perform
     // 300 units worth of tasks per month/turn.
     // Zero cost tasks are free to perform.
-    public int timeCost;
+    public AbilityValue timeCost;
     // Whether a task is repeatable in a single turn.
     public bool repeatable;
     // Set of targets for this task.

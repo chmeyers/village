@@ -14,6 +14,9 @@ public class AbilityValue
 {
   // The base value of the AbilityValue.
   public int baseValue;
+  // Minimum and maximum values.
+  public int min = int.MinValue;
+  public int max = int.MaxValue;
   // The abilities that affect the AbilityValue.
   private Dictionary<AbilityType, int> addAbilities = new Dictionary<AbilityType, int>();
   private Dictionary<AbilityType, float> multAbilities = new Dictionary<AbilityType, float>();
@@ -41,9 +44,17 @@ public class AbilityValue
       throw new Exception("Failed to load ability value from json");
     }
     // Get the base value.
-    int baseValue = (int)(long)dict["val"];
-    // Create the AbilityValue.
-    this.baseValue = baseValue;
+    this.baseValue = (int)(long)dict["val"];
+    // Get the min and max values.
+    if (dict.ContainsKey("min"))
+    {
+      this.min = (int)(long)dict["min"];
+    }
+    if (dict.ContainsKey("max"))
+    {
+      this.max = (int)(long)dict["max"];
+    }
+    baseValue = Math.Clamp(baseValue, min, max);
     // Get the abilities.
     Newtonsoft.Json.Linq.JObject? abilities = (Newtonsoft.Json.Linq.JObject?)json["modifiers"];
     if (abilities != null)
@@ -135,8 +146,9 @@ public class AbilityValue
         value *= ability.Value;
       }
     }
-    // The return value is converted to an int.
-    return (int)value;
+    // The return value is gated on the min and max values
+    // and converted to an int.
+    return Math.Clamp((int)value, min, max);
   }
   // Return the base value of the AbilityValue.
   public int GetBaseValue()

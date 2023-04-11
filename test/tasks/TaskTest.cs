@@ -58,8 +58,8 @@ public class TaskUnitTest
       // Check that the tasks were loaded.
       Assert.AreEqual(3, WorkTask.tasks.Count);
       // Check that the tasks were loaded correctly.
-      Assert.AreEqual(10, WorkTask.tasks["gather_wood"].timeCost);
-      Assert.AreEqual(10, WorkTask.tasks["teach_chopping_1"].timeCost);
+      Assert.AreEqual(10, WorkTask.tasks["gather_wood"].timeCost.GetBaseValue());
+      Assert.AreEqual(10, WorkTask.tasks["teach_chopping_1"].timeCost.GetBaseValue());
       // Check that the requirements were loaded correctly.
       Assert.AreEqual(1, WorkTask.tasks["gather_wood"].requirements.Count);
       Assert.AreEqual(1, WorkTask.tasks["teach_chopping_1"].requirements.Count);
