@@ -15,18 +15,12 @@ public class SkillUnitTest
   public class ConcreteSkillContext : ConcreteAbilityContext, ISkillContext, IInventoryContext
   {
     // Set of PersonSkills.
-    public HashSet<PersonSkill> skills { get; } = new HashSet<PersonSkill>();
+    public SkillSet skills;
     // Constructor.
-    public ConcreteSkillContext(HashSet<AbilityType> abilities, HashSet<PersonSkill> skills)
+    public ConcreteSkillContext(HashSet<AbilityType> abilities)
       : base(abilities)
     {
-      this.skills = skills;
-    }
-
-    // Get the skill for the given skill ID.
-    public PersonSkill? GetSkill(Skill skill)
-    {
-      return skills.FirstOrDefault(s => s.skill == skill);
+      this.skills = new SkillSet(this);
     }
 
     public void AddItem(Item item, int quantity)
@@ -42,6 +36,31 @@ public class SkillUnitTest
     public Dictionary<AbilityType, List<Item>> ItemAbilities()
     {
       throw new NotImplementedException();
+    }
+
+    public bool GrantXP(Skill skill, int xp)
+    {
+      return skills.GrantXP(skill, xp);
+    }
+
+    public bool GrantLevel(Skill skill)
+    {
+      return skills.GrantLevel(skill);
+    }
+
+    public bool GrantLevel(Skill skill, int level)
+    {
+      return skills.GrantLevel(skill, level);
+    }
+
+    public int GetLevel(Skill skill)
+    {
+      return skills.GetLevel(skill);
+    }
+
+    public int GetXP(Skill skill)
+    {
+      return skills.GetXP(skill);
     }
   }
 
@@ -116,27 +135,27 @@ public class SkillUnitTest
 
       // Create a Concrete Skill Context
       HashSet<AbilityType> abilityTypes = new HashSet<AbilityType>();
-      HashSet<PersonSkill> personSkills = new HashSet<PersonSkill>();
-      personSkills.Add(new PersonSkill(Skill.skills["farming"]));
-      personSkills.Add(new PersonSkill(Skill.skills["woodcraft"]));
-      ConcreteSkillContext context = new ConcreteSkillContext(abilityTypes, personSkills);
+      ConcreteSkillContext context = new ConcreteSkillContext(abilityTypes);
+      context.skills.Add(Skill.skills["farming"]);
+      context.skills.Add(Skill.skills["woodcraft"]);
+      
       // Grant 50 XP in farming.
-      Assert.IsTrue(PersonSkill.GrantXP(context, Skill.skills["farming"], 50));
+      Assert.IsTrue(context.GrantXP(Skill.skills["farming"], 50));
       // Check that the XP was granted, but farming is still level 0.
-      Assert.AreEqual(50, context.GetSkill(Skill.skills["farming"])!.XP);
-      Assert.AreEqual(0, context.GetSkill(Skill.skills["farming"])!.level);
+      Assert.AreEqual(50, context.GetXP(Skill.skills["farming"]));
+      Assert.AreEqual(0, context.GetLevel(Skill.skills["farming"]));
       // Check that the XP was not granted in woodcraft.
-      Assert.AreEqual(0, context.GetSkill(Skill.skills["woodcraft"])!.XP);
+      Assert.AreEqual(0, context.GetXP(Skill.skills["woodcraft"]));
       // Grant 100 XP in farming.
-      Assert.IsTrue(PersonSkill.GrantXP(context, Skill.skills["farming"], 100));
+      Assert.IsTrue(context.GrantXP(Skill.skills["farming"], 100));
       // Check that the XP was granted. farming only has one level, so it should be capped at 100.
-      Assert.AreEqual(100, context.GetSkill(Skill.skills["farming"])!.XP);
+      Assert.AreEqual(100, context.GetXP(Skill.skills["farming"]));
       // Check that farming leveled up.
-      Assert.AreEqual(1, context.GetSkill(Skill.skills["farming"])!.level);
+      Assert.AreEqual(1, context.GetLevel(Skill.skills["farming"]));
       // Check that the 100 XP was granted in woodcraft when farming leveled up.
-      Assert.AreEqual(100, context.GetSkill(Skill.skills["woodcraft"])!.XP);
+      Assert.AreEqual(100, context.GetXP(Skill.skills["woodcraft"]));
       // Check that woodcraft leveled up.
-      Assert.AreEqual(1, context.GetSkill(Skill.skills["woodcraft"])!.level);
+      Assert.AreEqual(1, context.GetLevel(Skill.skills["woodcraft"]));
       // Check that the chopping_1 ability was granted.
       Assert.IsTrue(context.Abilities.Contains(AbilityType.Find("chopping_1")!));
       

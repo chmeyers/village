@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using Village.Abilities;
 using Village.Effects;
+using Village.Items;
 
 namespace Village.Skills;
 
@@ -219,10 +220,21 @@ public class Skill
   }
 }
 
-public interface ISkillContext : IAbilityContext
+public interface ISkillContext : IAbilityContext, IInventoryContext
 {
-  // Get the skill for the given skill ID.
-  public PersonSkill? GetSkill(Skill skill);
+  // Grant xp to the given skill.
+  // Returns true if xp was granted.
+  public bool GrantXP(Skill skill, int xp);
+  // Grant a level to the given skill.
+  // Returns true if a level was granted.
+  public bool GrantLevel(Skill skill);
+  // Grant a specific level to the given skill.
+  // Returns true if a level was granted.
+  public bool GrantLevel(Skill skill, int level);
+  // Get the current level of the given skill.
+  public int GetLevel(Skill skill);
+  // Get the current xp of the given skill.
+  public int GetXP(Skill skill);
 }
 
 // A skill for a particular person.
@@ -239,13 +251,17 @@ public class PersonSkill
   // Total XP of the skill.
   public int XP { get { return xpBase + xp; } }
 
+  // Context used to apply the abilities and run effects.
+  private ISkillContext _context;
+
   // Constructor.
-  public PersonSkill(Skill skill)
+  public PersonSkill(ISkillContext context, Skill skill)
   {
     this.skill = skill;
     this.level = 0;
     this.xpBase = 0;
     this.xp = 0;
+    this._context = context;
   }
 
   // Re-apply the abilities for all the levels up to the current level.
@@ -253,20 +269,20 @@ public class PersonSkill
   // associated with the skill might have changed.
   // Note that we don't remove abilities that are no longer granted, nor
   // do we run the effects for the levels that have already been reached.
-  public void RefreshAbilities(ISkillContext context)
+  public void RefreshAbilities()
   {
     for (int i = 0; i < level; i++)
     {
       foreach (var ability in skill.levels[i].abilities)
       {
-        context.GrantAbility(ability);
+        _context.GrantAbility(ability);
       }
     }
   }
 
-  private bool meetsRequirements(IAbilityContext context, SkillLevel level)
+  private bool meetsRequirements(SkillLevel level)
   {
-    var contextAbilities = context.Abilities;
+    var contextAbilities = _context.Abilities;
     foreach (var requirement in level.requirements)
     {
       if (!contextAbilities.Contains(requirement))
@@ -279,7 +295,7 @@ public class PersonSkill
 
 
   // Grant a particular level of the skill.
-  private bool GrantLevel(ISkillContext context, int level)
+  public bool GrantLevel(int level)
   {
     if (level <= 0 || level > skill.levels.Count)
     {
@@ -291,7 +307,7 @@ public class PersonSkill
       return true;
     }
     // Check the requirements for this level.
-    if (!meetsRequirements(context, skill.levels[level - 1]))
+    if (!meetsRequirements(skill.levels[level - 1]))
     {
       return false;
     }
@@ -305,23 +321,23 @@ public class PersonSkill
     this.xp = 0;
     foreach (var ability in skill.levels[level - 1].abilities)
     {
-      context.GrantAbility(ability);
+      _context.GrantAbility(ability);
     }
     foreach (var effect in skill.levels[level - 1].effects)
     {
       // Apply the effect, the target is always the person whose skill this is.
-      effect.Apply(new ChosenEffectTarget(EffectTargetType.Person, context, context, context));
+      effect.Apply(new ChosenEffectTarget(EffectTargetType.Person, null, _context, _context));
     }
     return true;
   }
 
-  private bool GrantLevel(ISkillContext context)
+  public bool GrantLevel()
   {
-    return GrantLevel(context, this.level + 1);
+    return GrantLevel(this.level + 1);
   }
 
   // Grant XP to the skill.
-  private bool GrantXP(ISkillContext context, int xp)
+  public bool GrantXP(int xp)
   {
     if (xp <= 0)
     {
@@ -338,7 +354,7 @@ public class PersonSkill
         return gaveXP;
       }
       // Check the requirements for the next level to see if we are allowed to give xp.
-      if (!meetsRequirements(context, skill.levels[level]))
+      if (!meetsRequirements(skill.levels[level]))
       {
         return gaveXP;
       }
@@ -348,7 +364,7 @@ public class PersonSkill
         // We have enough XP to reach the next level.
         gaveXP = true;
         xp -= xpToNextLevel;
-        GrantLevel(context);
+        GrantLevel();
       }
       else
       {
@@ -358,38 +374,6 @@ public class PersonSkill
       }
     }
     return true;
-  }
-
-  // As a person can grant a skill to another person (i.e. teach them),
-  // we look up the skill ourselves to ensure it's given in the correct context.
-  public static bool GrantLevel(ISkillContext context, Skill skill, int level)
-  {
-    var personSkill = context.GetSkill(skill);
-    if (personSkill == null)
-    {
-      return false;
-    }
-    return personSkill.GrantLevel(context, level);
-  }
-
-  public static bool GrantLevel(ISkillContext context, Skill skill)
-  {
-    var personSkill = context.GetSkill(skill);
-    if (personSkill == null)
-    {
-      return false;
-    }
-    return personSkill.GrantLevel(context);
-  }
-
-  public static bool GrantXP(ISkillContext context, Skill skill, int xp)
-  {
-    var personSkill = context.GetSkill(skill);
-    if (personSkill == null)
-    {
-      return false;
-    }
-    return personSkill.GrantXP(context, xp);
   }
 
 }

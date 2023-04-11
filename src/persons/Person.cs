@@ -170,6 +170,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     this.name = name;
     // Target and Context for Attribute effects point back at this Person.
     this.attributes = new AttributeSet(this, this);
+    this.skills = new SkillSet(this);
   }
 
   // Unique ID for the person.
@@ -183,6 +184,9 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
 
   // The person's attributes.
   public AttributeSet attributes { get ; protected set; }
+
+  // The person's skill set.
+  public SkillSet skills { get ; protected set; }
 
   // Set of permanant abilities the person has.
   protected HashSet<AbilityType> abilities = new HashSet<AbilityType>();
@@ -208,9 +212,29 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     _allAbilitiesDirty = true;
   }
 
-  public PersonSkill? GetSkill(Skill skill)
+  public bool GrantXP(Skill skill, int xp)
   {
-    return null;
+    return skills.GrantXP(skill, xp);
+  }
+
+  public bool GrantLevel(Skill skill)
+  {
+    return skills.GrantLevel(skill);
+  }
+
+  public bool GrantLevel(Skill skill, int level)
+  {
+    return skills.GrantLevel(skill, level);
+  }
+
+  public int GetLevel(Skill skill)
+  {
+    return skills.GetLevel(skill);
+  }
+
+  public int GetXP(Skill skill)
+  {
+    return skills.GetXP(skill);
   }
 
   // Dirty bit for attribute abilities.
