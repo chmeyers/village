@@ -1,4 +1,6 @@
 {
   "degrade_1" : { "target" : "Item", "effectType" : "Degrade", "config" : {"amount": 1} },
+  "degrade_3" : { "target" : "Item", "effectType" : "Degrade", "config" : {"amount": 3} },
+  "degrade_5" : { "target" : "Item", "effectType" : "Degrade", "config" : {"amount": 5} },
   "skill_chopping_1" : { "target" : "Person", "effectType" : "Skill", "config" : {"skill": "chopping", "amount": 1, "maxLevel": 5} }
 }

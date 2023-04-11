@@ -1,0 +1,26 @@
+// This file is for tool item types.
+{
+  // Tools used to gather resources.
+  // Axes providing the chopping ability for gathering wood and logs.
+  "stone_hand_axe": { "group": "TOOL", "abilities": ["chopping_1"], "craftQuality": {"val": 25, "modifiers": {"stoneworking_1" : {"add": 25}, "stoneworking_2" : {"add": 25}} } },
+  "stone_axe": { "group": "TOOL", "flammable": true, "abilities": ["chopping_2"], "craftQuality": {"val": 100, "modifiers": {"stoneworking_2" : {"add": 100}} } },
+  "copper_axe": { "group": "TOOL", "flammable": true, "scrapItems": {"copper": 80}, "abilities": ["chopping_3"] },
+  "iron_axe": { "group": "TOOL", "flammable": true, "scrapItems": {"iron": 80}, "abilities": ["chopping_4"] },
+  "bronze_axe": { "group": "TOOL", "flammable": true, "scrapItems": {"bronze": 80}, "abilities": ["chopping_4"] },
+  "steel_axe": { "group": "TOOL", "flammable": true, "scrapItems": {"steel": 80}, "abilities": ["chopping_5"] },
+  // Shovels providing the digging ability for gathering clay.
+  "digging_stick": { "group": "TOOL", "flammable": true, "abilities": ["digging_1"], "craftQuality": {"val": 25, "modifiers": {"woodworking_1" : {"add": 25}, "woodworking_2" : {"add": 25}} } },
+  "wood_shovel": { "group": "TOOL", "flammable": true, "abilities": ["digging_2"], "craftQuality": {"val": 100, "modifiers": {"woodworking_2" : {"add": 100}} } },
+  "bone_shovel": { "group": "TOOL", "flammable": true, "abilities": ["digging_2"], "craftQuality": {"val": 200, "modifiers": {"woodworking_2" : {"add": 200}} } },
+  "copper_shovel": { "group": "TOOL", "flammable": true, "scrapItems": {"copper": 80}, "abilities": ["digging_3"] },
+  "iron_shovel": { "group": "TOOL", "flammable": true, "scrapItems": {"iron": 80}, "abilities": ["digging_4"] },
+  "bronze_shovel": { "group": "TOOL", "flammable": true, "scrapItems": {"bronze": 80}, "abilities": ["digging_4"] },
+  "steel_shovel": { "group": "TOOL", "flammable": true, "scrapItems": {"steel": 80}, "abilities": ["digging_5"] },
+  // Chisels and Pickaxes providing the quarrying ability for gathering stone, and the mining ability for gathering ores.
+  "stone_chisel": { "group": "TOOL", "abilities": ["quarrying_1"], "craftQuality": {"val": 25, "modifiers": {"stoneworking_1" : {"add": 25}, "stoneworking_2" : {"add": 25}} } },
+  "stone_pickaxe": { "group": "TOOL", "flammable": true, "abilities": ["quarrying_2", "mining_1"], "craftQuality": {"val": 100, "modifiers": {"stoneworking_2" : {"add": 100}} } },
+  "copper_pickaxe": { "group": "TOOL", "flammable": true, "scrapItems": {"copper": 80}, "abilities": ["quarrying_3", "mining_2"] },
+  "iron_pickaxe": { "group": "TOOL", "flammable": true, "scrapItems": {"iron": 80}, "abilities": ["quarrying_4", "mining_3"] },
+  "bronze_pickaxe": { "group": "TOOL", "flammable": true, "scrapItems": {"bronze": 80}, "abilities": ["quarrying_4", "mining_3"] },
+  "steel_pickaxe": { "group": "TOOL", "flammable": true, "scrapItems": {"steel": 80}, "abilities": ["quarrying_5", "mining_4"] },
+}

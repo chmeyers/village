@@ -1,0 +1,39 @@
+// This file is for resource item types. Typically things that are mined or gathered from the world,
+// though they can also be bought.
+{
+  // Primary resources that can't be made from other resources.
+  "wood": { "group": "RESOURCE", "flammable": true },
+  "hardwood": { "parent": "wood", "group": "RESOURCE", "flammable": true},
+  "logs": { "parent": "wood", "group": "RESOURCE", "flammable": true},
+  "clay": { "group": "RESOURCE" },
+  "bone": { "group": "RESOURCE" },
+  "stone": { "group": "RESOURCE" },
+  "limestone": { "group": "RESOURCE" },
+  "coal": { "group": "RESOURCE" },
+  // Metal ores.
+  "copper_ore": { "group": "RESOURCE" },
+  "tin_ore": { "group": "RESOURCE" },
+  "zinc_ore": { "group": "RESOURCE" },
+  "lead_ore": { "group": "RESOURCE" },
+  "iron_ore": { "group": "RESOURCE" },
+  "silver_ore": { "group": "RESOURCE" },
+  "gold_ore": { "group": "RESOURCE" },
+  // Refined metals.
+  "copper": { "group": "RESOURCE" },
+  "tin": { "group": "RESOURCE" },
+  "zinc": { "group": "RESOURCE" },
+  "lead": { "group": "RESOURCE" },
+  "iron": { "group": "RESOURCE" },
+  "silver": { "group": "RESOURCE" },
+  "gold": { "group": "RESOURCE" },
+  // Secondary resource items that can be made from other resources.
+  "charcoal": { "group": "RESOURCE", "flammable": true },
+  "bronze": { "group": "RESOURCE" },
+  "brass": { "group": "RESOURCE" },
+  "pewter": { "group": "RESOURCE" },
+  "lime": { "group": "RESOURCE" },
+  "steel": { "group": "RESOURCE" },
+  "brass": { "group": "RESOURCE" },
+  "lumber": { "group": "RESOURCE", "flammable": true },
+  "brick": { "group": "RESOURCE" },
+}

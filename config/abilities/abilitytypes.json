@@ -1,6 +1,7 @@
 {
-  "chopping" : { "levels": 5 },
-  "cutting" : { "levels": 10 },
-  "mining" : { "levels": 10 },
-  "bed" : { "levels": 2 }
+  "chopping" : { "levels": 6 },
+  "digging" : { "levels": 6 },
+  "quarrying" : { "levels": 6 },
+  "mining" : { "levels": 6 },
+  "bed" : { "levels": 2 }, 
 }

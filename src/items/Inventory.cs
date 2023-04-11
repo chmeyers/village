@@ -14,8 +14,7 @@ public interface IInventoryContext
 public class Inventory : IInventoryContext
 {
   // Default quantity for items that don't specify a quantity.
-  // Quantities are assumed to be specified in hundredths of a unit.
-  public const int DEFAULT_QUANTITY = 100;
+  public const int DEFAULT_QUANTITY = 1;
 
   public Inventory() { }
 
