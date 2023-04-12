@@ -3,5 +3,7 @@
   "digging" : { "levels": 6 },
   "quarrying" : { "levels": 6 },
   "mining" : { "levels": 6 },
-  "bed" : { "levels": 2 }, 
+  "bed" : { "levels": 2 },
+  "woodworking" : { "levels": 3 },
+  "stoneworking" : { "levels": 3 },
 }

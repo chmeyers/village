@@ -1,5 +1,0 @@
-{
-  "farming" : [ {"xp": 100, "requirements" : [], "abilities": [], "effects": [] } ],
-  "woodcraft" : [ {"xp": 100, "requirements" : [], "abilities": ["chopping_1"], "effects": [] }, {"xp": 200, "requirements" : [], "abilities": ["chopping_2"], "effects": [] } ],
-  "basic": [ {"xp": 100}, {"xp": 200} ]
-}

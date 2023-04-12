@@ -1,0 +1,7 @@
+{
+  "woodworking" : [ {"xp": 100, "requirements" : [], "abilities": ["woodworking_1"], "effects": [] }, {"xp": 200, "requirements" : [], "abilities": ["woodworking_1"], "effects": [] } ],
+  "stoneworking" : [ {"xp": 100, "requirements" : [], "abilities": ["stoneworking_1"], "effects": [] }, {"xp": 200, "requirements" : [], "abilities": ["stoneworking_2"], "effects": [] } ],
+  "farming" : [ {"xp": 100, "requirements" : [], "abilities": [], "effects": [] } ],
+  "woodcraft" : [ {"xp": 100, "requirements" : [], "abilities": ["chopping_1"], "effects": [] }, {"xp": 200, "requirements" : [], "abilities": ["chopping_2"], "effects": [] } ],
+  "basic": [ {"xp": 100}, {"xp": 200} ]
+}

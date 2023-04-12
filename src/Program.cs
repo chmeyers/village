@@ -22,7 +22,7 @@ namespace Village
       // Load the tasks.
       WorkTask.LoadFile("config/tasks/tasks.json");
       // Load the skills, followed by the skill tree.
-      Skill.LoadFile("config/skills/skills.json");
+      Skill.LoadFile("config/skills/skills.jsonc");
       Skill.LoadParentsFile("config/skills/skilltree.json");
     }
     static void Main(string[] args)
