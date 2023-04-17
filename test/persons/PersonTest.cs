@@ -38,8 +38,8 @@ public class PersonUnitTest
     Assert.IsTrue(person.PotentialTasks.Contains(sleepTask));
     Assert.IsTrue(person.PotentialTasks.Contains(stackWoodTask));
     // Check that sleep is the only available task.
-    Assert.AreEqual(1, person.AvailableTasks.Count);
-    Assert.IsTrue(person.AvailableTasks.Contains(sleepTask));
+    Assert.AreEqual(1, person.AvailablePersonalTasks.Count);
+    Assert.IsTrue(person.AvailablePersonalTasks.Contains(sleepTask));
     // Check that the person has no inventory.
     Assert.AreEqual(0, person.inventory.Count());
 
@@ -49,16 +49,16 @@ public class PersonUnitTest
     Assert.AreEqual(3, person.PotentialTasks.Count);
     Assert.IsTrue(person.PotentialTasks.Contains(gatherWoodTask));
     // Check that gather wood and sleep are the only available tasks.
-    Assert.AreEqual(2, person.AvailableTasks.Count);
-    Assert.IsTrue(person.AvailableTasks.Contains(gatherWoodTask));
-    Assert.IsTrue(person.AvailableTasks.Contains(sleepTask));
+    Assert.AreEqual(2, person.AvailablePersonalTasks.Count);
+    Assert.IsTrue(person.AvailablePersonalTasks.Contains(gatherWoodTask));
+    Assert.IsTrue(person.AvailablePersonalTasks.Contains(sleepTask));
     // Add some wood to the person's inventory.
     person.AddItem(new Item(ItemType.itemTypes["wood"]), 100);
     // Check that stack wood is a valid task.
     Assert.AreEqual(3, person.PotentialTasks.Count);
     Assert.IsTrue(person.PotentialTasks.Contains(WorkTask.tasks["stack_wood"]));
     // Check that stack wood is an available task.
-    Assert.AreEqual(3, person.AvailableTasks.Count);
-    Assert.IsTrue(person.AvailableTasks.Contains(WorkTask.tasks["stack_wood"]));
+    Assert.AreEqual(3, person.AvailablePersonalTasks.Count);
+    Assert.IsTrue(person.AvailablePersonalTasks.Contains(WorkTask.tasks["stack_wood"]));
   }
 }

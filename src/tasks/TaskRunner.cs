@@ -14,7 +14,7 @@ public class TaskRunner
 {
   // Have the person perform a task, with the given list of Chosen Targets
   // Returns true if the task was performed, false otherwise.
-  public static bool PerformTask(Person person, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
+  public static bool PerformTask(Person person, IInventoryContext inventory, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
   {
     // Verify that the size of the chosenTargets list matches the size of the task's targets list.
     // Or that the chosenTargets list is null iff the task's list is empty.
@@ -31,12 +31,12 @@ public class TaskRunner
     {
       // Remove the inputs from the inventory or return false if they are not present.
       // The inventory will choose the worst version of the item that matches.
-      if (!person.inventory.Remove(task.Inputs(person)))
+      if (!inventory.Remove(task.Inputs(person)))
       {
         return false;
       }
       // Add the outputs to the inventory.
-      person.inventory.Add(task.Outputs(person));
+      inventory.Add(task.Outputs(person));
       // For each effect, resolve the target and apply the effect.
       foreach (var effect in task.effects)
       {

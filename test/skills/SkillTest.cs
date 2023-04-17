@@ -38,6 +38,16 @@ public class SkillUnitTest
       throw new NotImplementedException();
     }
 
+    public void Add(Dictionary<ItemType, int> items)
+    {
+      throw new NotImplementedException();
+    }
+
+    public bool Remove(Dictionary<ItemType, int> itemTypes)
+    {
+      throw new NotImplementedException();
+    }
+
     public bool GrantXP(Skill skill, int xp)
     {
       return skills.GrantXP(skill, xp);

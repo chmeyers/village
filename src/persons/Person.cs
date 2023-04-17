@@ -4,6 +4,7 @@
 using System;
 using Village.Abilities;
 using Village.Attributes;
+using Village.Households;
 using Village.Items;
 using Village.Skills;
 using Village.Tasks;
@@ -103,8 +104,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     }
   }
 
-  // Set of available tasks, filtered by the person's current inventory.
-  public HashSet<WorkTask> AvailableTasks
+  // Set of available tasks, filtered by the person's personal inventory.
+  public HashSet<WorkTask> AvailablePersonalTasks
   {
     get
     {
@@ -114,6 +115,25 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       {
         // Check that all the inputs required for the task are in the inventory.
         if (inventory.Contains(task.Inputs(this)))
+        {
+          availableTasks.Add(task);
+        }
+      }
+      return availableTasks;
+    }
+  }
+
+  // Set of available tasks, filtered by the person's household inventory.
+  public HashSet<WorkTask> AvailableHouseholdTasks
+  {
+    get
+    {
+      CalculateValidTasks();
+      HashSet<WorkTask> availableTasks = new HashSet<WorkTask>();
+      foreach (WorkTask task in validTasks)
+      {
+        // Check that all the inputs required for the task are in the inventory.
+        if (household.inventory.Contains(task.Inputs(this)))
         {
           availableTasks.Add(task);
         }
@@ -150,6 +170,40 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     return inventory.RemoveItem(item, quantity);
   }
 
+  public void Add(Dictionary<ItemType, int> items)
+  {
+    // Check if any of the items being added have abilities.
+    foreach (KeyValuePair<ItemType, int> item in items)
+    {
+      if (item.Key.abilities.Count > 0)
+      {
+        // It might be more efficient to just add the new abilities to the itemAbilities set here,
+        // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
+        // Revisit this decision if it becomes a performance issue.
+        _itemAbilitiesDirty = true;
+        break;
+      }
+    }
+    inventory.Add(items);
+  }
+
+  public bool Remove(Dictionary<ItemType, int> itemTypes)
+  {
+    // Check if any of the items being removed have abilities.
+    foreach (KeyValuePair<ItemType, int> item in itemTypes)
+    {
+      if (item.Key.abilities.Count > 0)
+      {
+        // It might be more efficient to just remove abilities to the itemAbilities set here,
+        // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
+        // Revisit this decision if it becomes a performance issue.
+        _itemAbilitiesDirty = true;
+        break;
+      }
+    }
+    return inventory.Remove(itemTypes);
+  }
+
   public int SetAttribute(AttributeType attributeType, int value)
   {
     _attributeAbilitiesDirty = attributes.SetValue(attributeType, value);
@@ -164,13 +218,15 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
 
 
   // Constructor for a person.
-  public Person(string id, string name)
+  public Person(string id, string name, Household? household = null)
   {
     this.id = id;
     this.name = name;
     // Target and Context for Attribute effects point back at this Person.
     this.attributes = new AttributeSet(this, this);
     this.skills = new SkillSet(this);
+    // If household is null, create a new household for the person.
+    this.household = (household == null? new Household() : household);
   }
 
   // Unique ID for the person.
@@ -179,14 +235,17 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   // The person's name.
   public string name;
 
+  // The person's household.
+  public Household household { get; set; }
+
   // The person's main inventory.
-  public Inventory inventory { get ; protected set; } = new Inventory();
+  public Inventory inventory { get; protected set; } = new Inventory();
 
   // The person's attributes.
-  public AttributeSet attributes { get ; protected set; }
+  public AttributeSet attributes { get; protected set; }
 
   // The person's skill set.
-  public SkillSet skills { get ; protected set; }
+  public SkillSet skills { get; protected set; }
 
   // Set of permanant abilities the person has.
   protected HashSet<AbilityType> abilities = new HashSet<AbilityType>();

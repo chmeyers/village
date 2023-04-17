@@ -7,7 +7,9 @@ public interface IInventoryContext
 {
   public void AddItem(Item item, int quantity);
   public bool RemoveItem(Item item, int quantity);
-  Dictionary<AbilityType, List<Item>> ItemAbilities();
+  public void Add(Dictionary<ItemType, int> items);
+  public bool Remove(Dictionary<ItemType, int> itemTypes);
+  public Dictionary<AbilityType, List<Item>> ItemAbilities();
 }
 
 // An Inventory is a collection of items, owned by a person, building, trader, village, etc.
