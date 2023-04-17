@@ -1,0 +1,8 @@
+// Effects that modify a skill level
+{
+  "skill_chopping_1_max5" : { "target" : "Person", "effectType" : "Skill", "config" : {"skill": "chopping", "amount": 1, "maxLevel": 5} },
+  "skill_woodworking_1" : { "target" : "Person", "effectType" : "Skill", "config" : {"skill": "woodworking", "amount": 1} },
+  "skill_woodworking_2" : { "target" : "Person", "effectType" : "Skill", "config" : {"skill": "woodworking", "amount": 2} },
+  "skill_stoneworking_1" : { "target" : "Person", "effectType" : "Skill", "config" : {"skill": "stoneworking", "amount": 1} },
+  "skill_stoneworking_2" : { "target" : "Person", "effectType" : "Skill", "config" : {"skill": "stoneworking", "amount": 2} },
+}

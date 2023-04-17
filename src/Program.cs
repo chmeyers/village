@@ -19,6 +19,7 @@ namespace Village
       ItemType.LoadFile("config/items/itemtypes.json");
       // Load the effects.
       EffectLoader.LoadFile("config/effects/effects.json");
+      EffectLoader.LoadFile("config/effects/skill_effects.jsonc");
       // Load the tasks.
       WorkTask.LoadFile("config/tasks/tasks.json");
       // Load the skills, followed by the skill tree.

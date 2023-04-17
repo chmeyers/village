@@ -88,7 +88,10 @@ public class SkillEffect : Effect
     // How much to increase the skill by.
     amount = AbilityValue.FromJson(data["amount"]);
     // The maximum level the skill can be increased to.
-    maxLevel = AbilityValue.FromJson(data["maxLevel"]);
+    if (data.ContainsKey("maxLevel"))
+    {
+      maxLevel = AbilityValue.FromJson(data["maxLevel"]);
+    }
   }
 
   // Apply the effect to the target.
@@ -124,9 +127,10 @@ public class SkillEffect : Effect
   // The name of the skill to increase.
   public string skill;
   // Cached Skill object.
+  // Skills are loaded after effects, so we can't get the Skill object during the initial load.
   private Skill? _skill;
   // The amount to increase the skill by.
   public AbilityValue amount;
   // The maximum level the skill can be increased to.
-  public AbilityValue maxLevel;
+  public AbilityValue maxLevel = new AbilityValue(100);
 }
