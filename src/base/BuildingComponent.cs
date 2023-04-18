@@ -37,4 +37,10 @@ public class BuildingComponent
   {
     return name.GetHashCode();
   }
+
+  // Implicit conversion from string to building component.
+  public static implicit operator BuildingComponent(string name)
+  {
+    return new BuildingComponent(name);
+  }
 }

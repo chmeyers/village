@@ -31,7 +31,7 @@ public enum EffectType
   // Increase a Person's skill level.
   Skill,
   // Construct a building component.
-  ConstructComponent,
+  BuildingComponent,
 }
 
 public class EffectTarget

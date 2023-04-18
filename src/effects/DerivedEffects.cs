@@ -185,6 +185,16 @@ public class BuildingComponentEffect : Effect
     return false;
   }
 
+  public override HashSet<BuildingComponent> BuildingComponents()
+  {
+    // The building component that is being constructed.
+    HashSet<BuildingComponent> components = new HashSet<BuildingComponent>();
+    BuildingComponent builtComponent = new BuildingComponent(component);
+    builtComponent.builtComponent = specificComponent;
+    components.Add(builtComponent);
+    return components;
+  }
+
   // The name of the building component to construct.
   public string component;
   // The specific building component to construct.

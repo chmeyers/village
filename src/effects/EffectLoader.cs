@@ -37,6 +37,10 @@ public class EffectLoader : Effect
           // Create the effect.
           newEffect = new SkillEffect(name, effectTarget, effectType, config);
           break;
+        case EffectType.BuildingComponent:
+          // Create the effect.
+          newEffect = new BuildingComponentEffect(name, effectTarget, effectType, config);
+          break;
         default:
           throw new Exception("Unknown effect type: " + effectType);
       }

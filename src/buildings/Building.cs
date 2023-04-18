@@ -42,72 +42,83 @@ public class BuildingType
     abilities = new HashSet<AbilityType>();
     requirements = new HashSet<AbilityType>();
     phases = new List<BuildingPhase>();
-    foreach (var ability in (List<object>)data["abilities"])
+    if (data.ContainsKey("abilities"))
     {
-      // Check that the ability is valid
-      var x = AbilityType.Find((string)ability);
-      if (x == null)
+      List<string>? abilityList = ((Newtonsoft.Json.Linq.JArray)data["abilities"]).ToObject<List<string>>();
+      foreach (var ability in abilityList!)
       {
-        throw new Exception($"Ability {ability} not found for building {name}");
-      }
-
-      abilities.Add(x);
-    }
-    foreach (var requirement in (List<object>)data["requirements"])
-    {
-      // Check that the requirement is an valid ability.
-      var x = AbilityType.Find((string)requirement);
-      if (x == null)
-      {
-        throw new Exception($"Ability {requirement} not found for building {name}");
-      }
-
-      requirements.Add(x);
-    }
-    foreach (var phase in ((Dictionary<string, object>)data["phases"]))
-    {
-      // Verify that there is an ability that matches the phase name.
-      var buildingPhaseAbility = AbilityType.Find(BUILDING_PHASE_ABILITY_PREFIX + phase.Key);
-      if (buildingPhaseAbility == null)
-      {
-        throw new Exception($"Ability {BUILDING_PHASE_ABILITY_PREFIX + phase.Key} not found for building {name}");
-      }
-      // Verify that there are tasks that require the building phase ability.
-      if (!WorkTask.tasksByAbility.ContainsKey(buildingPhaseAbility.abilityType))
-      {
-        throw new Exception($"No tasks found that require ability {BUILDING_PHASE_ABILITY_PREFIX + phase.Key} for building {name}");
-      }
-      var tasks = WorkTask.tasksByAbility[buildingPhaseAbility.abilityType];
-      // Verify that there is at least one WorkTask that provides each component
-      // that requires the building phase ability.
-      var allComponents = new HashSet<BuildingComponent>();
-      var components = new HashSet<BuildingComponent>();
-      foreach (var component in (List<object>)phase.Value)
-      {
-        var buildingComponent = new BuildingComponent((string)component);
-        // Check that the component is not already seen.
-        // TODO(chmeyers): Allow multiples of the same component?
-        if (allComponents.Contains(buildingComponent))
+        // Check that the ability is valid
+        var x = AbilityType.Find((string)ability);
+        if (x == null)
         {
-          throw new Exception($"Duplicate component {buildingComponent.name} for building {name}");
+          throw new Exception($"Ability {ability} not found for building {name}");
         }
-        components.Add(buildingComponent);
-        allComponents.Add(buildingComponent);
-        var found = false;
-        foreach (var task in tasks)
+
+        abilities.Add(x);
+      }
+    }
+    if (data.ContainsKey("requirements"))
+    {
+      List<string>? requirementList = ((Newtonsoft.Json.Linq.JArray)data["requirements"]).ToObject<List<string>>();
+      foreach (var requirement in requirementList!)
+      {
+        // Check that the requirement is an valid ability.
+        var x = AbilityType.Find((string)requirement);
+        if (x == null)
         {
-          if (task.BuildingComponents().Contains(buildingComponent))
+          throw new Exception($"Ability {requirement} not found for building {name}");
+        }
+
+        requirements.Add(x);
+      }
+    }
+    if (data.ContainsKey("phases"))
+    {
+      Dictionary<string, List<string>>? phaseList = ((Newtonsoft.Json.Linq.JObject)data["phases"]).ToObject<Dictionary<string, List<string>>>();
+      foreach (var phase in phaseList!)
+      {
+        var buildingPhaseAbility = AbilityType.Find(BUILDING_PHASE_ABILITY_PREFIX + phase.Key);
+        if (buildingPhaseAbility == null)
+        {
+          throw new Exception($"Ability {BUILDING_PHASE_ABILITY_PREFIX + phase.Key} not found for building {name}");
+        }
+        // Verify that there are tasks that require the building phase ability.
+        if (!WorkTask.tasksByAbility.ContainsKey(buildingPhaseAbility.abilityType))
+        {
+          throw new Exception($"No tasks found that require ability {BUILDING_PHASE_ABILITY_PREFIX + phase.Key} for building {name}");
+        }
+        var tasks = WorkTask.tasksByAbility[buildingPhaseAbility.abilityType];
+        // Verify that there is at least one WorkTask that provides each component
+        // that requires the building phase ability.
+        var allComponents = new HashSet<BuildingComponent>();
+        var components = new HashSet<BuildingComponent>();
+        foreach (var component in phase.Value)
+        {
+          var buildingComponent = new BuildingComponent((string)component);
+          // Check that the component is not already seen.
+          // TODO(chmeyers): Allow multiples of the same component?
+          if (allComponents.Contains(buildingComponent))
           {
-            found = true;
-            break;
+            throw new Exception($"Duplicate component {buildingComponent.name} for building {name}");
+          }
+          components.Add(buildingComponent);
+          allComponents.Add(buildingComponent);
+          var found = false;
+          foreach (var task in tasks)
+          {
+            if (task.BuildingComponents().Contains(buildingComponent))
+            {
+              found = true;
+              break;
+            }
+          }
+          if (!found)
+          {
+            throw new Exception($"No tasks found that provide component {buildingComponent.name} for building {name} phase {phase.Key}");
           }
         }
-        if (!found)
-        {
-          throw new Exception($"No tasks found that provide component {buildingComponent.name} for building {name} phase {phase.Key}");
-        }
+        phases.Add(new BuildingPhase(phase.Key, components));
       }
-      phases.Add(new BuildingPhase(phase.Key, components));
     }
   }
 
@@ -258,7 +269,7 @@ public class Building
     else
     {
       var phaseAbility = AbilityType.Find(BuildingType.BUILDING_PHASE_ABILITY_PREFIX + buildingType.phases[phase].Key)!;
-      return new HashSet<AbilityType>(buildingType.abilities) { phaseAbility };
+      return new HashSet<AbilityType>() { phaseAbility };
     }
   }
 }
