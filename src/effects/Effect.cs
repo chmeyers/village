@@ -23,6 +23,17 @@ public enum EffectTargetType
   Environment,
 }
 
+// The type of effect. Each effect type will require a subclass of Effect.
+public enum EffectType
+{
+  // Degrade an item, typically the tool used for the task.
+  Degrade,
+  // Increase a Person's skill level.
+  Skill,
+  // Construct a building component.
+  ConstructComponent,
+}
+
 public class EffectTarget
 {
   // The type of target.
@@ -101,15 +112,6 @@ public class ChosenEffectTarget
   }
 }
 
-// The type of effect. Each effect type will require a subclass of Effect.
-public enum EffectType
-{
-  // Degrade an item, typically the tool used for the task.
-  Degrade,
-  // Increase a Person's skill level.
-  Skill,
-}
-
 public class Effect
 {
   // Dictionary to store the loaded Effects
@@ -181,4 +183,11 @@ public class Effect
 
   // The type of the effect.
   public EffectType effectType;
+
+  // Whether an effect is optional.
+  // An optional effect will not be applied if the target is not found.
+  public virtual bool IsOptional()
+  {
+    return true;
+  }
 }

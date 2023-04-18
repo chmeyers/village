@@ -60,7 +60,11 @@ public class TaskRunner
           }
           if (chosenTarget == null)
           {
-            // The target was not resolved, so skip this effect.
+            // If the effect is optional, skip it, otherwise throw.
+            if (!effect.Key.IsOptional())
+            {
+              throw new Exception("Invalid effect target: " + effectTarget + " for effect: " + effect.Key + " in task: " + task);
+            }
             continue;
           }
           // Apply the effect to the chosen target.

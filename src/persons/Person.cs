@@ -114,10 +114,12 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       foreach (WorkTask task in validTasks)
       {
         // Check that all the inputs required for the task are in the inventory.
-        if (inventory.Contains(task.Inputs(this)))
+        if (!inventory.Contains(task.Inputs(this)))
         {
-          availableTasks.Add(task);
+          continue;
         }
+        // TODO(chmeyers): Check that all the effects have a possible valid target.
+        availableTasks.Add(task);
       }
       return availableTasks;
     }
@@ -226,7 +228,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     this.attributes = new AttributeSet(this, this);
     this.skills = new SkillSet(this);
     // If household is null, create a new household for the person.
-    this.household = (household == null? new Household() : household);
+    this.household = (household == null ? new Household() : household);
   }
 
   // Unique ID for the person.
