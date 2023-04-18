@@ -7,7 +7,6 @@
 
 using Village.Abilities;
 using Village.Items;
-using Village.Persons;
 
 namespace Village.Households;
 

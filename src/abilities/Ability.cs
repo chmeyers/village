@@ -6,9 +6,13 @@ namespace Village.Abilities;
 
 public class AbilityType
 {
+  // The null ability type with an empty name.
+  public static AbilityType NULL = new AbilityType("", null);
   // A static dictionary of all ability types.
   // This is used to look up ability types by name.
+  // It does not contain the NULL ability type.
   public static Dictionary<string, AbilityType> abilityTypes { get; private set;} = new Dictionary<string, AbilityType>();
+
 
   // Clear the types dictionary.
   public static void Clear()
@@ -32,16 +36,24 @@ public class AbilityType
     foreach (var ability in data) {
       // Get the ability type name.
       string name = ability.Key;
-      // Get the levels setting from the Value
-      int levels = (int)(long)ability.Value["levels"];
-      // Iterate over the levels of the ability type.
-      for (int level = 0; level < levels; level++) {
+      // Check whether the ability type has a levels setting.
+      if (ability.Value.ContainsKey("levels")) {
+        int levels = (int)(long)ability.Value["levels"];
+        // Iterate over the levels of the ability type.
+        for (int level = 0; level < levels; level++)
+        {
+          // Create the ability type.
+          AbilityType abilityType = new AbilityType(name, level);
+          // Add the ability type to the dictionary.
+          abilityTypes.Add(abilityType.abilityType, abilityType);
+        }
+      }
+      else {
         // Create the ability type.
-        AbilityType abilityType = new AbilityType(name, level);
+        AbilityType abilityType = new AbilityType(name, null);
         // Add the ability type to the dictionary.
         abilityTypes.Add(abilityType.abilityType, abilityType);
       }
-      
     }
   }
 
@@ -99,7 +111,19 @@ public class AbilityType
     foreach (AbilityType subType in this.subTypes) {
       subType.superTypes.Add(this);
     }
-    
+  }
+
+  // Allow implicit conversion from string to AbilityType only
+  // if the string is already a valid ability type.
+  // This allows it to be used by unittests and any code that
+  // has already validated the string, but ensures we aren't
+  // accidentally creating untracked abilities.
+  public static implicit operator AbilityType(string name)
+  {
+    if (abilityTypes.ContainsKey(name)) {
+      return abilityTypes[name];
+    }
+    throw new Exception("Invalid ability type: " + name);
   }
 
   // The name of the ability type.

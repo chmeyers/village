@@ -5,6 +5,7 @@
 
 using Newtonsoft.Json;
 using Village.Abilities;
+using Village.Base;
 using Village.Effects;
 using Village.Items;
 
@@ -16,37 +17,26 @@ namespace Village.Tasks
   public class WorkTask
   {
     // Dictionary to store the loaded Tasks
-    private static Dictionary<string, WorkTask> _tasks = new Dictionary<string, WorkTask>();
+    public static Dictionary<string, WorkTask> tasks { get; private set; } = new Dictionary<string, WorkTask>();
 
     // Index of tasks based on the abilities required to perform them.
     // Tasks are listed under each ability they require, as well as under the
     // super types of those abilities.
-    private static Dictionary<string, List<WorkTask>> _tasksByAbility = new Dictionary<string, List<WorkTask>>();
+    public static Dictionary<AbilityType, List<WorkTask>> tasksByAbility { get; private set; } = new Dictionary<AbilityType, List<WorkTask>>();
 
     // Clear the task dictionaries.
     public static void Clear()
     {
-      _tasks.Clear();
-      _tasksByAbility.Clear();
-    }
-    // Readonly Accessor for the task dictionary.
-    public static IReadOnlyDictionary<string, WorkTask> tasks
-    {
-      get { return _tasks; }
-    }
-
-    // Readonly Accessor for the tasksByAbility dictionary.
-    public static IReadOnlyDictionary<string, List<WorkTask>> tasksByAbility
-    {
-      get { return _tasksByAbility; }
+      tasks.Clear();
+      tasksByAbility.Clear();
     }
 
     // Find a Task by name.
     public static WorkTask? Find(string name)
     {
-      if (_tasks.ContainsKey(name))
+      if (tasks.ContainsKey(name))
       {
-        return _tasks[name];
+        return tasks[name];
       }
       return null;
     }
@@ -58,9 +48,9 @@ namespace Village.Tasks
       // Create a set to store the tasks.
       HashSet<WorkTask> tasks = new HashSet<WorkTask>();
       // Add all the tasks that have no requirements.
-      if (_tasksByAbility.ContainsKey(""))
+      if (tasksByAbility.ContainsKey(AbilityType.NULL))
       {
-        foreach (WorkTask task in _tasksByAbility[""])
+        foreach (WorkTask task in tasksByAbility[AbilityType.NULL])
         {
           tasks.Add(task);
         }
@@ -69,10 +59,10 @@ namespace Village.Tasks
       foreach (AbilityType ability in abilities)
       {
         // If the ability is in the tasksByAbility dictionary, add the tasks to the list.
-        if (_tasksByAbility.ContainsKey(ability.abilityType))
+        if (tasksByAbility.ContainsKey(ability))
         {
           // For each task, check that all the requirements are met.
-          foreach (WorkTask task in _tasksByAbility[ability.abilityType])
+          foreach (WorkTask task in tasksByAbility[ability])
           {
             // If the task has no requirements, or all the requirements are met, add it to the set.
             if (abilities.IsSupersetOf(task.requirements))
@@ -265,7 +255,7 @@ namespace Village.Tasks
       this.repeatable = false;
       
       // Add the task to the dictionary.
-      _tasks.Add(task, this);
+      tasks.Add(task, this);
 
       // Add the task to the tasks by ability index.
       foreach (AbilityType ability in this.requirements)
@@ -273,26 +263,26 @@ namespace Village.Tasks
         // Add it for the ability type and all it's super types.
         foreach (AbilityType superType in ability.superTypes)
         {
-          if (!_tasksByAbility.ContainsKey(superType.abilityType))
+          if (!tasksByAbility.ContainsKey(superType))
           {
-            _tasksByAbility.Add(superType.abilityType, new List<WorkTask>());
+            tasksByAbility.Add(superType, new List<WorkTask>());
           }
-          _tasksByAbility[superType.abilityType].Add(this);
+          tasksByAbility[superType].Add(this);
         }
-        if (!_tasksByAbility.ContainsKey(ability.abilityType))
+        if (!tasksByAbility.ContainsKey(ability))
         {
-          _tasksByAbility.Add(ability.abilityType, new List<WorkTask>());
+          tasksByAbility.Add(ability, new List<WorkTask>());
         }
-        _tasksByAbility[ability.abilityType].Add(this);
+        tasksByAbility[ability].Add(this);
       }
       // If the task has no requirements, add it to the empty string key.
       if (this.requirements.Count == 0)
       {
-        if (!_tasksByAbility.ContainsKey(""))
+        if (!tasksByAbility.ContainsKey(AbilityType.NULL))
         {
-          _tasksByAbility.Add("", new List<WorkTask>());
+          tasksByAbility.Add(AbilityType.NULL, new List<WorkTask>());
         }
-        _tasksByAbility[""].Add(this);
+        tasksByAbility[AbilityType.NULL].Add(this);
       }
     }
 
@@ -314,6 +304,18 @@ namespace Village.Tasks
         outputs.Add(output.Key, output.Value.GetValue(context));
       }
       return outputs;
+    }
+
+    // Building Components that the task provides.
+    public HashSet<BuildingComponent> BuildingComponents()
+    {
+      // Return the union of all BuildingComponents provided by the effects.
+      HashSet<BuildingComponent> components = new HashSet<BuildingComponent>();
+      foreach (var effect in this.effects)
+      {
+        components.UnionWith(effect.Key.BuildingComponents());
+      }
+      return components;
     }
 
     // The name of the task.

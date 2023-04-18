@@ -1,6 +1,6 @@
 
 
-namespace Village.Households;
+namespace Village.Base;
 
 public enum Role
 {

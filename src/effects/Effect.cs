@@ -1,9 +1,8 @@
 // Classes describing a side effect from a task.
 // Effects can target Self, Persons, Items, Buildings, etc.
 // Effects can be positive or negative, and can add or remove abilities, skills, experience, etc.
-using Newtonsoft.Json;
-using System;
 using Village.Abilities;
+using Village.Base;
 using Village.Items;
 
 namespace Village.Effects;
@@ -135,6 +134,12 @@ public class Effect
       return _effects[name];
     }
     return null;
+  }
+
+  // Building Componenets provided by the effect.
+  public virtual HashSet<BuildingComponent> BuildingComponents()
+  {
+    return new HashSet<BuildingComponent>();
   }
 
   // Apply the effect to the chosen target, using the given person as context.
