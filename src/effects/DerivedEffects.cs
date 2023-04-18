@@ -1,5 +1,7 @@
 // Classes that inherit from Effect
 using Village.Abilities;
+using Village.Base;
+using Village.Buildings;
 using Village.Items;
 using Village.Persons;
 using Village.Skills;
@@ -133,4 +135,59 @@ public class SkillEffect : Effect
   public AbilityValue amount;
   // The maximum level the skill can be increased to.
   public AbilityValue maxLevel = new AbilityValue(100);
+}
+
+// Construct a building component.
+public class BuildingComponentEffect : Effect
+{
+  public BuildingComponentEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a building.
+    if (target != EffectTargetType.Building)
+    {
+      throw new Exception("Building component effect must target a building: " + effect);
+    }
+    if (data == null)
+    {
+      throw new Exception("Building component effect must have a config dictionary: " + effect);
+    }
+    // The name of the building component to construct.
+    component = (string)data["component"];
+    // The specific building component to construct.
+    // i.e. the material used to construct the component.
+    if (data.ContainsKey("type"))
+    {
+      specificComponent = (string)data["type"];
+    }
+  }
+
+  // Apply the effect to the target.
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  {
+    // Get the building from the chosen target.
+    Building building = (Building)chosenEffectTarget.target!;
+    // Make sure the building is not null.
+    if (building == null)
+    {
+      // This effect should never be called without a valid target building.
+      throw new Exception("Building is null in building component effect: " + effect);
+    }
+    BuildingComponent builtComponent = new BuildingComponent(component);
+    builtComponent.builtComponent = specificComponent;
+    // Construct the building component.
+    building.AddComponent(builtComponent);
+  }
+
+  public override bool IsOptional()
+  {
+    // Building Component effects are not optional.
+    // If you can't apply the effect, then you shouldn't run the task.
+    return false;
+  }
+
+  // The name of the building component to construct.
+  public string component;
+  // The specific building component to construct.
+  // i.e. the material used to construct the component.
+  public string? specificComponent;
 }
