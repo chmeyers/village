@@ -213,6 +213,8 @@ public class Building
   }
   // The components that have been completed.
   public HashSet<BuildingComponent> completedComponents { get; private set; } = new HashSet<BuildingComponent>();
+
+  public event AbilitiesChanged? AbilitiesChanged;
   // Add a component to the building.
   // Returns true if the component was added, false if the component was already added.
   public bool AddComponent(BuildingComponent component)
@@ -231,6 +233,7 @@ public class Building
         phase++;
       }
       abilities = CalculateBuildingAbilities();
+      AbilitiesChanged?.Invoke();
       return true;
     }
     return false;
