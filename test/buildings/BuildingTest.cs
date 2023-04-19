@@ -115,9 +115,9 @@ public class BuildingUnitTest
     // Run task_4, which should build component_4.
     WorkTask? task4 = WorkTask.Find("task_4");
     Assert.IsNotNull(task4);
-    // Grant the ability.
-    person.GrantAbility("construction_phase_phase_2");
-    Assert.IsTrue(TaskRunner.PerformTask(person, person, task4, targets, true));
+    // Create a person in the household, they should have the ability.
+    Person person2 = new Person("bob", "Bob", household, Village.Base.Role.HeadOfHousehold);
+    Assert.IsTrue(TaskRunner.PerformTask(person2, person2, task4, targets, true));
     // The building should now have component_4.
     Assert.AreEqual(3, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_4"));
@@ -130,7 +130,7 @@ public class BuildingUnitTest
     // Run task_3, which should build component_3.
     WorkTask? task3 = WorkTask.Find("task_3");
     Assert.IsNotNull(task3);
-    Assert.IsTrue(TaskRunner.PerformTask(person, person, task3, targets, true));
+    Assert.IsTrue(TaskRunner.PerformTask(person2, person2, task3, targets, true));
     // The building should now have component_3.
     Assert.AreEqual(4, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_3"));
