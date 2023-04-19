@@ -4,6 +4,9 @@ using System.Runtime.CompilerServices;
 
 namespace Village.Abilities;
 
+// Event handler for when the abilities of a person change.
+public delegate void AbilitiesChanged();
+
 public class AbilityType
 {
   // The null ability type with an empty name.

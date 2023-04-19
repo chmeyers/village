@@ -12,6 +12,8 @@ public class AttributeSet
   private HashSet<AbilityType> attributeAbilities = new HashSet<AbilityType>();
   // Dirty bit for the attribute abilities.
   private bool attributeAbilitiesDirty = true;
+  // Event handler for when the abilities of a person change.
+  public event AbilitiesChanged? AbilitiesChanged;
   // lock for the attribute abilities.
   private object _lock = new object();
 
@@ -54,6 +56,7 @@ public class AttributeSet
     if (attribute.GetAbilities().Count > 0)
     {
       attributeAbilitiesDirty = true;
+      AbilitiesChanged?.Invoke();
     }
   }
 
@@ -78,8 +81,8 @@ public class AttributeSet
 
   // Set the value of a specific attribute.
   // This will add the attribute if it doesn't exist.
-  // Returns whether the abilities are dirty.
-  public bool SetValue(AttributeType attributeType, int value)
+  // Returns the new value of the attribute.
+  public int SetValue(AttributeType attributeType, int value)
   {
     lock (_lock)
     {
@@ -87,15 +90,19 @@ public class AttributeSet
       {
         AddNoLock(attributeType);
       }
-      attributeAbilitiesDirty |= _attributes[attributeType].SetValue(value);
-      return attributeAbilitiesDirty;
+      if (_attributes[attributeType].SetValue(value))
+      {
+        attributeAbilitiesDirty = true;
+        AbilitiesChanged?.Invoke();
+      }
+      return _attributes[attributeType].value;
     }
   }
 
   // Add to the value of a specific attribute.
   // This will add the attribute if it doesn't exist.
-  // Returns whether the abilities are dirty.
-  public bool AddValue(AttributeType attributeType, int value)
+  // Returns the new value of the attribute.
+  public int AddValue(AttributeType attributeType, int value)
   {
     lock(_lock)
     {
@@ -103,8 +110,12 @@ public class AttributeSet
       {
         AddNoLock(attributeType);
       }
-      attributeAbilitiesDirty |= _attributes[attributeType].AddValue(value);
-      return attributeAbilitiesDirty;
+      if (_attributes[attributeType].AddValue(value))
+      {
+        attributeAbilitiesDirty = true;
+        AbilitiesChanged?.Invoke();
+      }
+      return _attributes[attributeType].value;
     }
   }
 
