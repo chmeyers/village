@@ -97,7 +97,8 @@ public class ChosenEffectTarget
   public object? target;
   // Inventory Context for the effect, typically the person performing the task,
   // but could be the person who owns the item being used for the task, or a
-  // building that owns the item being used for the task, etc.
+  // building that owns the item being used for the task,
+  // or the household that owns the building being constructed, etc.
   public IInventoryContext? targetContext;
   // Context of the object that is running the effect, typically the person performing the task.
   // Used to see what abilities the person has.
