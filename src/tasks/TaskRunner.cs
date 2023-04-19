@@ -14,7 +14,7 @@ public class TaskRunner
 {
   // Have the person perform a task, with the given list of Chosen Targets
   // Returns true if the task was performed, false otherwise.
-  public static bool PerformTask(Person person, IInventoryContext inventory, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
+  public static bool PerformTask(Person person, IInventoryContext inventory, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets, bool forceSync = false)
   {
     // Verify that the size of the chosenTargets list matches the size of the task's targets list.
     // Or that the chosenTargets list is null iff the task's list is empty.
@@ -68,7 +68,14 @@ public class TaskRunner
             continue;
           }
           // Apply the effect to the chosen target.
-          effect.Key.Apply(chosenTarget);
+          if (forceSync)
+          {
+            effect.Key.ApplySync(chosenTarget);
+          }
+          else
+          {
+            effect.Key.Apply(chosenTarget);
+          }
         }
 
       }

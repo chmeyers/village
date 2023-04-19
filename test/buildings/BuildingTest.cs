@@ -2,6 +2,7 @@ using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Village.Abilities;
 using Village.Buildings;
 using Village.Effects;
+using Village.Households;
 using Village.Persons;
 using Village.Tasks;
 namespace VillageTest;
@@ -64,8 +65,11 @@ public class BuildingUnitTest
     // Get the building type.
     BuildingType? testBuildingType = BuildingType.Find("test_building");
     Assert.IsNotNull(testBuildingType);
+    // Create a household.
+    Household household = new Household();
     // Create a Building and build all it's phases.
-    Building building = new Building(testBuildingType);
+    household.AddBuilding(testBuildingType);
+    Building building = household.buildings[0];
     // Building should be in phase 1.
     Assert.AreEqual("phase_1", building.currentPhase);
     // The only ability the building should provide is the one for the phase.
@@ -81,12 +85,12 @@ public class BuildingUnitTest
     Assert.IsNotNull(task1);
     Dictionary<string, ChosenEffectTarget> targets = new Dictionary<string, ChosenEffectTarget>();
     // The target is the building.
-    targets.Add("@1", new ChosenEffectTarget(EffectTargetType.Building, building, person, person));
+    targets.Add("@1", new ChosenEffectTarget(EffectTargetType.Building, building, household, person));
     // The person can't perform the task because they don't have the ability.
-    Assert.IsFalse(TaskRunner.PerformTask(person, person, task1, targets));
+    Assert.IsFalse(TaskRunner.PerformTask(person, person, task1, targets, true));
     // The person can perform the task if they have the ability.
     person.GrantAbility("construction_phase_phase_1");
-    Assert.IsTrue(TaskRunner.PerformTask(person, person, task1, targets));
+    Assert.IsTrue(TaskRunner.PerformTask(person, person, task1, targets, true));
     // The building should now have component_1.
     Assert.AreEqual(1, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_1"));
@@ -97,7 +101,7 @@ public class BuildingUnitTest
     WorkTask? task2 = WorkTask.Find("task_2");
     Assert.IsNotNull(task2);
     // The person can perform the task since they have the ability.
-    Assert.IsTrue(TaskRunner.PerformTask(person, person, task2, targets));
+    Assert.IsTrue(TaskRunner.PerformTask(person, person, task2, targets, true));
     // The building should now have component_2.
     Assert.AreEqual(2, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_2"));
@@ -113,7 +117,7 @@ public class BuildingUnitTest
     Assert.IsNotNull(task4);
     // Grant the ability.
     person.GrantAbility("construction_phase_phase_2");
-    Assert.IsTrue(TaskRunner.PerformTask(person, person, task4, targets));
+    Assert.IsTrue(TaskRunner.PerformTask(person, person, task4, targets, true));
     // The building should now have component_4.
     Assert.AreEqual(3, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_4"));
@@ -126,7 +130,7 @@ public class BuildingUnitTest
     // Run task_3, which should build component_3.
     WorkTask? task3 = WorkTask.Find("task_3");
     Assert.IsNotNull(task3);
-    Assert.IsTrue(TaskRunner.PerformTask(person, person, task3, targets));
+    Assert.IsTrue(TaskRunner.PerformTask(person, person, task3, targets, true));
     // The building should now have component_3.
     Assert.AreEqual(4, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_3"));

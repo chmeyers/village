@@ -6,6 +6,7 @@
 // from the items in it. They can also access the buildings in the household.
 
 using Village.Abilities;
+using Village.Buildings;
 using Village.Items;
 
 namespace Village.Households;
@@ -15,12 +16,59 @@ public class Household : IInventoryContext
   // The inventory of the household.
   public Inventory inventory { get; private set; }
   
+  // The buildings owned by the household.
+  // TODO(chmeyers): protect with a lock.
+  public List<Building> buildings { get; private set; }
+
+  // Event handler for when the abilities of a person change.
+  public event AbilitiesChanged? AbilitiesChanged;
+
+  private bool _abilitiesDirty = true;
+
+  // Cache of the abilities granted by the buildings in the household.
+  private Dictionary<AbilityType, List<Building>> _buildingAbilities = new Dictionary<AbilityType, List<Building>>();
 
   public Household()
   {
     inventory = new Inventory();
+    buildings = new List<Building>();
   }
 
+  public Dictionary<AbilityType, List<Building>> BuildingAbilities()
+  {
+    if (!_abilitiesDirty)
+    {
+      return _buildingAbilities;
+    }
+    // loop through the buildings and add their abilities to the dictionary.
+    _buildingAbilities.Clear();
+    foreach (var building in buildings)
+    {
+      foreach (var ability in building.abilities)
+      {
+        if (!_buildingAbilities.ContainsKey(ability))
+        {
+          _buildingAbilities[ability] = new List<Building>();
+        }
+        _buildingAbilities[ability].Add(building);
+      }
+    }
+    _abilitiesDirty = false;
+    return _buildingAbilities;
+  }
+
+  public void AddBuilding(BuildingType buildingType)
+  {
+    Building building = new Building(buildingType);
+    building.AbilitiesChanged += BuildingAbilitiesChanged;
+    buildings.Add(building);
+  }
+
+  private void BuildingAbilitiesChanged()
+  {
+    _abilitiesDirty = true;
+    AbilitiesChanged?.Invoke();
+  }
 
   public void AddItem(Item item, int quantity)
   {

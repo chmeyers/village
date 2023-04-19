@@ -4,6 +4,8 @@
 using System;
 using Village.Abilities;
 using Village.Attributes;
+using Village.Base;
+using Village.Buildings;
 using Village.Households;
 using Village.Items;
 using Village.Skills;
@@ -18,7 +20,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   // Calculate the ability sets for this Person.
   public void CalculateAbilities()
   {
-    if (_attributeAbilitiesDirty || _itemAbilitiesDirty || _allAbilitiesDirty)
+    if (_attributeAbilitiesDirty || _itemAbilitiesDirty || _householdAbilitiesDirty || _allAbilitiesDirty)
     {
       // Clear the allAbilities set.
       allAbilities.Clear();
@@ -47,6 +49,15 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       {
         allAbilities.UnionWith(abilityType.subTypes);
       }
+      // Get the household abilities
+      var householdAbilities = household.BuildingAbilities();
+      // Add the householdAbilities set to the allAbilities set.
+      allAbilities.UnionWith(householdAbilities.Keys);
+      // Add the sub-abilities of the householdAbilities set to the allAbilities set.
+      foreach (AbilityType abilityType in householdAbilities.Keys)
+      {
+        allAbilities.UnionWith(abilityType.subTypes);
+      }
       // The ability set is no longer dirty.
       _allAbilitiesDirty = false;
     }
@@ -70,7 +81,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   public void CalculateValidTasks()
   {
     // Only recalculate the validTasks set if it's dirty.
-    if (validTasksDirty || _itemAbilitiesDirty || _allAbilitiesDirty)
+    if (_validTasksDirty || _itemAbilitiesDirty || _householdAbilitiesDirty || _allAbilitiesDirty)
     {
       // Clear the validTasks set.
       validTasks.Clear();
@@ -78,7 +89,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       // Get Tasks based on abilities.
       validTasks.UnionWith(WorkTask.GetTasksForAbilities(allAbilities));
       // The valid tasks are no longer dirty.
-      validTasksDirty = false;
+      _validTasksDirty = false;
     }
   }
 
@@ -144,6 +155,40 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     }
   }
 
+  private void CalculateValidBuildings()
+  {
+    // Only recalculate the validTasks set if it's dirty.
+    if (_validBuildingsDirty || _itemAbilitiesDirty || _householdAbilitiesDirty || _allAbilitiesDirty)
+    {
+      // Clear the validTasks set.
+      validBuildings.Clear();
+      CalculateAbilities();
+      // Only the head of household can build buildings.
+      if (householdRole == Role.HeadOfHousehold)
+      {
+        foreach (BuildingType buildingType in BuildingType.buildingTypes.Values)
+        {
+          if (allAbilities.IsSupersetOf(buildingType.requirements))
+          {
+            validBuildings.Add(buildingType);
+          }
+        }
+      }
+      // The valid buildings are no longer dirty.
+      _validBuildingsDirty = false;
+    }
+  }
+
+  // Set of available buildings for this person to build.
+  public HashSet<BuildingType> AvailableBuildings
+  {
+    get
+    {
+      CalculateValidBuildings();
+      return validBuildings;
+    }
+  }
+
 
   // Add an item and quantity to the inventory. If an item with abilities is
   // added and the person doesn't already have the ability,
@@ -156,6 +201,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
       // Revisit this decision if it becomes a performance issue.
       _itemAbilitiesDirty = true;
+      _validBuildingsDirty = true;
+      _validTasksDirty = true;
     }
     inventory.AddItem(item, quantity);
   }
@@ -168,6 +215,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
       // Revisit this decision if it becomes a performance issue.
       _itemAbilitiesDirty = true;
+      _validBuildingsDirty = true;
+      _validTasksDirty = true;
     }
     return inventory.RemoveItem(item, quantity);
   }
@@ -183,6 +232,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
         // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
         // Revisit this decision if it becomes a performance issue.
         _itemAbilitiesDirty = true;
+        _validBuildingsDirty = true;
+        _validTasksDirty = true;
         break;
       }
     }
@@ -200,6 +251,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
         // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
         // Revisit this decision if it becomes a performance issue.
         _itemAbilitiesDirty = true;
+        _validBuildingsDirty = true;
+        _validTasksDirty = true;
         break;
       }
     }
@@ -208,27 +261,32 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
 
   public int SetAttribute(AttributeType attributeType, int value)
   {
-    _attributeAbilitiesDirty = attributes.SetValue(attributeType, value);
-    return attributes.GetValue(attributeType);
+    return attributes.SetValue(attributeType, value);
   }
 
   public int AddAttribute(AttributeType attributeType, int value)
   {
-    _attributeAbilitiesDirty = attributes.AddValue(attributeType, value);
-    return attributes.GetValue(attributeType);
+    return attributes.AddValue(attributeType, value);
   }
 
 
   // Constructor for a person.
-  public Person(string id, string name, Household? household = null)
+  public Person(string id, string name, Household? household = null, Role? role = null)
   {
     this.id = id;
     this.name = name;
     // Target and Context for Attribute effects point back at this Person.
     this.attributes = new AttributeSet(this, this);
+    attributes.AbilitiesChanged += () => { _attributeAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
     this.skills = new SkillSet(this);
     // If household is null, create a new household for the person.
+    if (household == null && role != null && role != Role.HeadOfHousehold)
+    {
+      throw new System.ArgumentException("Persons without a existing household must be the head of household.");
+    }
     this.household = (household == null ? new Household() : household);
+    this.householdRole = ((Role)(role == null ? Role.HeadOfHousehold : role));
+    this.household.AbilitiesChanged += () => { _householdAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
   }
 
   // Unique ID for the person.
@@ -238,7 +296,10 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   public string name;
 
   // The person's household.
-  public Household household { get; set; }
+  public Household household { get; protected set; }
+
+  // Role that the person has in their household.
+  public Role householdRole { get; protected set; }
 
   // The person's main inventory.
   public Inventory inventory { get; protected set; } = new Inventory();
@@ -305,6 +366,10 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   // whenever the person loses an item that gives them an ability.
   protected bool _itemAbilitiesDirty = true;
 
+  // Dirty bit for the household abilities, it should be set to dirty
+  // whenever the person's household building abilities change.
+  protected bool _householdAbilitiesDirty = true;
+
   // Cache for all the abilities the person currently has.
   // This is the union of the abilities and itemAbilities sets, as
   // well as the sub-abilities of those abilities.
@@ -319,7 +384,11 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   // They may not have the required item inputs to do the task.
   protected HashSet<WorkTask> validTasks = new HashSet<WorkTask>();
 
+  // Cache of buildings that the person can build, based on their abilities.
+  protected HashSet<BuildingType> validBuildings = new HashSet<BuildingType>();
+
   // Dirty bit for the valid tasks, it should be set to dirty
   // whenever the person's abilities change.
-  protected bool validTasksDirty = true;
+  protected bool _validTasksDirty = true;
+  private bool _validBuildingsDirty;
 }
