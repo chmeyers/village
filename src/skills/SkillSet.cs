@@ -5,7 +5,7 @@ namespace Village.Skills;
 // A SkillSet contains the set of skills for a person.
 public class SkillSet
 {
-  private Dictionary<Skill, PersonSkill> _skills = new Dictionary<Skill, PersonSkill>();
+  public Dictionary<Skill, PersonSkill> skills { get; private set;} = new Dictionary<Skill, PersonSkill>();
   // lock for the skill dictionary.
   private object _lock = new object();
 
@@ -32,7 +32,7 @@ public class SkillSet
   private void AddNoLock(Skill skill)
   {
     var personSkill = new PersonSkill(_context, skill);
-    _skills.Add(skill, personSkill);
+    skills.Add(skill, personSkill);
   }
 
   // Get the skill for the given skill ID.
@@ -40,7 +40,7 @@ public class SkillSet
   {
     lock (_lock)
     {
-      if (_skills.TryGetValue(skill, out var personSkill))
+      if (skills.TryGetValue(skill, out var personSkill))
       {
         return personSkill;
       }
@@ -52,11 +52,13 @@ public class SkillSet
   {
     lock (_lock)
     {
-      if (_skills.TryGetValue(skill, out var personSkill))
+      // If the skill doesn't exist, it's created here.
+      if (!skills.TryGetValue(skill, out var personSkill))
       {
-        return personSkill.GrantXP(xp);
+        AddNoLock(skill);
+        personSkill = skills[skill];
       }
-      return false;
+      return personSkill.GrantXP(xp);
     }
   }
   // Grant a level to the given skill.
@@ -65,11 +67,13 @@ public class SkillSet
   {
     lock (_lock)
     {
-      if (_skills.TryGetValue(skill, out var personSkill))
+      // If the skill doesn't exist, it's created here.
+      if (!skills.TryGetValue(skill, out var personSkill))
       {
-        return personSkill.GrantLevel();
+        AddNoLock(skill);
+        personSkill = skills[skill];
       }
-      return false;
+      return personSkill.GrantLevel();
     }
   }
   // Grant a specific level to the given skill.
@@ -78,11 +82,13 @@ public class SkillSet
   {
     lock (_lock)
     {
-      if (_skills.TryGetValue(skill, out var personSkill))
+      // If the skill doesn't exist, it's created here.
+      if (!skills.TryGetValue(skill, out var personSkill))
       {
-        return personSkill.GrantLevel(level);
+        AddNoLock(skill);
+        personSkill = skills[skill];
       }
-      return false;
+      return personSkill.GrantLevel(level);
     }
   }
 
@@ -91,7 +97,7 @@ public class SkillSet
   {
     lock (_lock)
     {
-      if (_skills.TryGetValue(skill, out var personSkill))
+      if (skills.TryGetValue(skill, out var personSkill))
       {
         return personSkill.level;
       }
@@ -104,7 +110,7 @@ public class SkillSet
   {
     lock (_lock)
     {
-      if (_skills.TryGetValue(skill, out var personSkill))
+      if (skills.TryGetValue(skill, out var personSkill))
       {
         return personSkill.XP;
       }

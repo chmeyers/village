@@ -78,6 +78,12 @@ public class SkillUnitTest
   public void TestLoadSkills()
   {
     {
+      AbilityType.Clear();
+      string json = @"{ 'chopping' : { 'levels': 5 } }";
+      // Load the ability types.
+      AbilityType.LoadString(json);
+    }
+    {
       ItemType.Clear();
       string json = @"{
     'wood': { 'group': 'RESOURCE', 'displayName': 'Wood'},
@@ -85,12 +91,6 @@ public class SkillUnitTest
   }";
       // Load the item types.
       ItemType.LoadString(json);
-    }
-    {
-      AbilityType.Clear();
-      string json = @"{ 'chopping' : { 'levels': 5 } }";
-      // Load the ability types.
-      AbilityType.LoadString(json);
     }
     {
       Effect.Clear();
@@ -146,11 +146,20 @@ public class SkillUnitTest
       // Create a Concrete Skill Context
       HashSet<AbilityType> abilityTypes = new HashSet<AbilityType>();
       ConcreteSkillContext context = new ConcreteSkillContext(abilityTypes);
-      context.skills.Add(Skill.skills["farming"]);
+      // Add a skill to the context.
       context.skills.Add(Skill.skills["woodcraft"]);
+      // Don't add farming, so it should not be in the context.
+      // Check that the context has the correct skills.
+      Assert.AreEqual(1, context.skills.skills.Count);
+      Assert.IsTrue(context.skills.skills.ContainsKey(Skill.skills["woodcraft"]));
+      Assert.IsFalse(context.skills.skills.ContainsKey(Skill.skills["farming"]));
       
       // Grant 50 XP in farming.
       Assert.IsTrue(context.GrantXP(Skill.skills["farming"], 50));
+      // The farming skill should have been added to the context.
+      Assert.AreEqual(2, context.skills.skills.Count);
+      Assert.IsTrue(context.skills.skills.ContainsKey(Skill.skills["woodcraft"]));
+      Assert.IsTrue(context.skills.skills.ContainsKey(Skill.skills["farming"]));
       // Check that the XP was granted, but farming is still level 0.
       Assert.AreEqual(50, context.GetXP(Skill.skills["farming"]));
       Assert.AreEqual(0, context.GetLevel(Skill.skills["farming"]));
