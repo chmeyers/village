@@ -49,10 +49,12 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
       {
         allAbilities.UnionWith(abilityType.subTypes);
       }
+      _attributeAbilitiesDirty = false;
       // Get the household abilities
       var householdAbilities = household.BuildingAbilities();
       // Add the householdAbilities set to the allAbilities set.
       allAbilities.UnionWith(householdAbilities.Keys);
+      _householdAbilitiesDirty = false;
       // Add the sub-abilities of the householdAbilities set to the allAbilities set.
       foreach (AbilityType abilityType in householdAbilities.Keys)
       {
