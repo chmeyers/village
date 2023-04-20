@@ -25,7 +25,7 @@ public class Inventory : IInventoryContext
 
   // The items in the inventory with their quantities.
   // Items of the same type are sorted so that the "worst" items are used first.
-  private Dictionary<ItemType, SortedDictionary<Item, int>> _items = new Dictionary<ItemType, SortedDictionary<Item, int>>();
+  public Dictionary<ItemType, SortedDictionary<Item, int>> items { get; private set;} = new Dictionary<ItemType, SortedDictionary<Item, int>>();
 
   // Get a list of abilities granted by the items in the inventory.
   public Dictionary<AbilityType, List<Item>> ItemAbilities()
@@ -33,7 +33,7 @@ public class Inventory : IInventoryContext
     Dictionary<AbilityType, List<Item>> abilities = new Dictionary<AbilityType, List<Item>>();
     lock (_itemsLock)
     {
-      foreach (ItemType itemType in _items.Keys)
+      foreach (ItemType itemType in items.Keys)
       {
         // Add the itemType's abilities to the list.
         foreach (AbilityType ability in itemType.abilities)
@@ -43,7 +43,7 @@ public class Inventory : IInventoryContext
             abilities[ability] = new List<Item>();
           }
           // Add every item of that type to the list.
-          foreach (Item item in _items[itemType].Keys)
+          foreach (Item item in items[itemType].Keys)
           {
             abilities[ability].Add(item);
           }
@@ -178,7 +178,7 @@ public class Inventory : IInventoryContext
   {
     lock (_itemsLock)
     {
-      return _items.Count;
+      return items.Count;
     }
   }
 
@@ -188,7 +188,7 @@ public class Inventory : IInventoryContext
     lock (_itemsLock)
     {
       int count = 0;
-      foreach (var itemType in _items)
+      foreach (var itemType in items)
       {
         foreach (var item in itemType.Value)
         {
@@ -205,7 +205,7 @@ public class Inventory : IInventoryContext
     lock (_itemsLock)
     {
       int count = 0;
-      foreach (var itemType in _items)
+      foreach (var itemType in items)
       {
         count += itemType.Value.Count;
       }
@@ -242,9 +242,9 @@ public class Inventory : IInventoryContext
     {
       lock (_itemsLock)
       {
-        if (_items.ContainsKey(item.itemType) && _items[item.itemType].ContainsKey(item))
+        if (items.ContainsKey(item.itemType) && items[item.itemType].ContainsKey(item))
         {
-          return _items[item.itemType][item];
+          return items[item.itemType][item];
         }
         return 0;
       }
@@ -258,9 +258,9 @@ public class Inventory : IInventoryContext
     {
       lock (_itemsLock)
       {
-        if (_items.ContainsKey(itemType))
+        if (items.ContainsKey(itemType))
         {
-          return _items[itemType];
+          return items[itemType];
         }
         return new SortedDictionary<Item, int>();
       }
@@ -271,20 +271,20 @@ public class Inventory : IInventoryContext
   // Internal function to remove items from the inventory with no locking.
   private bool _RemoveNoLock(Item item, int quantity)
   {
-    if (_items.ContainsKey(item.itemType) && _items[item.itemType].ContainsKey(item))
+    if (items.ContainsKey(item.itemType) && items[item.itemType].ContainsKey(item))
     {
 
-      if (_items[item.itemType][item] > quantity)
+      if (items[item.itemType][item] > quantity)
       {
-        _items[item.itemType][item] -= quantity;
+        items[item.itemType][item] -= quantity;
         return true;
       }
-      else if (_items[item.itemType][item] == quantity)
+      else if (items[item.itemType][item] == quantity)
       {
-        _items[item.itemType].Remove(item);
-        if (_items[item.itemType].Count == 0)
+        items[item.itemType].Remove(item);
+        if (items[item.itemType].Count == 0)
         {
-          _items.Remove(item.itemType);
+          items.Remove(item.itemType);
         }
         return true;
       }
@@ -305,27 +305,27 @@ public class Inventory : IInventoryContext
       // Remove the items in sorted order so that the worst items go first.
       // Keep removing until we have removed the required quantity.
       int quantity = itemType.Value;
-      while (quantity > 0 && _items[itemType.Key].Count > 0)
+      while (quantity > 0 && items[itemType.Key].Count > 0)
       {
         // Get the first item in the dictionary.
-        var item = _items[itemType.Key].First();
+        var item = items[itemType.Key].First();
         if (item.Value > quantity)
         {
-          _items[itemType.Key][item.Key] -= quantity;
+          items[itemType.Key][item.Key] -= quantity;
           quantity = 0;
           break;
         }
         else
         {
           quantity -= item.Value;
-          _items[itemType.Key].Remove(item.Key);
+          items[itemType.Key].Remove(item.Key);
           if (quantity == 0) break;
         }
       }
 
-      if (_items[itemType.Key].Count == 0)
+      if (items[itemType.Key].Count == 0)
       {
-        _items.Remove(itemType.Key);
+        items.Remove(itemType.Key);
       }
       // Throw an exception if we didn't remove the required quantity.
       if (quantity > 0)
@@ -340,20 +340,20 @@ public class Inventory : IInventoryContext
   // Internal function to add items to the inventory with no locking.
   private void _AddNoLock(Item item, int quantity)
   {
-    if (_items.ContainsKey(item.itemType))
+    if (items.ContainsKey(item.itemType))
     {
-      if (_items[item.itemType].ContainsKey(item))
+      if (items[item.itemType].ContainsKey(item))
       {
-        _items[item.itemType][item] += quantity;
+        items[item.itemType][item] += quantity;
       }
       else
       {
-        _items[item.itemType].Add(item, quantity);
+        items[item.itemType].Add(item, quantity);
       }
     }
     else
     {
-      _items.Add(item.itemType, new SortedDictionary<Item, int> { { item, quantity } });
+      items.Add(item.itemType, new SortedDictionary<Item, int> { { item, quantity } });
     }
   }
 
@@ -368,9 +368,9 @@ public class Inventory : IInventoryContext
   // in the inventory with no locking.
   private bool _ContainsNoLock(Item item, int quantity)
   {
-    if (_items.ContainsKey(item.itemType) && _items[item.itemType].ContainsKey(item))
+    if (items.ContainsKey(item.itemType) && items[item.itemType].ContainsKey(item))
     {
-      if (_items[item.itemType][item] >= quantity)
+      if (items[item.itemType][item] >= quantity)
       {
         return true;
       }
@@ -382,10 +382,10 @@ public class Inventory : IInventoryContext
   // in the inventory with no locking.
   private bool _ContainsNoLock(ItemType itemType, int quantity)
   {
-    if (_items.ContainsKey(itemType))
+    if (items.ContainsKey(itemType))
     {
       int count = 0;
-      foreach (var item in _items[itemType])
+      foreach (var item in items[itemType])
       {
         count += item.Value;
       }

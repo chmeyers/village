@@ -7,7 +7,7 @@ namespace Village.Attributes;
 public class AttributeSet
 {
   // The attributes.
-  private Dictionary<AttributeType, Attribute> _attributes = new Dictionary<AttributeType, Attribute>();
+  public Dictionary<AttributeType, Attribute> attributes { get; private set;} = new Dictionary<AttributeType, Attribute>();
   // Cache of the abilities given by the attributes.
   private HashSet<AbilityType> attributeAbilities = new HashSet<AbilityType>();
   // Dirty bit for the attribute abilities.
@@ -44,7 +44,7 @@ public class AttributeSet
   {
     lock (_lock)
     {
-      return _attributes.ContainsKey(attributeType);
+      return attributes.ContainsKey(attributeType);
     }
   }
 
@@ -52,7 +52,7 @@ public class AttributeSet
   private void AddNoLock(AttributeType attributeType)
   {
     var attribute = new Attribute(attributeType, effectTarget, effectContext);
-    _attributes.Add(attributeType, attribute);
+    attributes.Add(attributeType, attribute);
     if (attribute.GetAbilities().Count > 0)
     {
       attributeAbilitiesDirty = true;
@@ -70,7 +70,7 @@ public class AttributeSet
         return attributeAbilities;
       }
       attributeAbilities.Clear();
-      foreach (Attribute attribute in _attributes.Values)
+      foreach (Attribute attribute in attributes.Values)
       {
         attributeAbilities.UnionWith(attribute.GetAbilities());
       }
@@ -86,16 +86,16 @@ public class AttributeSet
   {
     lock (_lock)
     {
-      if (!_attributes.ContainsKey(attributeType))
+      if (!attributes.ContainsKey(attributeType))
       {
         AddNoLock(attributeType);
       }
-      if (_attributes[attributeType].SetValue(value))
+      if (attributes[attributeType].SetValue(value))
       {
         attributeAbilitiesDirty = true;
         AbilitiesChanged?.Invoke();
       }
-      return _attributes[attributeType].value;
+      return attributes[attributeType].value;
     }
   }
 
@@ -106,16 +106,16 @@ public class AttributeSet
   {
     lock(_lock)
     {
-      if (!_attributes.ContainsKey(attributeType))
+      if (!attributes.ContainsKey(attributeType))
       {
         AddNoLock(attributeType);
       }
-      if (_attributes[attributeType].AddValue(value))
+      if (attributes[attributeType].AddValue(value))
       {
         attributeAbilitiesDirty = true;
         AbilitiesChanged?.Invoke();
       }
-      return _attributes[attributeType].value;
+      return attributes[attributeType].value;
     }
   }
 
@@ -126,11 +126,11 @@ public class AttributeSet
   {
     lock (_lock)
     {
-      if (!_attributes.ContainsKey(attributeType))
+      if (!attributes.ContainsKey(attributeType))
       {
         return attributeType.initialValue;
       }
-      return _attributes[attributeType].value;
+      return attributes[attributeType].value;
     }
   }
 }
