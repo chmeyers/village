@@ -23,7 +23,7 @@
       "program": "${workspaceFolder}/bin/Debug/net7.0/village.dll",
       "args": [],
       "cwd": "${workspaceFolder}",
-      "console": "internalConsole",
+      "console": "integratedTerminal",
       "stopAtEntry": false
     },
     {
