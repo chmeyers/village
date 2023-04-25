@@ -1,5 +1,3 @@
 {
   "degrade_1" : { "target" : "Item", "effectType" : "Degrade", "config" : {"amount": 1} },
-  "degrade_3" : { "target" : "Item", "effectType" : "Degrade", "config" : {"amount": 3} },
-  "degrade_5" : { "target" : "Item", "effectType" : "Degrade", "config" : {"amount": 5} },
 }
