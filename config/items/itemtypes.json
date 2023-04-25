@@ -1,5 +1,0 @@
-{
-  "coin": { "group": "CURRENCY", "displayName": "Coin"},
-  "grain": { "group": "FOOD", "displayName": "Grain", "flammable": true, "lossRate": 1},
-  "apple": { "group": "FOOD", "displayName": "Apple", "flammable": true, "spoilTime": 60},
-}
