@@ -17,18 +17,24 @@ namespace Village
     public static void LoadConfig()
     {
       // Load the ability types.
-      AbilityType.LoadFile("config/abilities/abilitytypes.json");
+      AbilityType.LoadFile("config/abilities/abilitytypes.jsonc");
+      // Load the attributes.
+      AttributeType.LoadFile("config/attributes/attributes.jsonc");
       // Load the item types, resources first since they are used by other items.
       ItemType.LoadFile("config/items/resources.jsonc");
       ItemType.LoadFile("config/items/tools.jsonc");
-      ItemType.LoadFile("config/items/itemtypes.json");
+      ItemType.LoadFile("config/items/item.jsonc");
       // Load the effects.
-      EffectLoader.LoadFile("config/effects/effects.json");
+      EffectLoader.LoadFile("config/effects/effects.jsonc");
+      EffectLoader.LoadFile("config/effects/building_components.jsonc");
       EffectLoader.LoadFile("config/effects/skill_effects.jsonc");
+      EffectLoader.LoadFile("config/effects/skilltree.jsonc");
+      // Load the buildings.
+      BuildingType.LoadFile("config/buildings/buildings.jsonc");
       // Load the tasks.
-      WorkTask.LoadFile("config/tasks/basic_toolmaking.jsonc");
-      WorkTask.LoadFile("config/tasks/resource_gathering.jsonc");
-      WorkTask.LoadFile("config/tasks/tasks.json");
+      WorkTask.LoadFile("config/tasks/gathering.jsonc");
+      WorkTask.LoadFile("config/tasks/crafting.jsonc");
+      WorkTask.LoadFile("config/tasks/resources.jsonc");
       // Load the skills, followed by the skill tree.
       Skill.LoadFile("config/skills/skills.jsonc");
       Skill.LoadParentsFile("config/skills/skilltree.json");
