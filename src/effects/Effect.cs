@@ -32,6 +32,8 @@ public enum EffectType
   Skill,
   // Construct a building component.
   BuildingComponent,
+  // Propagate Skills up and down the skill tree.
+  SkillTree,
 }
 
 public class EffectTarget

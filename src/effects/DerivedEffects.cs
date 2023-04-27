@@ -213,3 +213,75 @@ public class BuildingComponentEffect : Effect
   // i.e. the material used to construct the component.
   public string? specificComponent;
 }
+
+// Propagate skills up and down the skill tree
+public class SkillTreeEffect : Effect
+{
+  public SkillTreeEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a person or self.
+    if (target != EffectTargetType.Person)
+    {
+      throw new Exception("Skill tree effect must target a person: " + effect);
+    }
+    if (data == null)
+    {
+      throw new Exception("Skill tree effect must have a config dictionary: " + effect);
+    }
+    // The name of the skill to propagate.
+    skill = (string)data["skill"];
+    // The amount to propagate the skill by.
+    amount = AbilityValue.FromJson(data["amount"]);
+    // Propagate the skill up the tree to the parent, defaults to false.
+    if (data.ContainsKey("parent"))
+    {
+      propagateUp = (bool)data["parent"];
+    }
+  }
+
+  // Apply the effect to the target.
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  {
+    // Get the person from the chosen target.
+    ISkillContext person = (ISkillContext)chosenEffectTarget.targetContext!;
+    // Make sure person is not null.
+    if (person == null)
+    {
+      // We ignore this effect if the person is null.
+      return;
+    }
+
+    if (_skill == null)
+    {
+      _skill = Skill.Find(skill);
+      // Make sure the skill exists.
+      if (_skill == null)
+      {
+        throw new Exception("Skill does not exist: " + skill + " in skill effect " + effect);
+      }
+    }
+
+    // If we are propagating up the tree, then add amount XP to each parent of the skill.
+    var relatives = _skill.children;
+    if (propagateUp)
+    {
+      // Use the parents instead of the children.
+      relatives = _skill.parents;
+    }
+    foreach (var relative in relatives)
+    {
+      // Increase the skill of the target.
+      person.GrantXP(relative, amount.GetValue(chosenEffectTarget.runningContext));
+    }
+  }
+
+  // The name of the skill to propagate.
+  public string skill;
+  // Cached Skill object.
+  // Skills are loaded after effects, so we can't get the Skill object during the initial load.
+  private Skill? _skill;
+  // The amount to propagate the skill by.
+  public AbilityValue amount;
+  // Whether to propagate the skill up the tree.
+  public bool propagateUp = true;
+}
