@@ -70,5 +70,6 @@
   "unfired_tile": { "group": "RESOURCE", "parent": "unfired_clay" },
   "unfired_brick": { "group": "RESOURCE", "parent": "unfired_clay" },
   "unfired_pottery": { "group": "RESOURCE" },
+  "leather": { "group": "RESOURCE" },
   "glass": { "group": "RESOURCE" },
 }

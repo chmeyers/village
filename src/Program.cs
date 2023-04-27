@@ -29,15 +29,17 @@ namespace Village
       EffectLoader.LoadFile("config/effects/building_components.jsonc");
       EffectLoader.LoadFile("config/effects/skill_effects.jsonc");
       EffectLoader.LoadFile("config/effects/skilltree.jsonc");
-      // Load the buildings.
-      BuildingType.LoadFile("config/buildings/buildings.jsonc");
       // Load the tasks.
       WorkTask.LoadFile("config/tasks/gathering.jsonc");
       WorkTask.LoadFile("config/tasks/crafting.jsonc");
+      WorkTask.LoadFile("config/tasks/tool_crafting.jsonc");
       WorkTask.LoadFile("config/tasks/resources.jsonc");
+      WorkTask.LoadFile("config/tasks/building.jsonc");
+      // Load the buildings.
+      BuildingType.LoadFile("config/buildings/buildings.jsonc");
       // Load the skills, followed by the skill tree.
       Skill.LoadFile("config/skills/skills.jsonc");
-      Skill.LoadParentsFile("config/skills/skilltree.json");
+      Skill.LoadParentsFile("config/skills/skilltree.jsonc");
     }
 
     public static void PrintInventory(Inventory inventory)

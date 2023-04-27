@@ -1,5 +1,5 @@
 {
-  "flamecraft": ["charcoalmaking","kiln_firing","smithing","leadworking","smelting","glassworking","hearthcraft"],
+  "flamecraft": ["charcoalmaking","furnaces","kiln_firing","smithing","leadworking","smelting","glassworking","hearthcraft"],
   "homecraft": ["needlework","hearthcraft","food_preservation","dairy","cleaning","childrearing"],
   "handcraft": ["joinery","pottery","wicker","leatherworking","clothmaking"],
   "laboring": ["woodworking","roofing","wattle_daubing","stonework","bricklaying","smithing","milling","teamstery","fieldwork"],

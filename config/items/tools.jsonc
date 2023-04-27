@@ -43,7 +43,7 @@
   "broom": { "group": "TOOL", "abilities": ["broom_2"], "flammable": true, "craftQuality": {"val":100, "modifiers": {"wood_tools_2": {"add": 100}}}},
   "grinder": { "group": "TOOL", "abilities": ["grinder_2"], "craftQuality": {"val":100, "modifiers": {"stone_tools_2": {"add": 100}}}},
   "mortar_pestle": { "group": "TOOL", "abilities": ["mortar_pestle_2"], "flammable": true, "craftQuality": {"val":100, "modifiers": {"stone_tools_2": {"add": 100}}}},
-  "bronze_ard_blow": { "group": "TOOL", "abilities": ["plow_1"], "flammable": true, "scrapItems": {"bronze":160}, "craftQuality": {"val":500, "modifiers": {"bronzeworking_2": {"add": 100}}}},
+  "bronze_ard_plow": { "group": "TOOL", "abilities": ["plow_1"], "flammable": true, "scrapItems": {"bronze":160}, "craftQuality": {"val":500, "modifiers": {"bronzeworking_2": {"add": 100}}}},
   "ard_plow": { "group": "TOOL", "abilities": ["plow_1"], "flammable": true, "scrapItems": {"iron":160}, "craftQuality": {"val":500, "modifiers": {"blacksmithing_2": {"add": 100}}}},
   "scratch_plow": { "group": "TOOL", "abilities": ["plow_2"], "flammable": true, "scrapItems": {"iron":240}, "craftQuality": {"val":500, "modifiers": {"blacksmithing_2": {"add": 100}}}},
   "heavy_wheeled_plow": { "group": "TOOL", "abilities": ["plow_3"], "flammable": true, "scrapItems": {"iron":320}, "craftQuality": {"val":500, "modifiers": {"blacksmithing_2": {"add": 100}}}},
