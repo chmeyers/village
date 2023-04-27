@@ -33,7 +33,7 @@ public class TaskUnitTest
       Effect.Clear();
       string json = @"{
     'degrade_1' : { 'target' : 'Item', 'effectType' : 'Degrade', 'config' : {'amount': 1} },
-    'skill_chopping_1' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'chopping', 'amount': 1, 'maxLevel': 5} }
+    'skill_chopping_1' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'chopping', 'amount': 1, 'level': 5} }
   }";
       // Load the item types.
       EffectLoader.LoadString(json);

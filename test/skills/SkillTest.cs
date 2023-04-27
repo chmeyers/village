@@ -96,7 +96,7 @@ public class SkillUnitTest
       Effect.Clear();
       string json = @"{
     'degrade_1' : { 'target' : 'Item', 'effectType' : 'Degrade', 'config' : {'amount': 1} },
-    'skill_woodcraft_100' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'woodcraft', 'amount': 100, 'maxLevel': 5} }
+    'skill_woodcraft_100' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'woodcraft', 'amount': 100, 'level': 0} }
   }";
       // Load the effect types.
       EffectLoader.LoadString(json);

@@ -67,14 +67,7 @@ public class EffectLoader : Effect
   {
     // Load the JSON file.
     string json = File.ReadAllText(filename);
-    try
-    {
-      LoadString(json);
-    }
-    catch (Exception e)
-    {
-      throw new Exception("Failed to load effects from file: " + filename + "\n" + e.Message);
-    }
+    LoadString(json);
   }
 
   // Constructor, which always throws an exception.

@@ -88,11 +88,11 @@ public class SkillEffect : Effect
     // Which Skill to increase.
     skill = (string)data["skill"];
     // How much to increase the skill by.
-    amount = AbilityValue.FromJson(data["amount"]);
+    level = AbilityValue.FromJson(data["level"]);
     // The maximum level the skill can be increased to.
-    if (data.ContainsKey("maxLevel"))
+    if (data.ContainsKey("amount"))
     {
-      maxLevel = AbilityValue.FromJson(data["maxLevel"]);
+      amount = AbilityValue.FromJson(data["amount"]);
     }
   }
 
@@ -121,9 +121,19 @@ public class SkillEffect : Effect
     // Increase the skill of the target.
     // Note that the amount uses the ability context which may be a different context
     // than the target, for example if one person is teaching another person.
-    // TODO(chmeyers): Use the maxLevel setting.
-    
-    person.GrantXP(_skill, amount.GetValue(chosenEffectTarget.runningContext));
+
+    // If the person is currently at level, they get one XP, if less they get two,
+    // if more they get nothing.
+    var trainingLevel = level.GetValue(chosenEffectTarget.runningContext);
+    var trainingAmount = amount.GetValue(chosenEffectTarget.runningContext);
+    if (person.GetLevel(_skill) == trainingLevel)
+    {
+      person.GrantXP(_skill, trainingAmount);
+    }
+    else if (person.GetLevel(_skill) < trainingLevel)
+    {
+      person.GrantXP(_skill, trainingAmount * 2);
+    }
   }
 
   // The name of the skill to increase.
@@ -131,10 +141,12 @@ public class SkillEffect : Effect
   // Cached Skill object.
   // Skills are loaded after effects, so we can't get the Skill object during the initial load.
   private Skill? _skill;
-  // The amount to increase the skill by.
-  public AbilityValue amount;
-  // The maximum level the skill can be increased to.
-  public AbilityValue maxLevel = new AbilityValue(100);
+  // The level of training, if the person is at this level, they get the specified
+  // amount of XP, if they are below this level, they get double XP, if they are
+  // above this level, they get no XP.
+  public AbilityValue level;
+  // Amount to increase, defaults to 1.
+  public AbilityValue amount = new AbilityValue(1);
 }
 
 // Construct a building component.

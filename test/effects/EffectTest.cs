@@ -17,8 +17,8 @@ public class EffectUnitTest
     Effect.Clear();
     json = @"{
   'degrade_1' : { 'target' : 'Item', 'effectType' : 'Degrade', 'config' : {'amount': 1} },
-  'skill_swords_1' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'swords', 'amount': 1, 'maxLevel': 5} },
-  'skill_swords_2' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'swords', 'amount': {'val' : 2, 'modifiers': {'cutting_1' : {'add' : 1, 'mult': 2.0}, 'cutting_2' : {'add' : 3, 'mult': 5.0}}}, 'maxLevel': 5} }
+  'skill_swords_1' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'swords', 'amount': 1, 'level': 5} },
+  'skill_swords_2' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'swords', 'amount': {'val' : 2, 'modifiers': {'cutting_1' : {'add' : 1, 'mult': 2.0}, 'cutting_2' : {'add' : 3, 'mult': 5.0}}}, 'level': 5} }
 }";
     // Load the effects.
     EffectLoader.LoadString(json);
@@ -41,7 +41,7 @@ public class EffectUnitTest
     SkillEffect skillEffect = (SkillEffect)Effect.effects["skill_swords_1"];
     Assert.AreEqual("swords", skillEffect.skill);
     Assert.AreEqual(1, skillEffect.amount.GetBaseValue());
-    Assert.AreEqual(5, skillEffect.maxLevel.GetBaseValue());
+    Assert.AreEqual(5, skillEffect.level.GetBaseValue());
 
     // Create an AbilityType hashset with cutting_1.
     HashSet<AbilityType> abilityTypes = new HashSet<AbilityType>();
@@ -49,7 +49,7 @@ public class EffectUnitTest
     ConcreteAbilityContext context = new ConcreteAbilityContext(abilityTypes);
 
     Assert.AreEqual(1, skillEffect.amount.GetValue(context));
-    Assert.AreEqual(5, skillEffect.maxLevel.GetValue(context));
+    Assert.AreEqual(5, skillEffect.level.GetValue(context));
 
     // Check the third effect.
     Assert.AreEqual(EffectType.Skill, Effect.effects["skill_swords_2"].effectType);
@@ -60,17 +60,17 @@ public class EffectUnitTest
     skillEffect = (SkillEffect)Effect.effects["skill_swords_2"];
     Assert.AreEqual("swords", skillEffect.skill);
     Assert.AreEqual(2, skillEffect.amount.GetBaseValue());
-    Assert.AreEqual(5, skillEffect.maxLevel.GetBaseValue());
+    Assert.AreEqual(5, skillEffect.level.GetBaseValue());
 
     // With the context, the amount should be (2+1)*2 = 6
     Assert.AreEqual(6, skillEffect.amount.GetValue(context));
-    Assert.AreEqual(5, skillEffect.maxLevel.GetValue(context));
+    Assert.AreEqual(5, skillEffect.level.GetValue(context));
 
     // Add cutting_2 to the context.
     abilityTypes.Add(AbilityType.abilityTypes["cutting_2"]);
     // With the context, the amount should be (2+1+3)*2*5 = 60
     Assert.AreEqual(60, skillEffect.amount.GetValue(context));
-    Assert.AreEqual(5, skillEffect.maxLevel.GetValue(context));
+    Assert.AreEqual(5, skillEffect.level.GetValue(context));
   }
 
 }
