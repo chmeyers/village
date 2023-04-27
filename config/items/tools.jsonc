@@ -67,9 +67,9 @@
   "steel_scythe": { "group": "TOOL", "abilities": ["sickle_3"], "flammable": true, "scrapItems": {"steel":160}, "craftQuality": {"val":800, "modifiers": {"blacksmithing_2": {"add": 100}}}},
   "cradle_scythe": { "group": "TOOL", "abilities": ["sickle_4"], "flammable": true, "scrapItems": {"steel":160}, "craftQuality": {"val":800, "modifiers": {"blacksmithing_2": {"add": 100}}}},
   "saddle_tack": { "group": "TOOL", "abilities": ["saddle_1"], "flammable": true, "craftQuality": {"val":50, "modifiers": {"leatherworking_2": {"add": 100}}}},
-  "backstrap_loom": { "group": "TOOL", "abilities": ["weaving_1"], "flammable": true, "craftQuality": {"val":25, "modifiers": {"wood_tools_1": {"add": 25},"wood_tools_2": {"add": 25}}}},
-  "loom": { "group": "TOOL", "abilities": ["weaving_2"], "flammable": true, "craftQuality": {"val":100, "modifiers": {"wood_tools_2": {"add": 100}}}},
-  "spinning_wheel": { "group": "TOOL", "abilities": ["spinning_2"], "flammable": true, "craftQuality": {"val":100, "modifiers": {"wood_tools_2": {"add": 100}}}},
-  "spindle": { "group": "TOOL", "abilities": ["spinning_1"], "flammable": true, "craftQuality": {"val":100, "modifiers": {"wood_tools_2": {"add": 100}}}},
+  "backstrap_loom": { "group": "TOOL", "abilities": ["loom_1"], "flammable": true, "craftQuality": {"val":25, "modifiers": {"wood_tools_1": {"add": 25},"wood_tools_2": {"add": 25}}}},
+  "loom": { "group": "TOOL", "abilities": ["loom_2"], "flammable": true, "craftQuality": {"val":100, "modifiers": {"wood_tools_2": {"add": 100}}}},
+  "spinning_wheel": { "group": "TOOL", "abilities": ["spindle_2"], "flammable": true, "craftQuality": {"val":100, "modifiers": {"wood_tools_2": {"add": 100}}}},
+  "spindle": { "group": "TOOL", "abilities": ["spindle_1"], "flammable": true, "craftQuality": {"val":100, "modifiers": {"wood_tools_2": {"add": 100}}}},
   "comb": { "group": "TOOL", "abilities": ["comb_2"], "flammable": true, "craftQuality": {"val":200, "modifiers": {"bonecarving_2": {"add": 100}}}},
 }

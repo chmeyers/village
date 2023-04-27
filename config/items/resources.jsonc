@@ -39,6 +39,7 @@
   "steel": { "group": "RESOURCE", "parent": "metal" },
   "lumber": { "group": "RESOURCE", "parent": "wood", "flammable": true },
   "brick": { "group": "RESOURCE" },
+  "tile": { "group": "RESOURCE" },
   "nails": { "group": "RESOURCE" },
   "salt": { "group": "RESOURCE", "flammable": true },
   "soap": { "group": "RESOURCE", "flammable": true },
