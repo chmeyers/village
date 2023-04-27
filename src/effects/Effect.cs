@@ -75,7 +75,7 @@ public class EffectTarget
         break;
       case EffectTargetType.Building:
       case EffectTargetType.Item:
-        // Should be a empty or a valid ability name.
+        // Should be a valid ability name or a target string.
         if (AbilityType.Find(target) == null && !IsTargetString(target))
         {
           throw new Exception("Invalid target for " + effectTargetType + ": " + target);

@@ -205,7 +205,7 @@ namespace Village.Tasks
             Effect? effectType = Effect.Find(effect.Key);
             if (effectType == null)
             {
-              throw new Exception("Invalid effect type in task config: " + effect.Key);
+              throw new Exception("Invalid effect type in task config: " + effect.Key + " in task " + task);
             }
             return effectType;
           },
@@ -213,7 +213,11 @@ namespace Village.Tasks
           {
             return effect.Value.Select((string target) =>
             {
-              return new EffectTarget(Effect.Find(effect.Key)!.target, target);
+              try {
+                return new EffectTarget(Effect.Find(effect.Key)!.target, target);
+              } catch (Exception e) {
+                throw new Exception("Invalid effect target in task config: " + target + " in task " + task, e);
+              }
             }).ToList();
           }
         );

@@ -151,14 +151,7 @@ public class BuildingType
   {
     // Load the JSON into a dictionary.
     string json = File.ReadAllText(filename);
-    try
-    {
-      LoadString(json);
-    }
-    catch (Exception e)
-    {
-      throw new Exception("Failed to load attribute types from file: " + filename + "\n" + e.Message);
-    }
+    LoadString(json);
   }
 
   // The id of the building type.

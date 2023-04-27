@@ -85,7 +85,15 @@ public class AbilityValue
 
         if (abilityModifier.ContainsKey("mult"))
         {
-          this.multAbilities.Add(abilityType, (float)(double)abilityModifier["mult"]);
+          // Multiplier might be either a long or a double.
+          if (abilityModifier["mult"] is long)
+          {
+            this.multAbilities.Add(abilityType, (float)(long)abilityModifier["mult"]);
+          }
+          else
+          {
+            this.multAbilities.Add(abilityType, (float)(double)abilityModifier["mult"]);
+          }
         }
 
       }
