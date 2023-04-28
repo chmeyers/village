@@ -322,6 +322,27 @@ namespace Village.Tasks
       return components;
     }
 
+    // Whether the task is a tool crafting task.
+    public bool IsToolCraftingTask()
+    {
+      // Check that there is one output and it is a tool.
+      return this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.TOOL;
+    }
+
+    // Whether the task is a gathering task.
+    public bool IsGatheringTask()
+    {
+      // Check that there are not inputs and one output and it is a resource.
+      return this.inputs.Count == 0 && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
+    }
+
+    // Whether the task is a resource processing task.
+    public bool IsResourceProcessingTask()
+    {
+      // Check that all the inputs are resources and there is one resource output.
+      return this.inputs.Count > 0 && this.inputs.Keys.All((ItemType input) => input.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
+    }
+
     // The name of the task.
     public string task;
     // The abilities required to perform the task.

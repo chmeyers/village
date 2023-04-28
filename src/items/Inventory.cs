@@ -7,8 +7,8 @@ public interface IInventoryContext
 {
   public void AddItem(Item item, int quantity);
   public bool RemoveItem(Item item, int quantity);
-  public void Add(Dictionary<ItemType, int> items);
-  public bool Remove(Dictionary<ItemType, int> itemTypes);
+  public void Add(IDictionary<ItemType, int> items);
+  public bool Remove(IDictionary<ItemType, int> itemTypes);
   public int this[Item item] { get; }
   public Dictionary<AbilityType, List<Item>> ItemAbilities();
 }
@@ -27,6 +27,9 @@ public class Inventory : IInventoryContext
   // The items in the inventory with their quantities.
   // Items of the same type are sorted so that the "worst" items are used first.
   public Dictionary<ItemType, SortedDictionary<Item, int>> items { get; private set;} = new Dictionary<ItemType, SortedDictionary<Item, int>>();
+
+  // Event handler for when the abilities of a person change.
+  public event AbilitiesChanged? AbilitiesChanged;
 
   // Get a list of abilities granted by the items in the inventory.
   public Dictionary<AbilityType, List<Item>> ItemAbilities()
@@ -56,7 +59,7 @@ public class Inventory : IInventoryContext
 
   // Trade items between two inventories.
   // Fails without trading if the items don't exist in the correct inventory.
-  public bool Trade(Inventory other, Dictionary<Item, int> myItems, Dictionary<Item, int> theirItems)
+  public bool Trade(Inventory other, IDictionary<Item, int> myItems, IDictionary<Item, int> theirItems)
   {
     // To avoid the possibility of deadlocks, we avoid locking both inventories at the same time.
     // Instead, we remove myItems from this inventory, transfer theirItems to this inventory,
@@ -88,18 +91,18 @@ public class Inventory : IInventoryContext
 
   // Transfer items from this inventory to another inventory.
   // Fails without transferring if the items don't exist in this inventory.
-  public bool Transfer(Inventory other, Dictionary<Item, int> items)
+  public bool Transfer(Inventory other, IDictionary<Item, int> transferItems)
   {
     // First lock and remove the items from this inventory.
     lock (_itemsLock)
     {
       // First check that the items exist in the inventory.
-      if (!_ContainsNoLock(items))
+      if (!_ContainsNoLock(transferItems))
       {
         return false;
       }
       // Then remove them.
-      foreach (var item in items)
+      foreach (var item in transferItems)
       {
         // Ignore the return value since we already checked that the items exist.
         _RemoveNoLock(item.Key, item.Value);
@@ -109,7 +112,7 @@ public class Inventory : IInventoryContext
     // Then lock and add the items to the other inventory.
     lock (other._itemsLock)
     {
-      foreach (var item in items)
+      foreach (var item in transferItems)
       {
         other._AddNoLock(item.Key, item.Value);
       }
@@ -127,7 +130,7 @@ public class Inventory : IInventoryContext
   }
 
   // Add items to the inventory.
-  public void Add(Dictionary<Item, int> items)
+  public void Add(IDictionary<Item, int> items)
   {
     lock (_itemsLock)
     {
@@ -139,7 +142,7 @@ public class Inventory : IInventoryContext
   }
 
   // Add itemTypes to the inventory.
-  public void Add(Dictionary<ItemType, int> items)
+  public void Add(IDictionary<ItemType, int> items)
   {
     lock (_itemsLock)
     {
@@ -162,7 +165,7 @@ public class Inventory : IInventoryContext
 
   // Remove itemTypes from the inventory, selecting the worst matching items first.
   // Items are destroyed.
-  public bool Remove(Dictionary<ItemType, int> itemTypes)
+  public bool Remove(IDictionary<ItemType, int> itemTypes)
   {
     if (itemTypes == null || itemTypes.Count == 0)
     {
@@ -286,6 +289,10 @@ public class Inventory : IInventoryContext
         if (items[item.itemType].Count == 0)
         {
           items.Remove(item.itemType);
+          if (item.itemType.abilities.Count > 0)
+          {
+            AbilitiesChanged?.Invoke();
+          }
         }
         return true;
       }
@@ -294,7 +301,7 @@ public class Inventory : IInventoryContext
   }
 
   // Internal function to remove itemTypes from the inventory with no locking.
-  private bool _RemoveNoLock(Dictionary<ItemType, int> itemTypes)
+  private bool _RemoveNoLock(IDictionary<ItemType, int> itemTypes)
   {
     // First ensure that the inventory contains the items.
     if (!_ContainsNoLock(itemTypes))
@@ -327,6 +334,10 @@ public class Inventory : IInventoryContext
       if (items[itemType.Key].Count == 0)
       {
         items.Remove(itemType.Key);
+        if (itemType.Key.abilities.Count > 0)
+        {
+          AbilitiesChanged?.Invoke();
+        }
       }
       // Throw an exception if we didn't remove the required quantity.
       if (quantity > 0)
@@ -355,6 +366,10 @@ public class Inventory : IInventoryContext
     else
     {
       items.Add(item.itemType, new SortedDictionary<Item, int> { { item, quantity } });
+      if (item.itemType.abilities.Count > 0)
+      {
+        AbilitiesChanged?.Invoke();
+      }
     }
   }
 
@@ -400,7 +415,7 @@ public class Inventory : IInventoryContext
 
   // Internal function to check whether a given quantity of all items exists
   // in the inventory with no locking.
-  private bool _ContainsNoLock(Dictionary<Item, int> items)
+  private bool _ContainsNoLock(IDictionary<Item, int> items)
   {
     foreach (var item in items)
     {
@@ -414,7 +429,7 @@ public class Inventory : IInventoryContext
 
   // Internal function to check whether a given quantity of all itemtypes exists
   // in the inventory with no locking.
-  private bool _ContainsNoLock(Dictionary<ItemType, int> itemTypes)
+  private bool _ContainsNoLock(IDictionary<ItemType, int> itemTypes)
   {
     foreach (var itemType in itemTypes)
     {

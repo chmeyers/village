@@ -88,12 +88,12 @@ public class Household : IInventoryContext
     return inventory.RemoveItem(item, quantity);
   }
 
-  public void Add(Dictionary<ItemType, int> items)
+  public void Add(IDictionary<ItemType, int> items)
   {
     inventory.Add(items);
   }
 
-  public bool Remove(Dictionary<ItemType, int> itemTypes)
+  public bool Remove(IDictionary<ItemType, int> itemTypes)
   {
     return inventory.Remove(itemTypes);
   }

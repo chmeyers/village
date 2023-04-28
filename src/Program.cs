@@ -296,7 +296,9 @@ namespace Village
       //Load configs
       LoadConfig();
       
-      GameLoop();
+      //GameLoop();
+      // Start the GameServer.
+      GameServer.Start();
     }
   }
 }

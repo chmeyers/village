@@ -16,6 +16,9 @@ public class SkillUnitTest
   {
     // Set of PersonSkills.
     public SkillSet skills;
+
+    public int this[Item item] => throw new NotImplementedException();
+
     // Constructor.
     public ConcreteSkillContext(HashSet<AbilityType> abilities)
       : base(abilities)
@@ -38,12 +41,12 @@ public class SkillUnitTest
       throw new NotImplementedException();
     }
 
-    public void Add(Dictionary<ItemType, int> items)
+    public void Add(IDictionary<ItemType, int> items)
     {
       throw new NotImplementedException();
     }
 
-    public bool Remove(Dictionary<ItemType, int> itemTypes)
+    public bool Remove(IDictionary<ItemType, int> itemTypes)
     {
       throw new NotImplementedException();
     }

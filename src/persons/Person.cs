@@ -223,7 +223,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     return inventory.RemoveItem(item, quantity);
   }
 
-  public void Add(Dictionary<ItemType, int> items)
+  public void Add(IDictionary<ItemType, int> items)
   {
     // Check if any of the items being added have abilities.
     foreach (KeyValuePair<ItemType, int> item in items)
@@ -242,7 +242,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     inventory.Add(items);
   }
 
-  public bool Remove(Dictionary<ItemType, int> itemTypes)
+  public bool Remove(IDictionary<ItemType, int> itemTypes)
   {
     // Check if any of the items being removed have abilities.
     foreach (KeyValuePair<ItemType, int> item in itemTypes)
@@ -291,6 +291,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     this.household = (household == null ? new Household() : household);
     this.householdRole = ((Role)(role == null ? Role.HeadOfHousehold : role));
     this.household.AbilitiesChanged += () => { _householdAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
+    // Watch for changes to the inventory.
+    this.inventory.AbilitiesChanged += () => { _itemAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
   }
 
   // Unique ID for the person.
