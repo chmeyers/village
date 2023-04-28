@@ -20,6 +20,8 @@ public class Household : IInventoryContext
   // TODO(chmeyers): protect with a lock.
   public List<Building> buildings { get; private set; }
 
+  public int this[Item item] => ((IInventoryContext)inventory)[item];
+
   // Event handler for when the abilities of a person change.
   public event AbilitiesChanged? AbilitiesChanged;
 

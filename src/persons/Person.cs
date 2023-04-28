@@ -261,6 +261,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
     return inventory.Remove(itemTypes);
   }
 
+  public int this[Item item] => ((IInventoryContext)inventory)[item];
+
   public int SetAttribute(AttributeType attributeType, int value)
   {
     return attributes.SetValue(attributeType, value);
@@ -392,5 +394,5 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext
   // Dirty bit for the valid tasks, it should be set to dirty
   // whenever the person's abilities change.
   protected bool _validTasksDirty = true;
-  private bool _validBuildingsDirty;
+  private bool _validBuildingsDirty = true;
 }

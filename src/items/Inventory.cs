@@ -9,6 +9,7 @@ public interface IInventoryContext
   public bool RemoveItem(Item item, int quantity);
   public void Add(Dictionary<ItemType, int> items);
   public bool Remove(Dictionary<ItemType, int> itemTypes);
+  public int this[Item item] { get; }
   public Dictionary<AbilityType, List<Item>> ItemAbilities();
 }
 
@@ -424,5 +425,4 @@ public class Inventory : IInventoryContext
     }
     return true;
   }
-
 }

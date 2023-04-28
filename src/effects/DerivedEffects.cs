@@ -26,14 +26,21 @@ public class DegradeEffect : Effect
     amount = AbilityValue.FromJson(data["amount"]);
   }
 
-  private void DegradeItem(IAbilityContext? context, Item item)
+  private void DegradeItem(IAbilityContext? context, IInventoryContext inventory, Item item)
   {
     // Decrease the new item's quality by the specified amount.
-    // TODO(chmeyers): What should we do if the item's quality reaches 0?
     item.quality -= amount.GetValue(context);
-    if (item.quality < 0)
+    if (item.quality <= 0)
     {
       item.quality = 0;
+      // Remove the item from the inventory, replace it with it's scrap items, if any.
+      // TODO(chmeyers): Move the scraps to the household inventory?
+      inventory.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
+      foreach (var scrapItem in item.itemType.scrapItems)
+      {
+        Item newItem = new Item(scrapItem.Key);
+        inventory.AddItem(newItem, scrapItem.Value);
+      }
     }
   }
   // Apply the effect to the target.
@@ -42,26 +49,26 @@ public class DegradeEffect : Effect
     // Get the item from the chosen target.
     Item item = (Item)chosenEffectTarget.target!;
     // Get the person from the context.
-    Person person = (Person)chosenEffectTarget.targetContext!;
+    IInventoryContext inventory = chosenEffectTarget.targetContext!;
     // We are only degrading a single item, so if the item is a stack, we need to split the stack.
     // So we create a new item that is a copy of the original item, remove it from the inventory,
     // degrade it, then add it back to the inventory.
 
     // Check if person has more than one of the item.
-    if (person.inventory[item] > Inventory.DEFAULT_QUANTITY)
+    if (inventory[item] > Inventory.DEFAULT_QUANTITY)
     {
       Item newItem = item.Clone();
       // Remove the original item from the inventory of the person in the context.
-      person.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
+      inventory.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
 
-      DegradeItem(chosenEffectTarget.runningContext, newItem);
+      DegradeItem(chosenEffectTarget.runningContext, inventory, newItem);
       // Add the new item back to the inventory of the person in the context.
-      person.AddItem(newItem, Inventory.DEFAULT_QUANTITY);
+      inventory.AddItem(newItem, Inventory.DEFAULT_QUANTITY);
     }
     else
     {
       // Degrade the item.
-      DegradeItem(chosenEffectTarget.runningContext, item);
+      DegradeItem(chosenEffectTarget.runningContext, inventory, item);
     }
 
 
@@ -283,5 +290,5 @@ public class SkillTreeEffect : Effect
   // The amount to propagate the skill by.
   public AbilityValue amount;
   // Whether to propagate the skill up the tree.
-  public bool propagateUp = true;
+  public bool propagateUp = false;
 }
