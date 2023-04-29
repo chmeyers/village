@@ -68,9 +68,22 @@ public class GameServer
       {
         // Get the task name.
         string taskName = request.QueryString["task"]!;
-        bool isPersonal = bool.Parse(request.QueryString["personal"]!);
+        bool isPersonal = bool.TryParse(request.QueryString["personal"], out bool personal) && personal;
+        int? target = null;
+        if (request.QueryString["target"] != null)
+        {
+          target = int.Parse(request.QueryString["target"]!);
+        }
         // Perform the task.
-        PerformTask(taskName, isPersonal);
+        PerformTask(taskName, isPersonal, target);
+      }
+      // if the request is for a building, build the building.
+      else if (url.AbsolutePath == "/build")
+      {
+        // Get the building name.
+        string buildingName = request.QueryString["building"]!;
+        // Build the building.
+        BuildBuilding(buildingName);
       }
 
       // Return the GetGamePage() response.
@@ -86,7 +99,7 @@ public class GameServer
     }
   }
 
-  private static void PerformTask(string taskName, bool personal)
+  private static void PerformTask(string taskName, bool personal, int? target)
   {
     // Get the lists of tasks.
     HashSet<WorkTask> tasks = personal ? person.AvailablePersonalTasks : person.AvailableHouseholdTasks;
@@ -105,11 +118,23 @@ public class GameServer
     }
     // Get the targets.
     Dictionary<string, ChosenEffectTarget>? targets = null;
-    if (task.targets.Count > 0)
+    if (task.targets.Count > 1)
     {
       Console.WriteLine("Task cancelled, no valid target.");
       return;
     }
+    else if (task.targets.Count == 1 && target != null && target >= 0 && target < person.household.buildings.Count)
+    {
+      if (task.targets.First().Value.effectTargetType != EffectTargetType.Building)
+      {
+        Console.WriteLine("Task cancelled, no valid target.");
+        return;
+      }
+      targets = new Dictionary<string, ChosenEffectTarget>();
+      
+      targets[task.targets.First().Key] = new ChosenEffectTarget(task.targets.First().Value.effectTargetType, person.household.buildings[target!.Value], person.household, person);
+    }
+    
     // Perform the task using the TaskRunner
     bool result = TaskRunner.PerformTask(person, (personal ? person : person.household), task, targets);
     if (result)
@@ -131,6 +156,27 @@ public class GameServer
     {
       Console.WriteLine("Task failed.");
     }
+  }
+
+  private static void BuildBuilding(string buildingName)
+  {
+    // Get the building type.
+    BuildingType? buildingType = BuildingType.Find(buildingName);
+    // If the building type is not valid, return.
+    if (buildingType == null)
+    {
+      Console.WriteLine($"Building {buildingName} not found.");
+      return;
+    }
+    // If the building type is not in the set, return.
+    if (!person.AvailableBuildings.Contains(buildingType))
+    {
+      Console.WriteLine($"Building {buildingName} not available.");
+      return;
+    }
+    // Build the building.
+    household.AddBuilding(buildingType);
+    Console.WriteLine($"Building {buildingName} built.");
   }
 
   private static string GetGamePage()
@@ -200,16 +246,21 @@ public class GameServer
   {
     StringBuilder sb = new StringBuilder();
     sb.Append("<table>");
-    sb.Append("<tr><th>Item</th><th>Count</th></tr>");
+    sb.Append("<tr><th>Item</th><th>Count</th><th>MinQuality</th></tr>");
     foreach (var itemtype in inventory.items)
     {
       // Sum up the quantities of the itemtype.
       int quantity = 0;
+      int minQuality = int.MaxValue;
       foreach (var item in itemtype.Value)
       {
         quantity += item.Value;
+        if (item.Key.quality < minQuality)
+        {
+          minQuality = item.Key.quality;
+        }
       }
-      sb.Append($"<tr><td>{itemtype.Key.itemType}</td><td>{quantity}</td></tr>");
+      sb.Append($"<tr><td>{itemtype.Key.itemType}</td><td>{quantity}</td><td>{minQuality}</td></tr>");
     }
     sb.Append("</table>");
     return sb.ToString();
@@ -220,11 +271,12 @@ public class GameServer
   {
     StringBuilder sb = new StringBuilder();
     sb.Append("<table>");
-    sb.Append("<tr><th>Building</th></tr>");
+    sb.Append("<tr><th>Building</th><th>Phase</th></tr>");
     // Print and enumerate the buildings.
     foreach (var building in household.buildings)
     {
       sb.Append($"<tr><td>{building.buildingType.name}</td>");
+      sb.Append($"<td>{building.currentPhase}</td></tr>");
       sb.Append("</tr>");
     }
     sb.Append("</table>");
@@ -379,10 +431,36 @@ public class GameServer
         continue;
       }
 
-      // Each task is a row in the table, and is a button that can be
+      // Each task is a row in the table, and has a button that can be
       // clicked to start the task. The button is a form that submits
-      // the task ID.
-      sb.Append($"<tr><td><form action=\"task\" method=\"get\"><input type=\"hidden\" name=\"personal\" value=false ><input type=\"submit\" name=\"task\" value=\"{task.task}\"></form></td></tr>");
+      // the task ID. The form also has a dropdown to select the
+      // building target.
+      bool printed = false;
+      // Enumerate the buildings.
+      for (int i = 0; i < household.buildings.Count; i++)
+      {
+        // Check whether the building needs the component provided by
+        // the task.
+        foreach (var component in task.BuildingComponents())
+        {
+          if (household.buildings[i].NeedsComponent(component))
+          {
+            // if this is the first building that needs the component,
+            // add the task to the table.
+            if (!printed)
+            {
+              sb.Append($"<tr><td><form action=\"task\" method=\"get\"><input type=\"hidden\" name=\"personal\" value=false ><input type=\"submit\" name=\"task\" value=\"{task.task}\"><select name=\"target\">");
+              printed = true;
+            }
+            sb.Append($"<option value=\"{i}\">{household.buildings[i].buildingType.name}</option>");
+            break;
+          }
+        }
+      }
+      if (printed)
+      {
+        sb.Append("</select></form></td></tr>");
+      }
     }
     sb.Append("</table>");
     return sb.ToString();
@@ -420,7 +498,10 @@ public class GameServer
     availableBuildings.Sort((a, b) => a.name.CompareTo(b.name));
     foreach (var building in availableBuildings)
     {
-      sb.Append($"<tr><td>{building.name}</td></tr>");
+      // Each building is a row in the table, and is a button that can be
+      // clicked to start the building. The button is a form that submits
+      // the building ID.
+      sb.Append($"<tr><td><form action=\"build\" method=\"get\"><input type=\"submit\" name=\"building\" value=\"{building.name}\"></form></td></tr>");
     }
     sb.Append("</table>");
     return sb.ToString();
