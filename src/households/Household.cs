@@ -64,6 +64,10 @@ public class Household : IInventoryContext
     Building building = new Building(buildingType);
     building.AbilitiesChanged += BuildingAbilitiesChanged;
     buildings.Add(building);
+    if (building.abilities.Count > 0)
+    {
+      BuildingAbilitiesChanged();
+    }
   }
 
   private void BuildingAbilitiesChanged()
