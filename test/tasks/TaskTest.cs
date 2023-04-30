@@ -92,12 +92,12 @@ public class TaskUnitTest
       ConcreteAbilityContext context = new ConcreteAbilityContext(abilityTypes);
 
       Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].Inputs(context)[ItemType.Find("wood")!]);
-      Assert.AreEqual(100, WorkTask.tasks["gather_wood2"].Outputs(context)[ItemType.Find("wood")!]);
+      Assert.AreEqual(100, WorkTask.tasks["gather_wood2"].OutputTypes(context)[ItemType.Find("wood")!]);
 
       // Add chopping_4 to the context.
       abilityTypes.Add(AbilityType.abilityTypes["chopping_4"]);
       context = new ConcreteAbilityContext(abilityTypes);
-      Assert.AreEqual(105, WorkTask.tasks["gather_wood2"].Outputs(context)[ItemType.Find("wood")!]);
+      Assert.AreEqual(105, WorkTask.tasks["gather_wood2"].OutputTypes(context)[ItemType.Find("wood")!]);
 
 
       // Create a Person to run tasks on.

@@ -36,7 +36,11 @@ public class TaskRunner
         return false;
       }
       // Add the outputs to the inventory.
-      inventory.Add(task.Outputs(person));
+      foreach (var output in task.Outputs(person))
+      {
+        inventory.AddItem(output.Key, output.Value);
+      }
+      
       // For each effect, resolve the target and apply the effect.
       foreach (var effect in task.effects)
       {

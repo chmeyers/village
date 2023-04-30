@@ -34,6 +34,8 @@ public enum ItemGroup
 // related to all items of that type.
 public class ItemType
 {
+  // Default Quality is 100.
+  public const int DEFAULT_QUALITY = 100;
   // A static dictionary of all item types.
   // This is used to look up item types by name.
   private static Dictionary<string, ItemType> _itemTypes = new Dictionary<string, ItemType>();
@@ -123,10 +125,17 @@ public class ItemType
           abilitySet.Add(AbilityType.abilityTypes[ability]!);
         }
       }
+
+      // Get the craft quality.
+      AbilityValue craftQuality = new AbilityValue(DEFAULT_QUALITY);
+      if (itemData.ContainsKey("craftQuality")) {
+        // Load craft quality as an AbilityValue.
+        craftQuality = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)itemData["craftQuality"]);
+      }
       
 
       // Create the item type.
-      ItemType itemType = new ItemType(name, group, parent, spoilTime, lossRate, flammable, scrapItems, abilitySet);
+      ItemType itemType = new ItemType(name, group, parent, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet);
       // Add the item type to the dictionary.
       _itemTypes.Add(name, itemType);
     }
@@ -156,7 +165,7 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, ItemType? parent, int spoilTime, int lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, HashSet<AbilityType>? abilities)
+  public ItemType(string name, ItemGroup group, ItemType? parent, int spoilTime, int lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue craftQuality, HashSet<AbilityType>? abilities)
   {
     itemType = name;
     itemGroup = group;
@@ -171,6 +180,7 @@ public class ItemType
     else {
       this.scrapItems = scrapItems;
     }
+    this.craftQuality = craftQuality;
     // If abilities is null, set it to an empty set.
     if (abilities == null) {
       this.abilities = new HashSet<AbilityType>();
@@ -206,6 +216,9 @@ public class ItemType
   // For example, a broken tool will turn into scrap metal.
   public readonly Dictionary<ItemType, int> scrapItems;
 
+  // What Craft Quality this item has.
+  public readonly AbilityValue craftQuality;
+
   // Set of abilities this item type provides.
   public readonly HashSet<AbilityType> abilities;
 
@@ -232,10 +245,23 @@ public class Item : IComparable<Item>
   public Item(ItemType type)
   {
     itemType = type;
-    originalQuality = 100;
-    quality = 100;
+    originalQuality = type.craftQuality.GetBaseValue();
+    quality = originalQuality;
     timeUntilSpoilage = (int)type.spoilTime;
     if (timeUntilSpoilage == 0) {
+      timeUntilSpoilage = int.MaxValue;
+    }
+    uniqueName = null;
+  }
+
+  public Item(ItemType type, IAbilityContext crafter)
+  {
+    itemType = type;
+    originalQuality = type.craftQuality.GetValue(crafter);
+    quality = originalQuality;
+    timeUntilSpoilage = (int)type.spoilTime;
+    if (timeUntilSpoilage == 0)
+    {
       timeUntilSpoilage = int.MaxValue;
     }
     uniqueName = null;

@@ -300,12 +300,21 @@ namespace Village.Tasks
       return inputs;
     }
 
-    public Dictionary<ItemType, int> Outputs(IAbilityContext context)
+    public Dictionary<ItemType, int> OutputTypes(IAbilityContext context)
     {
       Dictionary<ItemType, int> outputs = new Dictionary<ItemType, int>();
       foreach (var output in this.outputs)
       {
         outputs.Add(output.Key, output.Value.GetValue(context));
+      }
+      return outputs;
+    }
+    public Dictionary<Item, int> Outputs(IAbilityContext context)
+    {
+      Dictionary<Item, int> outputs = new Dictionary<Item, int>();
+      foreach (var output in this.outputs)
+      {
+        outputs.Add(new Item(output.Key, context), output.Value.GetValue(context));
       }
       return outputs;
     }
