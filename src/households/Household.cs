@@ -19,8 +19,13 @@ public interface IHouseholdContext
 
 public class Household : IInventoryContext, IHouseholdContext
 {
+  // Registry of all the households.
+  public static HashSet<Household> global_households = new HashSet<Household>();
   // The household that the context is in.
   public Household household => this;
+  // Whether this is a player household.
+  // Player households can be controlled by the player.
+  public bool isPlayerHousehold { get; set; } = false;
   // The inventory of the household.
   public Inventory inventory { get; private set; }
   
@@ -38,10 +43,13 @@ public class Household : IInventoryContext, IHouseholdContext
   // Cache of the abilities granted by the buildings in the household.
   private Dictionary<AbilityType, List<Building>> _buildingAbilities = new Dictionary<AbilityType, List<Building>>();
 
-  public Household()
+  public Household(bool isPlayerHousehold = false)
   {
     inventory = new Inventory();
     buildings = new List<Building>();
+    this.isPlayerHousehold = isPlayerHousehold;
+    // Add the household to the global registry.
+    global_households.Add(this);
   }
 
   public Dictionary<AbilityType, List<Building>> BuildingAbilities()

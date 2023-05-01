@@ -2,6 +2,7 @@
 // Even cities and non-primary villages are subclasses of Person.
 
 using System;
+using System.Collections.Concurrent;
 using Village.Abilities;
 using Village.Attributes;
 using Village.Base;
@@ -16,9 +17,11 @@ namespace Village.Persons;
 
 public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseholdContext
 {
+  // Registry of all the persons, keyed on what household they are in.
+  public static Dictionary<Household, HashSet<Person>> global_persons = new Dictionary<Household, HashSet<Person>>();
 
   // Calculate the ability sets for this Person.
-  public void CalculateAbilities()
+  private void CalculateAbilities()
   {
     if (_attributeAbilitiesDirty || _itemAbilitiesDirty || _householdAbilitiesDirty || _allAbilitiesDirty)
     {
@@ -66,7 +69,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   }
 
   // Calculate the item abilities for this Person.
-  public void CalculateItemAbilities()
+  private void CalculateItemAbilities()
   {
     // Only recalculate the itemAbilities set if it's dirty.
     if (_itemAbilitiesDirty)
@@ -80,7 +83,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   }
 
   // Calculate the valid tasks for this Person.
-  public void CalculateValidTasks()
+  private void CalculateValidTasks()
   {
     // Only recalculate the validTasks set if it's dirty.
     if (_validTasksDirty || _itemAbilitiesDirty || _householdAbilitiesDirty || _allAbilitiesDirty)
@@ -100,8 +103,11 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   {
     get
     {
-      CalculateAbilities();
-      return allAbilities;
+      lock (_cacheLock)
+      {
+        CalculateAbilities();
+        return abilities;
+      }
     }
   }
 
@@ -112,8 +118,11 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   {
     get
     {
-      CalculateValidTasks();
-      return validTasks;
+      lock (_cacheLock)
+      {
+        CalculateValidTasks();
+        return validTasks;
+      }
     }
   }
 
@@ -122,19 +131,22 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   {
     get
     {
-      CalculateValidTasks();
-      HashSet<WorkTask> availableTasks = new HashSet<WorkTask>();
-      foreach (WorkTask task in validTasks)
+      lock (_cacheLock)
       {
-        // Check that all the inputs required for the task are in the inventory.
-        if (!inventory.Contains(task.Inputs(this)))
+        CalculateValidTasks();
+        HashSet<WorkTask> availableTasks = new HashSet<WorkTask>();
+        foreach (WorkTask task in validTasks)
         {
-          continue;
+          // Check that all the inputs required for the task are in the inventory.
+          if (!inventory.Contains(task.Inputs(this)))
+          {
+            continue;
+          }
+          // TODO(chmeyers): Check that all the effects have a possible valid target.
+          availableTasks.Add(task);
         }
-        // TODO(chmeyers): Check that all the effects have a possible valid target.
-        availableTasks.Add(task);
+        return availableTasks;
       }
-      return availableTasks;
     }
   }
 
@@ -143,17 +155,20 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   {
     get
     {
-      CalculateValidTasks();
-      HashSet<WorkTask> availableTasks = new HashSet<WorkTask>();
-      foreach (WorkTask task in validTasks)
+      lock (_cacheLock)
       {
-        // Check that all the inputs required for the task are in the inventory.
-        if (household.inventory.Contains(task.Inputs(this)))
+        CalculateValidTasks();
+        HashSet<WorkTask> availableTasks = new HashSet<WorkTask>();
+        foreach (WorkTask task in validTasks)
         {
-          availableTasks.Add(task);
+          // Check that all the inputs required for the task are in the inventory.
+          if (household.inventory.Contains(task.Inputs(this)))
+          {
+            availableTasks.Add(task);
+          }
         }
+        return availableTasks;
       }
-      return availableTasks;
     }
   }
 
@@ -186,8 +201,11 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   {
     get
     {
-      CalculateValidBuildings();
-      return validBuildings;
+      lock (_cacheLock)
+      {
+        CalculateValidBuildings();
+        return validBuildings;
+      }
     }
   }
 
@@ -197,67 +215,21 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   // the itemAbilitiesDirty flag is set.
   public void AddItem(Item item, int quantity)
   {
-    if (item.itemType.abilities.Count > 0)
-    {
-      // It might be more efficient to just add the new abilities to the itemAbilities set here,
-      // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
-      // Revisit this decision if it becomes a performance issue.
-      _itemAbilitiesDirty = true;
-      _validBuildingsDirty = true;
-      _validTasksDirty = true;
-    }
     inventory.AddItem(item, quantity);
   }
 
   public bool RemoveItem(Item item, int quantity)
   {
-    if (item.itemType.abilities.Count > 0)
-    {
-      // It might be more efficient to just remove abilities to the itemAbilities set here,
-      // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
-      // Revisit this decision if it becomes a performance issue.
-      _itemAbilitiesDirty = true;
-      _validBuildingsDirty = true;
-      _validTasksDirty = true;
-    }
     return inventory.RemoveItem(item, quantity);
   }
 
   public void Add(IDictionary<ItemType, int> items)
   {
-    // Check if any of the items being added have abilities.
-    foreach (KeyValuePair<ItemType, int> item in items)
-    {
-      if (item.Key.abilities.Count > 0)
-      {
-        // It might be more efficient to just add the new abilities to the itemAbilities set here,
-        // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
-        // Revisit this decision if it becomes a performance issue.
-        _itemAbilitiesDirty = true;
-        _validBuildingsDirty = true;
-        _validTasksDirty = true;
-        break;
-      }
-    }
     inventory.Add(items);
   }
 
   public bool Remove(IDictionary<ItemType, int> itemTypes)
   {
-    // Check if any of the items being removed have abilities.
-    foreach (KeyValuePair<ItemType, int> item in itemTypes)
-    {
-      if (item.Key.abilities.Count > 0)
-      {
-        // It might be more efficient to just remove abilities to the itemAbilities set here,
-        // but it's more clear to just set the dirty flag and recalculate the itemAbilities set.
-        // Revisit this decision if it becomes a performance issue.
-        _itemAbilitiesDirty = true;
-        _validBuildingsDirty = true;
-        _validTasksDirty = true;
-        break;
-      }
-    }
     return inventory.Remove(itemTypes);
   }
 
@@ -347,6 +319,15 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     this.household.AbilitiesChanged += () => { _householdAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
     // Watch for changes to the inventory.
     this.inventory.AbilitiesChanged += () => { _itemAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
+    // Add the person to the registry.
+    if (global_persons.ContainsKey(this.household))
+    {
+      global_persons[this.household].Add(this);
+    }
+    else
+    {
+      global_persons.Add(this.household, new HashSet<Person>() { this });
+    }
   }
 
   // Unique ID for the person.
@@ -372,6 +353,16 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
 
   public IPriceList priceList { get; set; } = ConfigPriceList.Default;
 
+  // The person's running tasks, any thread is allowed to add to this queue.
+  // Only the main game loop thread should remove from this queue.
+  // Only the oldest task in the queue will be advanced.
+  public ConcurrentQueue<RunningTask> runningTasks { get; protected set; } = new ConcurrentQueue<RunningTask>();
+
+  // The person's current job.
+  // TODO(chmeyers): Support configable job types.
+  // At the moment this is just a placeholder for the job system.
+  public bool isTrader = false;
+
   // Set of permanant abilities the person has.
   protected HashSet<AbilityType> abilities = new HashSet<AbilityType>();
 
@@ -384,16 +375,22 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   // Item abilities for the inventory interface.
   public Dictionary<AbilityType, List<Item>> ItemAbilities()
   {
-    CalculateItemAbilities();
-    return itemAbilities;
+    lock (_cacheLock)
+    {
+      CalculateItemAbilities();
+      return itemAbilities;
+    }
   }
 
   public void GrantAbility(AbilityType ability)
   {
-    // Add the ability to the abilities set.
-    abilities.Add(ability);
-    // Set the dirty bit for the allAbilities set.
-    _allAbilitiesDirty = true;
+    lock(_cacheLock)
+    {
+      // Add the ability to the abilities set.
+      abilities.Add(ability);
+      // Set the dirty bit for the allAbilities set.
+      _allAbilitiesDirty = true;
+    }
   }
 
   public bool GrantXP(Skill skill, int xp)
@@ -419,6 +416,50 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   public int GetXP(Skill skill)
   {
     return skills.GetXP(skill);
+  }
+
+  // Take whatever stuff from the household inventory that the person needs.
+  public void TakeNeedsFromHousehold()
+  {
+    // At the moment this just takes all the tools a person doesn't have,
+    // unless they are a trader.
+    if (isTrader) return;
+    Dictionary<Item, int> items = new Dictionary<Item, int>();
+    foreach (var itemType in household.inventory.items)
+    {
+      // TODO(chmeyers): This doesn't deal properly with multiple ability levels.
+      if (itemType.Key.itemGroup == ItemGroup.TOOL && !inventory.Contains(itemType.Key))
+      {
+        var item = household.inventory.Get(itemType.Key);
+        if (item != null)
+        {
+          // Add the item dictionary to the items dictionary.
+          items.Add(item.First().Key, item.First().Value);
+        }
+      }
+    }
+    // Transfer the items from the household to the person.
+    household.inventory.Transfer(inventory, items);
+  }
+
+  // Give excess stuff to the household inventory.
+  public void GiveSurplusToHousehold()
+  {
+    // At the moment this just gives all non-tools/currency unless they are a trader.
+    if (isTrader) return;
+    Dictionary<Item, int> items = new Dictionary<Item, int>();
+    foreach (var itemType in inventory.items)
+    {
+      if (itemType.Key.itemGroup != ItemGroup.TOOL && itemType.Key.itemGroup != ItemGroup.CURRENCY)
+      {
+        foreach (var item in inventory[itemType.Key])
+        {
+          items.Add(item.Key, item.Value);
+        }
+      }
+    }
+    // Transfer the items from the person to the household.
+    inventory.Transfer(household.inventory, items);
   }
 
   // Dirty bit for attribute abilities.
@@ -453,4 +494,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   // whenever the person's abilities change.
   protected bool _validTasksDirty = true;
   private bool _validBuildingsDirty = true;
+
+  // lock for the caches.
+  private object _cacheLock = new object();
 }

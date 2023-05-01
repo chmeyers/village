@@ -31,8 +31,8 @@ public class GameServer
   // The web server.
   private static HttpListener listener = new HttpListener();
 
-  // The main household.
-  private static Household household = new Household();
+  // The main player household.
+  private static Household household = new Household(true);
   // The main person.
   private static Person person = new Person("protagonist", "Protagonist", household, Role.HeadOfHousehold);
 
@@ -41,6 +41,7 @@ public class GameServer
   private static Person StockTrader()
   {
     Person trader = new Person("trader", "Trader");
+    trader.isTrader = true;
     // Stock the trader's inventory with iron tools, copper, iron, and leather.
     Dictionary<ItemType, int> items = new Dictionary<ItemType, int>();
     items[ItemType.Find("iron_axe")!] = 100;
@@ -177,25 +178,16 @@ public class GameServer
     }
     
     // Perform the task using the TaskRunner
-    bool result = TaskRunner.PerformTask(person, (personal ? person : person.household), task, targets);
-    if (result)
+    var runningTask = TaskRunner.StartTask(person, (personal ? person : person.household), task, targets);
+    if (runningTask != null)
     {
-      Console.WriteLine("Task completed successfully.");
-      if (task.IsToolCraftingTask() && !personal)
-      {
-        // Move every tool from the household inventory to the person's inventory.
-        foreach (var itemtype in household.inventory.items)
-        {
-          if (itemtype.Key.itemGroup == ItemGroup.TOOL)
-          {
-            household.inventory.Transfer(person.inventory, itemtype.Value.ToDictionary(x => x.Key, x => x.Value));
-          }
-        }
-      }
+      Console.WriteLine("Task started.");
+      // Enqueue the task to the person.
+      person.runningTasks.Enqueue(runningTask);
     }
     else
     {
-      Console.WriteLine("Task failed.");
+      Console.WriteLine("Task not started.");
     }
   }
 
@@ -319,6 +311,21 @@ public class GameServer
     sb.Append("</head>");
     sb.Append("<body>");
     sb.Append("<h1>Village</h1>");
+    // Game Tick.
+    sb.Append($"<p>Tick: {Calendar.Ticks}</p>");
+    // Peek at the person's current task.
+    if (person.runningTasks.Count > 0)
+    {
+      person.runningTasks.TryPeek(out RunningTask? runningTask);
+      if (runningTask != null)
+      {
+        sb.Append($"<p>Current Task: {runningTask.task.task}</p>");
+      }
+      else 
+      {
+        sb.Append($"<p>Current Task: None</p>");
+      }
+    }
     sb.Append("<div style=\"display:flex\">");
     // On the left.
     sb.Append("<div style=\"flex: 1\">");

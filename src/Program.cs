@@ -197,6 +197,7 @@ namespace Village
     {
       // Create a single household.
       Household household = new Household();
+      household.isPlayerHousehold = true;
       // Create a single person.
       Person person = new Person("bob", "Bob", household, Role.HeadOfHousehold);
       while(true)
@@ -298,7 +299,11 @@ namespace Village
       //Load configs
       LoadConfig();
       
-      //GameLoop();
+      // Create a new GameLoop
+      GameLoop gameLoop = new GameLoop();
+      // Start the GameLoop in it's own thread.
+      Thread gameLoopThread = new Thread(new ThreadStart(gameLoop.Run));
+      gameLoopThread.Start();
       // Start the GameServer.
       GameServer.Start();
     }

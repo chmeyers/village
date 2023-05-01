@@ -236,6 +236,15 @@ public class Inventory : IInventoryContext
     }
   }
 
+  // Check whether a given item exists in the inventory, even if the quantity is zero.
+  public bool Contains(ItemType itemType)
+  {
+    lock (_itemsLock)
+    {
+      return _ContainsNoLock(itemType, 0);
+    }
+  }
+
   // Check whether the given items exists in the inventory with at least the specified quantity.
   public bool Contains(Dictionary<ItemType, int> items)
   {
@@ -337,6 +346,11 @@ public class Inventory : IInventoryContext
         {
           quantity -= item.Value;
           items[itemType.Key].Remove(item.Key);
+          if (itemType.Key.abilities.Count > 0)
+          {
+            // Not removing an Ability, but the ItemAbilities lists need to change.
+            AbilitiesChanged?.Invoke();
+          }
           if (quantity == 0) break;
         }
       }
@@ -371,6 +385,11 @@ public class Inventory : IInventoryContext
       else
       {
         items[item.itemType].Add(item, quantity);
+        if (item.itemType.abilities.Count > 0)
+        {
+          // Not a new Ability, but the ItemAbilities lists need to change.
+          AbilitiesChanged?.Invoke();
+        }
       }
     }
     else
