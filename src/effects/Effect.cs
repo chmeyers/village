@@ -3,6 +3,7 @@
 // Effects can be positive or negative, and can add or remove abilities, skills, experience, etc.
 using Village.Abilities;
 using Village.Base;
+using Village.Households;
 using Village.Items;
 
 namespace Village.Effects;
@@ -150,9 +151,11 @@ public class Effect
   // Apply the effect to the chosen target, using the given person as context.
   public void Apply(ChosenEffectTarget chosenEffectTarget)
   {
-    // Effects that target the same person as the task or an item in
-    // their inventory are applied synchronously.
-    if (chosenEffectTarget.runningContext == chosenEffectTarget.targetContext)
+    // Effects where the runningContext is the same as targetContext or they are
+    // in the same household are applied synchronously.
+    var runningHousehold = chosenEffectTarget.runningContext as IHouseholdContext;
+    var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
+    if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))
     {
       // debug print
       Console.WriteLine("Apply effect " + effect + " to " + chosenEffectTarget.target + " in " + chosenEffectTarget.targetContext + " from " + chosenEffectTarget.runningContext);

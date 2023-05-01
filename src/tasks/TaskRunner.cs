@@ -12,9 +12,10 @@ namespace Village.Tasks;
 // them to the person, the village, or the environment.
 public class TaskRunner
 {
-  // Have the person perform a task, with the given list of Chosen Targets
-  // Returns true if the task was performed, false otherwise.
-  public static bool PerformTask(Person person, IInventoryContext inventory, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets, bool forceSync = false)
+  // Start a task for a person, with the given list of Chosen Targets
+  // If the task can be performed, returns true and removes the
+  // inputs from the inventory. Otherwise, returns false.
+  public static bool StartTask(Person person, IInventoryContext inventory, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
   {
     // Verify that the size of the chosenTargets list matches the size of the task's targets list.
     // Or that the chosenTargets list is null iff the task's list is empty.
@@ -35,57 +36,75 @@ public class TaskRunner
       {
         return false;
       }
-      // Add the outputs to the inventory.
-      foreach (var output in task.Outputs(person))
-      {
-        inventory.AddItem(output.Key, output.Value);
-      }
-      
-      // For each effect, resolve the target and apply the effect.
-      foreach (var effect in task.effects)
-      {
-        // Effects are run once for each target in the list.
-        foreach (var effectTarget in effect.Value)
-        {
-          ChosenEffectTarget? chosenTarget = null;
-          if (EffectTarget.IsTargetString(effectTarget.target))
-          {
-            // Match the target string to a chosen target.
-            if (chosenTargets == null || !chosenTargets.ContainsKey(effectTarget.target))
-            {
-              throw new Exception("Invalid target string: " + effectTarget.target + " for effect: " + effect.Key + " in task: " + task);
-            }
-            chosenTarget = chosenTargets[effectTarget.target];
-          }
-          else
-          {
-            // The target isn't a target string, so resolve it.
-            chosenTarget = EffectTargetResolver.ResolveEffectTarget(effectTarget, person, person);
-          }
-          if (chosenTarget == null)
-          {
-            // If the effect is optional, skip it, otherwise throw.
-            if (!effect.Key.IsOptional())
-            {
-              throw new Exception("Invalid effect target: " + effectTarget + " for effect: " + effect.Key + " in task: " + task);
-            }
-            continue;
-          }
-          // Apply the effect to the chosen target.
-          if (forceSync)
-          {
-            effect.Key.ApplySync(chosenTarget);
-          }
-          else
-          {
-            effect.Key.Apply(chosenTarget);
-          }
-        }
-
-      }
       return true;
     }
-    // The person did not perform the task.
     return false;
+  }
+
+  // Finish a task.
+  // This will add the outputs to the inventory, and apply the effects to the targets.
+  public static void FinishTask(Person person, IInventoryContext inventory, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets, bool forceSync = false)
+  {
+    // Add the outputs to the inventory.
+    foreach (var output in task.Outputs(person))
+    {
+      inventory.AddItem(output.Key, output.Value);
+    }
+
+    // For each effect, resolve the target and apply the effect.
+    foreach (var effect in task.effects)
+    {
+      // Effects are run once for each target in the list.
+      foreach (var effectTarget in effect.Value)
+      {
+        ChosenEffectTarget? chosenTarget = null;
+        if (EffectTarget.IsTargetString(effectTarget.target))
+        {
+          // Match the target string to a chosen target.
+          if (chosenTargets == null || !chosenTargets.ContainsKey(effectTarget.target))
+          {
+            throw new Exception("Invalid target string: " + effectTarget.target + " for effect: " + effect.Key + " in task: " + task);
+          }
+          chosenTarget = chosenTargets[effectTarget.target];
+        }
+        else
+        {
+          // The target isn't a target string, so resolve it.
+          chosenTarget = EffectTargetResolver.ResolveEffectTarget(effectTarget, person, person);
+        }
+        if (chosenTarget == null)
+        {
+          // If the effect is optional, skip it, otherwise throw.
+          if (!effect.Key.IsOptional())
+          {
+            throw new Exception("Invalid effect target: " + effectTarget + " for effect: " + effect.Key + " in task: " + task);
+          }
+          continue;
+        }
+        // Apply the effect to the chosen target.
+        if (forceSync)
+        {
+          effect.Key.ApplySync(chosenTarget);
+        }
+        else
+        {
+          effect.Key.Apply(chosenTarget);
+        }
+      }
+    }
+  }
+
+  // Have the person perform a task, with the given list of Chosen Targets
+  // Returns true if the task was performed, false otherwise.
+  public static bool PerformTask(Person person, IInventoryContext inventory, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets, bool forceSync = false)
+  {
+    if (!StartTask(person, inventory, task, chosenTargets))
+    {
+      return false;
+    }
+    
+    FinishTask(person, inventory, task, chosenTargets, forceSync);
+    
+    return true;
   }
 }

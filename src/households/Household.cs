@@ -11,8 +11,16 @@ using Village.Items;
 
 namespace Village.Households;
 
-public class Household : IInventoryContext
+public interface IHouseholdContext
 {
+  // Returns which household the context is in.
+  Household household { get; }
+}
+
+public class Household : IInventoryContext, IHouseholdContext
+{
+  // The household that the context is in.
+  public Household household => this;
   // The inventory of the household.
   public Inventory inventory { get; private set; }
   

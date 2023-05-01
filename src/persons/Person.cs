@@ -14,7 +14,7 @@ using Village.Tasks;
 namespace Village.Persons;
 
 
-public class Person : ISkillContext, IAbilityContext, IInventoryContext
+public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseholdContext
 {
 
   // Calculate the ability sets for this Person.
