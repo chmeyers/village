@@ -15,19 +15,20 @@ public class TaskUnitTest
   public void TestLoadTasks()
   {
     {
-      ItemType.Clear();
-      string json = @"{
-    'wood': { 'group': 'RESOURCE', 'displayName': 'Wood'},
-    'axe': { 'group': 'TOOL', 'abilities': ['chopping_1'] }
-  }";
-      // Load the item types.
-      ItemType.LoadString(json);
-    }
-    {
       AbilityType.Clear();
       string json = @"{ 'chopping' : { 'levels': 5 } }";
       // Load the ability types.
       AbilityType.LoadString(json);
+    }
+    {
+      ItemType.Clear();
+      string json = @"{
+    'wood': { 'group': 'RESOURCE', 'displayName': 'Wood'},
+    'axe': { 'group': 'TOOL', 'abilities': ['chopping_1'] },
+    'big_axe': { 'group': 'TOOL', 'abilities': ['chopping_2'] }
+  }";
+      // Load the item types.
+      ItemType.LoadString(json);
     }
     {
       Effect.Clear();
@@ -50,13 +51,14 @@ public class TaskUnitTest
       WorkTask.Clear();
       string json = @"{
     'gather_wood': { 'timeCost': 10, 'requirements': ['chopping_1'], 'repeatable': true, 'outputs' : { 'wood' : 100 }, 'effects' : { 'skill_chopping_1' : [''], 'degrade_1': ['chopping_1'] } },
+    'gather_more_wood': { 'timeCost': 10, 'supercedes':['gather_wood'],'requirements': ['chopping_2'], 'repeatable': true, 'outputs' : { 'wood' : 200 }, 'effects' : { 'skill_chopping_1' : [''], 'degrade_1': ['chopping_2'] } },
     'teach_chopping_1': { 'timeCost': 10, 'requirements': ['chopping_2'],  'effects' : { 'skill_chopping_1' : ['@1'] } },
     'gather_wood2': { 'timeCost': 10, 'requirements': ['chopping_3'], 'inputs' : { 'wood' : {'val' : 50 } }, 'outputs' : { 'wood' : {'val': 100, 'modifiers': {'chopping_4': {'add': 5}}} } },
       }";
       // Load the tasks.
       WorkTask.LoadString(json);
       // Check that the tasks were loaded.
-      Assert.AreEqual(3, WorkTask.tasks.Count);
+      Assert.AreEqual(4, WorkTask.tasks.Count);
       // Check that the tasks were loaded correctly.
       Assert.AreEqual(10, WorkTask.tasks["gather_wood"].timeCost.GetBaseValue());
       Assert.AreEqual(10, WorkTask.tasks["teach_chopping_1"].timeCost.GetBaseValue());
@@ -74,9 +76,10 @@ public class TaskUnitTest
       Assert.AreEqual(1, WorkTask.tasks["gather_wood"].effects[Effect.Find("skill_chopping_1")!].Count);
       Assert.AreEqual(EffectTargetType.Person, WorkTask.tasks["gather_wood"].effects[Effect.Find("skill_chopping_1")!][0].effectTargetType);
       // Check the tasks by ability index.
-      Assert.AreEqual(2, WorkTask.tasksByAbility["chopping_2"].Count);
-      // chopping_2 should have gather_wood and teach_chopping_1.
+      Assert.AreEqual(3, WorkTask.tasksByAbility["chopping_2"].Count);
+      // chopping_2 should have gather_wood, gather_more_wood and teach_chopping_1.
       Assert.IsTrue(WorkTask.tasksByAbility["chopping_2"].Contains(WorkTask.tasks["gather_wood"]));
+      Assert.IsTrue(WorkTask.tasksByAbility["chopping_2"].Contains(WorkTask.tasks["gather_more_wood"]));
       Assert.IsTrue(WorkTask.tasksByAbility["chopping_2"].Contains(WorkTask.tasks["teach_chopping_1"]));
       // chopping_1 should have gather_wood.
       Assert.AreEqual(1, WorkTask.tasksByAbility["chopping_1"].Count);
@@ -138,6 +141,17 @@ public class TaskUnitTest
       Assert.AreEqual(100, axes.Last().Key.quality);
       Assert.AreEqual(1, axes.Last().Value);
 
+      Assert.IsTrue(person.PotentialTasks.Contains(WorkTask.tasks["gather_wood"]));
+      Assert.IsFalse(person.PotentialTasks.Contains(WorkTask.tasks["gather_more_wood"]));
+      // Give them a big_axe
+      Item big_axe = new Item(ItemType.Find("big_axe")!);
+      person.AddItem(big_axe, 1);
+      // They should now be able to perform the gather_more_wood task.
+      Assert.IsTrue(TaskRunner.PerformTask(person, person, WorkTask.tasks["gather_more_wood"], null));
+      // The gather_wood task should be superceded, so it shouldn't be in the person's
+      // available tasks.
+      Assert.IsFalse(person.PotentialTasks.Contains(WorkTask.tasks["gather_wood"]));
+      Assert.IsTrue(person.PotentialTasks.Contains(WorkTask.tasks["gather_more_wood"]));
     }
   }
 }

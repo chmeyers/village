@@ -47,6 +47,8 @@ namespace Village.Tasks
     {
       // Create a set to store the tasks.
       HashSet<WorkTask> tasks = new HashSet<WorkTask>();
+      // Keep track of which tasks are superceded so that we can remove them at the end.
+      HashSet<WorkTask> supercededTasks = new HashSet<WorkTask>();
       // Add all the tasks that have no requirements.
       if (tasksByAbility.ContainsKey(AbilityType.NULL))
       {
@@ -68,10 +70,14 @@ namespace Village.Tasks
             if (abilities.IsSupersetOf(task.requirements))
             {
               tasks.Add(task);
+              // Track the superceded tasks.
+              supercededTasks.UnionWith(task.supercedes);
             }
           }
         }
       }
+      // Remove the superceded tasks.
+      tasks.ExceptWith(supercededTasks);
       // Return the list of tasks.
       return tasks;
     }
@@ -93,6 +99,8 @@ namespace Village.Tasks
         Dictionary<string, AbilityValue>? outputs = task.Value.ContainsKey("outputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["outputs"]).ToObject<Dictionary<string, AbilityValue>>() : null;
         // If present, get the effects setting from the Value
         Dictionary<string, List<string>>? effects = task.Value.ContainsKey("effects") ? ((Newtonsoft.Json.Linq.JObject)task.Value["effects"]).ToObject<Dictionary<string, List<string>>>() : null;
+        // If present get the supercedes list from the Value
+        List<string>? supercedes = task.Value.ContainsKey("supercedes") ? ((Newtonsoft.Json.Linq.JArray)task.Value["supercedes"]).ToObject<List<string>>() : null;
         // Get the time setting from the Value, this setting is required.
         AbilityValue time = AbilityValue.FromJson(task.Value["timeCost"]);
         // Time values get a default min of 0, unless it's already set to something higher.
@@ -104,7 +112,7 @@ namespace Village.Tasks
         bool repeatable = task.Value.ContainsKey("repeatable") ? (bool)task.Value["repeatable"] : time.GetBaseValue() == 0;
 
         // Create the task.
-        WorkTask newTask = new WorkTask(name, requirements, inputs, outputs, effects, time, repeatable);
+        WorkTask newTask = new WorkTask(name, requirements, inputs, outputs, effects, supercedes, time, repeatable);
       }
     }
 
@@ -130,7 +138,7 @@ namespace Village.Tasks
     }
 
     // Constructor for a WorkTask.
-    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, AbilityValue>? outputs, Dictionary<string, List<string>>? effects, AbilityValue timeCost, bool repeatable)
+    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, AbilityValue>? outputs, Dictionary<string, List<string>>? effects, List<string>? supercedes, AbilityValue timeCost, bool repeatable)
     {
       // Set the task name.
       this.task = task;
@@ -249,6 +257,36 @@ namespace Village.Tasks
               // Add the target to the set.
               this.targets.Add(target.target, target);
             }
+          }
+        }
+      }
+
+      // Verify that the supercedes are all valid TaskTypes,
+      // and convert the strings to TaskTypes.
+      if (supercedes != null)
+      {
+        this.supercedes = supercedes.Select((string supercede) =>
+        {
+          WorkTask? taskType = WorkTask.Find(supercede);
+          if (taskType == null)
+          {
+            throw new Exception("Invalid superceded task type in task config: " + supercede + " in task " + task);
+          }
+          return taskType;
+        }).ToHashSet();
+      }
+      else
+      {
+        this.supercedes = new HashSet<WorkTask>();
+      }
+      // Add the superceded task's superceded list to this task's superceded list.
+      foreach (WorkTask superceded in this.supercedes)
+      {
+        foreach (WorkTask supercededSuperceded in superceded.supercedes)
+        {
+          if (!this.supercedes.Contains(supercededSuperceded))
+          {
+            this.supercedes.Add(supercededSuperceded);
           }
         }
       }
@@ -373,6 +411,10 @@ namespace Village.Tasks
     // Set of targets for this task.
     // Targets are specified by @1, @2, etc in the config.
     public Dictionary<string, EffectTarget> targets;
+    // Tasks that this task supercedes.
+    // People can still technically perform superceded tasks,
+    // but they are expected to be strictly worse than the superceding task.
+    private HashSet<WorkTask> supercedes;
   }
 
 }
