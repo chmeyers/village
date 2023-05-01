@@ -280,16 +280,15 @@ namespace Village.Tasks
         this.supercedes = new HashSet<WorkTask>();
       }
       // Add the superceded task's superceded list to this task's superceded list.
+      HashSet<WorkTask> supercededTasks = new HashSet<WorkTask>();
       foreach (WorkTask superceded in this.supercedes)
       {
         foreach (WorkTask supercededSuperceded in superceded.supercedes)
         {
-          if (!this.supercedes.Contains(supercededSuperceded))
-          {
-            this.supercedes.Add(supercededSuperceded);
-          }
+          supercededTasks.Add(supercededSuperceded);
         }
       }
+      this.supercedes.UnionWith(supercededTasks);
 
       // Set the time cost.
       this.timeCost = timeCost;
