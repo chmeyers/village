@@ -35,6 +35,28 @@ public class GameServer
   private static Household household = new Household();
   // The main person.
   private static Person person = new Person("protagonist", "Protagonist", household, Role.HeadOfHousehold);
+
+  private static Person trader = StockTrader();
+
+  private static Person StockTrader()
+  {
+    Person trader = new Person("trader", "Trader");
+    // Stock the trader's inventory with iron tools, copper, iron, and leather.
+    Dictionary<ItemType, int> items = new Dictionary<ItemType, int>();
+    items[ItemType.Find("iron_axe")!] = 100;
+    items[ItemType.Find("iron_pickaxe")!] = 100;
+    items[ItemType.Find("iron_shovel")!] = 100;
+    items[ItemType.Find("iron_saw")!] = 100;
+    items[ItemType.Find("iron_knife")!] = 100;
+    items[ItemType.Find("iron_hoe")!] = 100;
+    items[ItemType.Find("copper")!] = 10000;
+    items[ItemType.Find("iron")!] = 10000;
+    items[ItemType.Find("leather")!] = 10000;
+    items[ItemType.Find("coin")!] = 100000;
+    trader.inventory.Add(items);
+    trader.priceList = ConfigPriceList.Default;
+    return trader;
+  }
   
   // Start the web server.
   public static void Start()
@@ -84,6 +106,25 @@ public class GameServer
         string buildingName = request.QueryString["building"]!;
         // Build the building.
         BuildBuilding(buildingName);
+      }
+      // if the request is to sell, sell the item.
+      else if (url.AbsolutePath == "/sell")
+      {
+        // Get the item name.
+        string itemName = request.QueryString["item"]!;
+        int quantity = int.Parse(request.QueryString["quantity"]!);
+        bool personal = bool.TryParse(request.QueryString["personal"], out bool isPersonal) && isPersonal;
+        // Sell the item.
+        SellItem(itemName, quantity, personal);
+      }
+      // if the request is to buy, buy the item.
+      else if (url.AbsolutePath == "/buy")
+      {
+        // Get the item name.
+        string itemName = request.QueryString["item"]!;
+        int quantity = int.Parse(request.QueryString["quantity"]!);
+        // Buy the item.
+        BuyItem(itemName, quantity);
       }
 
       // Return the GetGamePage() response.
@@ -179,6 +220,85 @@ public class GameServer
     Console.WriteLine($"Building {buildingName} built.");
   }
 
+  private static void SellItem(string itemName, int quantity, bool personal)
+  {
+    // Get the item type.
+    ItemType? itemType = ItemType.Find(itemName);
+    // If the item type is not valid, return.
+    if (itemType == null)
+    {
+      Console.WriteLine($"Item {itemName} not found.");
+      return;
+    }
+    // If trading from the household inventory, pull the item into the person's inventory.
+    if (!personal)
+    {
+      var householdItems = household.inventory.Get(itemType, quantity);
+      if (householdItems == null)
+      {
+        Console.WriteLine($"Item {itemName} not in inventory!");
+        return;
+      }
+      household.inventory.Transfer(person.inventory, householdItems);
+    }
+    // Get the Trader's price for the item.
+    var items = person.inventory.Get(itemType, quantity);
+    if (items == null)
+    {
+      Console.WriteLine($"Item {itemName} not in inventory!");
+      return;
+    }
+    int price = trader.GetOffer(items, person);
+    Item coin = new Item(ItemType.Find("coin")!);
+    // Create a dictionary of price number of coin.
+    Dictionary<Item, int> priceDict = new Dictionary<Item, int>();
+    priceDict[coin] = price;
+
+    // Sell the item.
+    if (!person.ProposeTrade(trader, items, priceDict))
+    {
+      Console.WriteLine($"Item {itemName} not sold!");
+      return;
+    }
+  }
+
+  private static void BuyItem(string itemName, int quantity)
+  {
+    // Get the item type.
+    ItemType? itemType = ItemType.Find(itemName);
+    // If the item type is not valid, return.
+    if (itemType == null)
+    {
+      Console.WriteLine($"Item {itemName} not found.");
+      return;
+    }
+    // Get the Trader's price for the item.
+    var items = trader.inventory.Get(itemType, quantity);
+    if (items == null)
+    {
+      Console.WriteLine($"Item {itemName} not in inventory!");
+      return;
+    }
+    int price = trader.GetPrice(items, person);
+    Item coin = new Item(ItemType.Find("coin")!);
+    // Create a dictionary of price number of coin.
+    Dictionary<Item, int> priceDict = new Dictionary<Item, int>();
+    priceDict[coin] = price;
+
+    // Buy the item.
+    if (!person.ProposeTrade(trader, priceDict, items))
+    {
+      Console.WriteLine($"Item {itemName} not bought!");
+      return;
+    }
+
+    // Move any bought resources from personal inventory to household inventory.
+    if (itemType.itemGroup == ItemGroup.RESOURCE)
+    {
+      person.inventory.Transfer(household.inventory, items);
+    }
+  }
+
   private static string GetGamePage()
   {
     // Show the person's inventory on the left, with the household's inventory underneath it.
@@ -199,12 +319,13 @@ public class GameServer
     sb.Append("</head>");
     sb.Append("<body>");
     sb.Append("<h1>Village</h1>");
+    sb.Append("<div style=\"display:flex\">");
     // On the left.
-    sb.Append("<div style=\"float: left; width: 50%;\">");
+    sb.Append("<div style=\"flex: 1\">");
     sb.Append("<h2>Inventory</h2>");
-    sb.Append(GetInventoryTable(person.inventory));
+    sb.Append(GetInventoryTable(person.inventory, true));
     sb.Append("<h2>Household Inventory</h2>");
-    sb.Append(GetInventoryTable(household.inventory));
+    sb.Append(GetInventoryTable(household.inventory, false));
     sb.Append("<h2>Buildings</h2>");
     sb.Append(GetBuildingsTable());
     sb.Append("<h2>Skills</h2>");
@@ -214,8 +335,8 @@ public class GameServer
     sb.Append("<h2>Abilities</h2>");
     sb.Append(GetAbilitiesTable());
     sb.Append("</div>");
-    // On the right.
-    sb.Append("<div style=\"float: right; width: 50%;\">");
+    // In the middle.
+    sb.Append("<div style=\"flex: 1\">");
     sb.Append("<h2>Craft Tools</h2>");
     sb.Append(GetToolCraftingTable());
     sb.Append("<h2>Gathering</h2>");
@@ -226,9 +347,14 @@ public class GameServer
     sb.Append(GetBuildingComponentTable());
     sb.Append("<h2>Other Tasks</h2>");
     sb.Append(GetOtherTasksTable());
-
+    sb.Append("</div>");
+    // On the far right.
+    sb.Append("<div style=\"flex: 1\">");
+    sb.Append("<h2>Purchase</h2>");
+    sb.Append(GetPurchaseTable());
     sb.Append("<h2>Construction</h2>");
     sb.Append(GetConstructionTable());
+    sb.Append("</div>");
     sb.Append("</div>");
     sb.Append("</body>");
     sb.Append("</html>");
@@ -242,11 +368,11 @@ public class GameServer
   }
 
   // Return a web page table with the person's inventory.
-  private static string GetInventoryTable(Inventory inventory)
+  private static string GetInventoryTable(Inventory inventory, bool personal)
   {
     StringBuilder sb = new StringBuilder();
     sb.Append("<table>");
-    sb.Append("<tr><th>Item</th><th>Count</th><th>MinQuality</th></tr>");
+    sb.Append("<tr><th>Item</th><th>Count</th><th>MinQuality</th><th>Sale Price</th></tr>");
     foreach (var itemtype in inventory.items)
     {
       // Sum up the quantities of the itemtype.
@@ -260,7 +386,56 @@ public class GameServer
           minQuality = item.Key.quality;
         }
       }
-      sb.Append($"<tr><td>{itemtype.Key.itemType}</td><td>{quantity}</td><td>{minQuality}</td></tr>");
+      // Get the default sale price for the item.
+      var singleItem = inventory.Get(itemtype.Key, 1);
+      int price = trader.GetOffer(singleItem!, person);
+      sb.Append($"<tr><td>{itemtype.Key.itemType}</td><td>{quantity}</td><td>{minQuality}</td><td>{price}</td>");
+      // Add buttons to sell 1, 100 or all of the item. Diable the buttons if the price is zero.
+      sb.Append($"<td><form action=\"sell\" method=\"get\"><input type=\"hidden\" name=\"item\" value=\"{itemtype.Key.itemType}\" /><input type=\"hidden\" name=\"quantity\" value=\"1\" /><input type=\"hidden\" name=\"personal\" value={personal}><input type=\"submit\" value=\"Sell 1\" ");
+      if (price == 0)
+      {
+        sb.Append("disabled");
+      }
+      sb.Append(" /></form></td>");
+      // Show the sell 100 button but disable it if there are less than 100 of the item.
+      sb.Append($"<td><form action=\"sell\" method=\"get\"><input type=\"hidden\" name=\"item\" value=\"{itemtype.Key.itemType}\" /><input type=\"hidden\" name=\"quantity\" value=\"100\" /><input type=\"hidden\" name=\"personal\" value={personal}><input type=\"submit\" value=\"Sell 100\" ");
+      if (quantity < 100 || price == 0)
+      {
+        sb.Append("disabled");
+      }
+      sb.Append(" /></form></td>");
+      // Show the sell all button but disable it if there are no items or the price is zero.
+      sb.Append($"<td><form action=\"sell\" method=\"get\"><input type=\"hidden\" name=\"item\" value=\"{itemtype.Key.itemType}\" /><input type=\"hidden\" name=\"quantity\" value=\"{quantity}\" /><input type=\"hidden\" name=\"personal\" value={personal}><input type=\"submit\" value=\"Sell All\" ");
+      if (quantity == 0 || price == 0)
+      {
+        sb.Append("disabled");
+      }
+      sb.Append(" /></form></td>");
+
+      sb.Append("</tr>");
+    }
+    sb.Append("</table>");
+    return sb.ToString();
+  }
+
+  // Get the purchase table.
+  private static string GetPurchaseTable()
+  {
+    StringBuilder sb = new StringBuilder();
+    // A table with all the items in the trader's inventory, with buttons to purchase 1 or 100 of the item.
+    sb.Append("<table>");
+    sb.Append("<tr><th>Item</th><th>Price</th></tr>");
+    foreach (var itemtype in trader.inventory.items)
+    {
+      // Get the default purchase price for the item.
+      var singleItem = trader.inventory.Get(itemtype.Key, 1);
+      int price = trader.GetPrice(singleItem!, person);
+      sb.Append($"<tr><td>{itemtype.Key.itemType}</td><td>{price}</td>");
+      // Add buttons to buy 1 or 100 of the item.
+      sb.Append($"<td><form action=\"buy\" method=\"get\"><input type=\"hidden\" name=\"item\" value=\"{itemtype.Key.itemType}\" /><input type=\"hidden\" name=\"quantity\" value=\"1\" /><input type=\"submit\" value=\"Buy\" /></form></td>");
+      sb.Append($"<td><form action=\"buy\" method=\"get\"><input type=\"hidden\" name=\"item\" value=\"{itemtype.Key.itemType}\" /><input type=\"hidden\" name=\"quantity\" value=\"100\" /><input type=\"submit\" value=\"Buy 100\" /></form></td>");
+
+      sb.Append("</tr>");
     }
     sb.Append("</table>");
     return sb.ToString();

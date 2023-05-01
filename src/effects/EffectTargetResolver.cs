@@ -43,9 +43,10 @@ public class EffectTargetResolver
         {
           throw new Exception("Invalid effect context for item target: " + targetContext);
         }
-        var items = inventory.ItemAbilities()[targetAbility];
-        if (items != null && items.Count > 0)
+        
+        if (inventory.ItemAbilities().ContainsKey(targetAbility))
         {
+          var items = inventory.ItemAbilities()[targetAbility];
           // Chose the worst item that gives the ability. The logic behind this
           // is that item effects are typically negative unless the item is
           // specified. i.e. degrade a tool when used.

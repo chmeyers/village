@@ -177,6 +177,16 @@ public class Inventory : IInventoryContext
     }
   }
 
+  // Get the a specific quantity of items of a given type.
+  public Dictionary<Item, int>? Get(ItemType itemType, int quantity = DEFAULT_QUANTITY)
+  {
+    lock (_itemsLock)
+    {
+      return _GetNoLock(itemType, quantity);
+    }
+  }
+
+
   // Count the number of unique items in the inventory.
   public int Count()
   {
@@ -439,5 +449,30 @@ public class Inventory : IInventoryContext
       }
     }
     return true;
+  }
+
+  // Internal function to get the a specific quantity of items of a given type
+  // in the inventory with no locking.
+  private Dictionary<Item, int>? _GetNoLock(ItemType itemType, int quantity)
+  {
+    var contents = new Dictionary<Item, int>();
+    if (items.ContainsKey(itemType))
+    {
+      foreach (var item in items[itemType])
+      {
+        if (item.Value >= quantity)
+        {
+          contents.Add(item.Key, quantity);
+          return contents;
+        }
+        else
+        {
+          contents.Add(item.Key, item.Value);
+          quantity -= item.Value;
+        }
+      }
+    }
+    // Don't return partial contents if we don't have enough.
+    return null;
   }
 }

@@ -165,7 +165,7 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, ItemType? parent, int spoilTime, int lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue craftQuality, HashSet<AbilityType>? abilities)
+  public ItemType(string name, ItemGroup group, ItemType? parent, int spoilTime, int lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities)
   {
     itemType = name;
     itemGroup = group;
@@ -180,7 +180,7 @@ public class ItemType
     else {
       this.scrapItems = scrapItems;
     }
-    this.craftQuality = craftQuality;
+    this.craftQuality = craftQuality ?? new AbilityValue(DEFAULT_QUALITY);
     // If abilities is null, set it to an empty set.
     if (abilities == null) {
       this.abilities = new HashSet<AbilityType>();

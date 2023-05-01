@@ -11,8 +11,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, null, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, null, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -62,8 +62,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, null, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, null, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -119,8 +119,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, null, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, null, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -174,8 +174,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, null, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, null, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -218,7 +218,7 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 100, 0, false, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 100, 0, false, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType);

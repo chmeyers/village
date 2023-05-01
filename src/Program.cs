@@ -40,6 +40,8 @@ namespace Village
       // Load the skills, followed by the skill tree.
       Skill.LoadFile("config/skills/skills.jsonc");
       Skill.LoadParentsFile("config/skills/skilltree.jsonc");
+      // Load the default price list.
+      ConfigPriceList.LoadDefault("config/items/pricelist.jsonc");
     }
 
     public static void PrintInventory(Inventory inventory)
