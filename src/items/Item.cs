@@ -249,6 +249,31 @@ public class ItemType
     // Hash is based only off of the itemType since it is unique.
     return itemType.GetHashCode();
   }
+
+  public bool IsDescendentOf(ItemType key)
+  {
+    // Check if this item type is a descendent of the given item type.
+    foreach (var parent in parentTypes) {
+      if (parent == key) {
+        return true;
+      }
+      if (parent.IsDescendentOf(key)) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public HashSet<ItemType> GetAllDescendants()
+  {
+    // Get all descendents of this item type.
+    HashSet<ItemType> descendents = new HashSet<ItemType>();
+    foreach (var child in childTypes) {
+      descendents.Add(child);
+      descendents.UnionWith(child.GetAllDescendants());
+    }
+    return descendents;
+  }
 }
 
 // An Item is a specific instance of an ItemType.
@@ -367,6 +392,17 @@ public class Item : IComparable<Item>
     }
     else if (other.uniqueName != null) {
       uniqueNameCompare = -1;
+    }
+    if (uniqueNameCompare != 0)
+    {
+      return uniqueNameCompare;
+    }
+    // A parent sorts before it's children.
+    if (this.itemType.IsDescendentOf(other.itemType)) {
+      return 1;
+    }
+    if (other.itemType.IsDescendentOf(this.itemType)) {
+      return -1;
     }
     // Sort by item type.
     return this.itemType.itemType.CompareTo(other.itemType.itemType);

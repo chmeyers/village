@@ -175,11 +175,36 @@ namespace Village.Tasks
             return itemType;
           },
           (KeyValuePair<string, AbilityValue> input) => input.Value
-        );
+        ).ToList();
+        // Reorder the inputs so that children appear before their ancestors.
+        this.inputs.Sort((KeyValuePair<ItemType, AbilityValue> a, KeyValuePair<ItemType, AbilityValue> b) =>
+        {
+          return a.Key.IsDescendentOf(b.Key) ? 1 : -1;
+        });
+        // Verify that all the inputs have disjoint sets of descendants,
+        // unless one is the direct descendent of the other.
+        // This is to avoid having two inputs that are competing for the same item.
+        for (int i = 0; i < this.inputs.Count; i++)
+        {
+          for (int j = i + 1; j < this.inputs.Count; j++)
+          {
+            if (!this.inputs[i].Key.IsDescendentOf(this.inputs[j].Key) && !this.inputs[j].Key.IsDescendentOf(this.inputs[i].Key))
+            {
+              // Check that GetAllDescendants() return disjoint sets.
+              HashSet<ItemType> aDescendants = this.inputs[i].Key.GetAllDescendants();
+              HashSet<ItemType> bDescendants = this.inputs[j].Key.GetAllDescendants();
+              aDescendants.IntersectWith(bDescendants);
+              if (aDescendants.Count > 0)
+              {
+                throw new Exception("Invalid inputs in task config " + task + ": " + this.inputs[i].Key + " and " + this.inputs[j].Key + " are competing for the same child item type: " + aDescendants.First());
+              }
+            }
+          }
+        }
       }
       else
       {
-        this.inputs = new Dictionary<ItemType, AbilityValue>();
+        this.inputs = new List<KeyValuePair<ItemType, AbilityValue>>();
       }
       // Verify that the outputs are all valid ItemTypes,
       // and convert the strings to ItemTypes.
@@ -327,12 +352,12 @@ namespace Village.Tasks
       }
     }
 
-    public Dictionary<ItemType, int> Inputs(IAbilityContext context)
+    public List<KeyValuePair<ItemType, int>> Inputs(IAbilityContext context)
     {
-      Dictionary<ItemType, int> inputs = new Dictionary<ItemType, int>();
+      List<KeyValuePair<ItemType, int>> inputs = new List<KeyValuePair<ItemType, int>>();
       foreach (var input in this.inputs)
       {
-        inputs.Add(input.Key, input.Value.GetValue(context));
+        inputs.Add(new KeyValuePair<ItemType, int>(input.Key, input.Value.GetValue(context)));
       }
       return inputs;
     }
@@ -386,7 +411,7 @@ namespace Village.Tasks
     public bool IsResourceProcessingTask()
     {
       // Check that all the inputs are resources and there is one resource output.
-      return this.inputs.Count > 0 && this.inputs.Keys.All((ItemType input) => input.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
+      return this.inputs.Count > 0 && this.inputs.All<KeyValuePair<ItemType,AbilityValue>>(pair => pair.Key.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
     }
 
     // The name of the task.
@@ -394,7 +419,8 @@ namespace Village.Tasks
     // The abilities required to perform the task.
     public List<AbilityType> requirements;
     // The ItemType and quantities of inputs required to perform the task.
-    public Dictionary<ItemType, AbilityValue> inputs;
+    // Ordered such that children types come before their ancestors.
+    public List<KeyValuePair<ItemType, AbilityValue>> inputs;
     // The outputs produced by the task.
     public Dictionary<ItemType, AbilityValue> outputs;
     // The side effects of the task, along with their targets.

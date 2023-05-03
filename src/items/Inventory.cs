@@ -56,7 +56,7 @@ public class Inventory : IInventoryContext
 
   // Trade items between two inventories.
   // Fails without trading if the items don't exist in the correct inventory.
-  public bool Trade(Inventory other, IDictionary<Item, int> myItems, IDictionary<Item, int> theirItems)
+  public bool Trade(Inventory other, IEnumerable<KeyValuePair<Item, int>> myItems, IEnumerable<KeyValuePair<Item, int>> theirItems)
   {
     // To avoid the possibility of deadlocks, we avoid locking both inventories at the same time.
     // Instead, we remove myItems from this inventory, transfer theirItems to this inventory,
@@ -88,7 +88,7 @@ public class Inventory : IInventoryContext
 
   // Transfer items from this inventory to another inventory.
   // Fails without transferring if the items don't exist in this inventory.
-  public bool Transfer(Inventory other, IDictionary<Item, int> transferItems)
+  public bool Transfer(Inventory other, IEnumerable<KeyValuePair<Item, int>> transferItems)
   {
     // First lock and remove the items from this inventory.
     lock (_itemsLock)
@@ -127,7 +127,7 @@ public class Inventory : IInventoryContext
   }
 
   // Add items to the inventory.
-  public void Add(IDictionary<Item, int> items)
+  public void Add(IEnumerable<KeyValuePair<Item, int>> items)
   {
     lock (_itemsLock)
     {
@@ -162,9 +162,9 @@ public class Inventory : IInventoryContext
     }
   }
 
-  public Dictionary<Item, int>? Get(IDictionary<ItemType, int> itemTypes)
+  public Dictionary<Item, int>? Get(IEnumerable<KeyValuePair<ItemType, int>> itemTypes)
   {
-    if (itemTypes == null || itemTypes.Count == 0)
+    if (itemTypes == null || itemTypes.Count() == 0)
     {
       return new Dictionary<Item, int>();
     }
@@ -180,6 +180,27 @@ public class Inventory : IInventoryContext
     lock (_itemsLock)
     {
       return _GetNoLock(itemType, quantity);
+    }
+  }
+
+  public Dictionary<Item, int>? GetExact(IEnumerable<KeyValuePair<ItemType, int>> itemTypes)
+  {
+    if (itemTypes == null || itemTypes.Count() == 0)
+    {
+      return new Dictionary<Item, int>();
+    }
+    lock (_itemsLock)
+    {
+      return _GetExactNoLock(itemTypes);
+    }
+  }
+
+  // Get the a specific quantity of items of a given type.
+  public Dictionary<Item, int>? GetExact(ItemType itemType, int quantity = DEFAULT_QUANTITY)
+  {
+    lock (_itemsLock)
+    {
+      return _GetExactNoLock(itemType, quantity);
     }
   }
 
@@ -238,14 +259,25 @@ public class Inventory : IInventoryContext
   {
     lock (_itemsLock)
     {
-      return _ContainsNoLock(itemType, 0);
+      int quantity = 0;
+      return _ContainsNoLock(itemType, ref quantity);
+    }
+  }
+
+  // Check whether a exact given itemtype exists in the inventory with at least.
+  // Does not count child itemtypes.
+  public bool ContainsExact(ItemType itemType)
+  {
+    lock (_itemsLock)
+    {
+      return _ContainsExactNoLock(itemType, 0);
     }
   }
 
   // Check whether the given items exists in the inventory with at least the specified quantity.
-  public bool Contains(Dictionary<ItemType, int> items)
+  public bool Contains(IEnumerable<KeyValuePair<ItemType, int>> items)
   {
-    if (items == null || items.Count == 0)
+    if (items == null || items.Count() == 0)
     {
       return true;
     }
@@ -254,6 +286,21 @@ public class Inventory : IInventoryContext
       return _ContainsNoLock(items);
     }
   }
+
+  // Check whether the exact given itemtypes exist in the inventory with at least
+  // the specified quantity. Does not count child itemtypes.
+  public bool ContainsExact(IEnumerable<KeyValuePair<ItemType, int>> items)
+  {
+    if (items == null || items.Count() == 0)
+    {
+      return true;
+    }
+    lock (_itemsLock)
+    {
+      return _ContainsExactNoLock(items);
+    }
+  }
+  
 
   // Bracket operator to get the quantity of an item in the inventory.
   public int this[Item item]
@@ -271,7 +318,8 @@ public class Inventory : IInventoryContext
     }
   }
 
-  // Bracket operator to get the dicationary of a given ItemType in the inventory.
+  // Bracket operator to get the dictionary of a given ItemType in the inventory.
+  // Return only the items of the given type, not child types.
   public SortedDictionary<Item, int> this[ItemType itemType]
   {
     get
@@ -317,7 +365,7 @@ public class Inventory : IInventoryContext
   }
 
   // Internal function to remove items from the inventory with no locking.
-  private bool _RemoveNoLock(IDictionary<Item, int> items)
+  private bool _RemoveNoLock(IEnumerable<KeyValuePair<Item, int>> items)
   {
     // First ensure that the inventory contains the items.
     if (!_ContainsNoLock(items))
@@ -381,7 +429,39 @@ public class Inventory : IInventoryContext
 
   // Internal function to check whether a given quantity of an itemType exists
   // in the inventory with no locking.
-  private bool _ContainsNoLock(ItemType itemType, int quantity)
+  // Checks both the passed type and all descendant types.
+  private bool _ContainsNoLock(ItemType itemType, ref int quantity)
+  {
+    // Count the passed itemType, then if it has children, count them too.
+    if (items.ContainsKey(itemType))
+    {
+      foreach (var item in items[itemType])
+      {
+        quantity -= item.Value;
+        // Note that we only return true if we found at least one item.
+        // So even if the passed quantity is zero, we still need to check.
+        if (quantity <= 0)
+        {
+          return true;
+        }
+      }
+    }
+    // Recurse through the children.
+    foreach (var child in itemType.childTypes)
+    {
+      if (_ContainsNoLock(child, ref quantity))
+      {
+        return true;
+      }
+    }
+    return false;
+  }
+
+
+  // Internal function to check whether a given quantity of an itemType exists
+  // in the inventory with no locking.
+  // Does not check for children types.
+  private bool _ContainsExactNoLock(ItemType itemType, int quantity)
   {
     if (items.ContainsKey(itemType))
     {
@@ -400,7 +480,7 @@ public class Inventory : IInventoryContext
 
   // Internal function to check whether a given quantity of all items exists
   // in the inventory with no locking.
-  private bool _ContainsNoLock(IDictionary<Item, int> items)
+  private bool _ContainsNoLock(IEnumerable<KeyValuePair<Item, int>> items)
   {
     foreach (var item in items)
     {
@@ -414,11 +494,19 @@ public class Inventory : IInventoryContext
 
   // Internal function to check whether a given quantity of all itemtypes exists
   // in the inventory with no locking.
-  private bool _ContainsNoLock(IDictionary<ItemType, int> itemTypes)
+  private bool _ContainsNoLock(IEnumerable<KeyValuePair<ItemType, int>> itemTypes)
+  {
+    // Use the _GetNoLock function as we need to deal with the case that the
+    // passed itemTypes contains related child/parent types.
+    // This requires tracking what items we've already counted.
+    return _GetNoLock(itemTypes) != null;
+  }
+
+  private bool _ContainsExactNoLock(IEnumerable<KeyValuePair<ItemType, int>> itemTypes)
   {
     foreach (var itemType in itemTypes)
     {
-      if (!_ContainsNoLock(itemType.Key, itemType.Value))
+      if (!_ContainsExactNoLock(itemType.Key, itemType.Value))
       {
         return false;
       }
@@ -428,12 +516,12 @@ public class Inventory : IInventoryContext
 
   // Internal function to get the a specific quantity of a dictionary of itemTypes
   // in the inventory with no locking.
-  private Dictionary<Item, int>? _GetNoLock(IDictionary<ItemType, int> itemTypes)
+  private Dictionary<Item, int>? _GetExactNoLock(IEnumerable<KeyValuePair<ItemType, int>> itemTypes)
   {
     var contents = new Dictionary<Item, int>();
     foreach (var itemType in itemTypes)
     {
-      if (!_GetNoLock(itemType.Key, itemType.Value, ref contents))
+      if (!_GetExactNoLock(itemType.Key, itemType.Value, ref contents))
       {
         // Don't return partial contents if we don't have enough.
         return null;
@@ -445,17 +533,17 @@ public class Inventory : IInventoryContext
 
   // Internal function to get the a specific quantity of items of a given type
   // in the inventory with no locking.
-  private Dictionary<Item, int>? _GetNoLock(ItemType itemType, int quantity)
+  private Dictionary<Item, int>? _GetExactNoLock(ItemType itemType, int quantity)
   {
     var contents = new Dictionary<Item, int>();
-    if (_GetNoLock(itemType, quantity, ref contents))
+    if (_GetExactNoLock(itemType, quantity, ref contents))
     {
       return contents;
     }
     return null;
   }
 
-  private bool _GetNoLock(ItemType itemType, int quantity, ref Dictionary<Item, int> contents)
+  private bool _GetExactNoLock(ItemType itemType, int quantity, ref Dictionary<Item, int> contents)
   {
     if (items.ContainsKey(itemType))
     {
@@ -471,6 +559,177 @@ public class Inventory : IInventoryContext
           contents.Add(item.Key, item.Value);
           quantity -= item.Value;
         }
+      }
+    }
+    return false;
+  }
+
+  // Get including child types.
+  // TODO(chmeyers): Pick the proper ordering when there are multiple children.
+  private Dictionary<Item, int>? _GetNoLock(IEnumerable<KeyValuePair<ItemType, int>> itemTypes)
+  {
+    var contents = new Dictionary<Item, int>();
+    foreach (var itemType in itemTypes)
+    {
+      int quantity = itemType.Value;
+      if (!_MergeGet(itemType.Key, ref quantity, ref contents))
+      {
+        // Don't return partial contents if we don't have enough.
+        return null;
+      }
+    }
+    return contents;
+  }
+
+  private Dictionary<Item, int>? _GetNoLock(ItemType itemType, int quantity)
+  {
+    var contents = new Dictionary<Item, int>();
+    if (_MergeGet(itemType, ref quantity, ref contents))
+    {
+      return contents;
+    }
+    return null;
+  }
+
+  private bool _GetNoMerge(ItemType itemType, ref int quantity, ref Dictionary<Item, int> contents)
+  {
+    if (items.ContainsKey(itemType))
+    {
+      foreach (var item in items[itemType])
+      {
+        // The item might already be in the contents dictionary if it's a child type,
+        // in that case we skip over it unless there are more items of this type than
+        // we've already counted.
+        // Note that this shouldn't happen if the list of itemtypes was properly sorted,
+        // as anything that would hit this should instead be using the _MergeGet function.
+        if (contents.ContainsKey(item.Key))
+        {
+          if (contents[item.Key] < item.Value)
+          {
+            if (item.Value - contents[item.Key] >= quantity)
+            {
+              contents[item.Key] += quantity;
+              return true;
+            }
+            else
+            {
+              quantity -= item.Value - contents[item.Key];
+              contents[item.Key] = item.Value;
+            }
+          }
+        }
+        else if (item.Value >= quantity)
+        {
+          contents[item.Key] = quantity;
+          return true;
+        }
+        else
+        {
+          contents[item.Key] = item.Value;
+          quantity -= item.Value;
+        }
+      }
+    }
+    return false;
+  }
+
+  // Get items in the inventory with no locking by merging the sorted dictionaries
+  // of each itemType and maintaining the correct merged ordering.
+  private bool _MergeGet(ItemType itemType, ref int quantity, ref Dictionary<Item, int> contents)
+  {
+    // Get the descendants of the itemType.
+    var descendants = itemType.GetAllDescendants();
+    // If this is a child type, just use the simple get function.
+    if (descendants.Count == 0)
+    {
+      return _GetNoMerge(itemType, ref quantity, ref contents);
+    }
+    // Add the itemType itself to the list.
+    descendants.Add(itemType);
+    // Lookup each of the itemTypes in the inventory.
+    var itemTypes = new List<SortedDictionary<Item, int>>();
+    var enumerators = new List<SortedDictionary<Item, int>.Enumerator>();
+    // We could merge all the dictionaries into a single dictionary but that would
+    // require sorting the entire set of items. Instead we pull the items out of
+    // the dictionaries in the correct order until we have enough.
+    // Store an enumerator for each itemType dictionary.
+    foreach (var descendant in descendants)
+    {
+      if (items.ContainsKey(descendant))
+      {
+        itemTypes.Add(items[descendant]);
+        // For some reason the Enumerator doesn't work if I add it directly to the list.
+        // It was always returning null items, even after MoveNext, but this works.
+        // The Internet was of no help. 
+        var e = itemTypes[itemTypes.Count - 1].GetEnumerator();
+        if (e.MoveNext())
+        {
+          enumerators.Add(e);
+        }
+      }
+    }
+    
+    // Loop until we have enough items or we run out of items.
+    while (quantity > 0)
+    {
+      // Find the enumerator with the min item.
+      int minIndex = -1;
+      Item? minItem = null;
+      foreach (var enumerator in enumerators)
+      {
+        if (minItem == null || enumerator.Current.Key.CompareTo(minItem) < 0)
+        {
+          minItem = enumerator.Current.Key!;
+          minIndex = enumerators.IndexOf(enumerator);
+        }
+      }
+      // If we didn't find a min item, we've exhausted all the enumerators.
+      if (minItem == null)
+      {
+        return false;
+      }
+      int minItemQuantity = enumerators[minIndex].Current.Value;
+      // Add the min item to the contents.
+      if (contents.ContainsKey(minItem))
+      {
+        // We already have some of this item.
+        if (contents[minItem] < minItemQuantity)
+        {
+          if (minItemQuantity - contents[minItem] >= quantity)
+          {
+            // We have enough of this item.
+            contents[minItem] += quantity;
+            return true;
+          }
+          else
+          {
+            // Take all of the remaining items of this type.
+            quantity -= minItemQuantity - contents[minItem];
+            contents[minItem] = minItemQuantity;
+          }
+        }
+      }
+      else
+      {
+        // We don't have any of this item.
+        if (minItemQuantity >= quantity)
+        {
+          // We have enough of this item.
+          contents[minItem] = quantity;
+          return true;
+        }
+        else
+        {
+          // Take all of the items of this type.
+          quantity -= minItemQuantity;
+          contents[minItem] = minItemQuantity;
+        }
+      }
+      // Move the enumerator forward.
+      if (!enumerators[minIndex].MoveNext())
+      {
+        // We've exhausted this enumerator, remove it.
+        enumerators.RemoveAt(minIndex);
       }
     }
     return false;

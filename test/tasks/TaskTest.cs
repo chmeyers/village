@@ -86,7 +86,7 @@ public class TaskUnitTest
       Assert.IsTrue(WorkTask.tasksByAbility["chopping_1"].Contains(WorkTask.tasks["gather_wood"]));
       // Check that gather_wood2 was loaded correctly.
       Assert.AreEqual(1, WorkTask.tasks["gather_wood2"].inputs.Count);
-      Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].inputs[ItemType.Find("wood")!].GetBaseValue());
+      Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].inputs[0].Value.GetBaseValue());
       Assert.AreEqual(100, WorkTask.tasks["gather_wood2"].outputs[ItemType.Find("wood")!].GetBaseValue());
 
 
@@ -94,7 +94,7 @@ public class TaskUnitTest
       abilityTypes.Add(AbilityType.abilityTypes["chopping_1"]);
       ConcreteAbilityContext context = new ConcreteAbilityContext(abilityTypes);
 
-      Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].Inputs(context)[ItemType.Find("wood")!]);
+      Assert.AreEqual(50, WorkTask.tasks["gather_wood2"].Inputs(context)[0].Value);
       Assert.AreEqual(100, WorkTask.tasks["gather_wood2"].OutputTypes(context)[ItemType.Find("wood")!]);
 
       // Add chopping_4 to the context.
