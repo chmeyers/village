@@ -111,7 +111,7 @@ public class TaskUnitTest
       Assert.IsFalse(person.inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 1 } }));
       // Give them two axes.
       Item axe = new Item(ItemType.Find("axe")!);
-      person.AddItem(axe, 2);
+      person.inventory.AddItem(axe, 2);
       var axes = person.inventory[ItemType.Find("axe")!];
       Assert.AreEqual(1, axes.Count);
       Assert.AreEqual(100, axes.First().Key.quality);
@@ -145,7 +145,7 @@ public class TaskUnitTest
       Assert.IsFalse(person.PotentialTasks.Contains(WorkTask.tasks["gather_more_wood"]));
       // Give them a big_axe
       Item big_axe = new Item(ItemType.Find("big_axe")!);
-      person.AddItem(big_axe, 1);
+      person.inventory.AddItem(big_axe, 1);
       // They should now be able to perform the gather_more_wood task.
       Assert.IsTrue(TaskRunner.PerformTask(person, person, WorkTask.tasks["gather_more_wood"], null));
       // The gather_wood task should be superceded, so it shouldn't be in the person's

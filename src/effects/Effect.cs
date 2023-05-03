@@ -196,4 +196,10 @@ public class Effect
   {
     return true;
   }
+
+  // Whether this effect always targets the person performing the task.
+  public virtual bool AlwaysTargetsRunner()
+  {
+    return false;
+  }
 }

@@ -209,32 +209,6 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     }
   }
 
-
-  // Add an item and quantity to the inventory. If an item with abilities is
-  // added and the person doesn't already have the ability,
-  // the itemAbilitiesDirty flag is set.
-  public void AddItem(Item item, int quantity)
-  {
-    inventory.AddItem(item, quantity);
-  }
-
-  public bool RemoveItem(Item item, int quantity)
-  {
-    return inventory.RemoveItem(item, quantity);
-  }
-
-  public void Add(IDictionary<ItemType, int> items)
-  {
-    inventory.Add(items);
-  }
-
-  public bool Remove(IDictionary<ItemType, int> itemTypes)
-  {
-    return inventory.Remove(itemTypes);
-  }
-
-  public int this[Item item] => ((IInventoryContext)inventory)[item];
-
   public int SetAttribute(AttributeType attributeType, int value)
   {
     return attributes.SetValue(attributeType, value);

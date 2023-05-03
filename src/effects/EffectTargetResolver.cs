@@ -8,8 +8,15 @@ public class EffectTargetResolver
 {
   // Resolve a given effect target, given a person.
   // Returns a ChosenEffectTarget.
-  public static ChosenEffectTarget? ResolveEffectTarget(EffectTarget effectTarget, IInventoryContext? targetContext, IAbilityContext? runningContext)
+  public static ChosenEffectTarget? ResolveEffectTarget(Effect effect, EffectTarget effectTarget, IInventoryContext? targetContext, IAbilityContext? runningContext)
   {
+    // Check whether the effect always targets the runner.
+    // Degrade Item effects always does this as it targets the tool used.
+    var inventory = targetContext as IInventoryContext;
+    if (effect.AlwaysTargetsRunner())
+    {
+      inventory = (runningContext as IInventoryContext)!;
+    }
     switch (effectTarget.effectTargetType)
     {
       case EffectTargetType.Village:
@@ -38,15 +45,14 @@ public class EffectTargetResolver
           throw new Exception("Invalid ability target: " + effectTarget.target);
         }
         // Get the list of items that give the ability.
-        var inventory = targetContext as IInventoryContext;
         if (inventory == null)
         {
           throw new Exception("Invalid effect context for item target: " + targetContext);
         }
         
-        if (inventory.ItemAbilities().ContainsKey(targetAbility))
+        if (inventory.inventory.ItemAbilities().ContainsKey(targetAbility))
         {
-          var items = inventory.ItemAbilities()[targetAbility];
+          var items = inventory.inventory.ItemAbilities()[targetAbility];
           // Chose the worst item that gives the ability. The logic behind this
           // is that item effects are typically negative unless the item is
           // specified. i.e. degrade a tool when used.

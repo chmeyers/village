@@ -17,38 +17,13 @@ public class SkillUnitTest
     // Set of PersonSkills.
     public SkillSet skills;
 
-    public int this[Item item] => throw new NotImplementedException();
+    public Inventory inventory { get; set; } = new Inventory();
 
     // Constructor.
     public ConcreteSkillContext(HashSet<AbilityType> abilities)
       : base(abilities)
     {
       this.skills = new SkillSet(this);
-    }
-
-    public void AddItem(Item item, int quantity)
-    {
-      throw new NotImplementedException();
-    }
-
-    public bool RemoveItem(Item item, int quantity)
-    {
-      throw new NotImplementedException();
-    }
-
-    public Dictionary<AbilityType, List<Item>> ItemAbilities()
-    {
-      throw new NotImplementedException();
-    }
-
-    public void Add(IDictionary<ItemType, int> items)
-    {
-      throw new NotImplementedException();
-    }
-
-    public bool Remove(IDictionary<ItemType, int> itemTypes)
-    {
-      throw new NotImplementedException();
     }
 
     public bool GrantXP(Skill skill, int xp)

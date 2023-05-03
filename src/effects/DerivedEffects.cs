@@ -26,7 +26,7 @@ public class DegradeEffect : Effect
     amount = AbilityValue.FromJson(data["amount"]);
   }
 
-  private void DegradeItem(IAbilityContext? context, IInventoryContext inventory, Item item)
+  private void DegradeItem(IAbilityContext? context, IInventoryContext target, Item item)
   {
     // Decrease the new item's quality by the specified amount.
     item.quality -= amount.GetValue(context);
@@ -35,11 +35,11 @@ public class DegradeEffect : Effect
       item.quality = 0;
       // Remove the item from the inventory, replace it with it's scrap items, if any.
       // TODO(chmeyers): Move the scraps to the household inventory?
-      inventory.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
+      target.inventory.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
       foreach (var scrapItem in item.itemType.scrapItems)
       {
         Item newItem = new Item(scrapItem.Key);
-        inventory.AddItem(newItem, scrapItem.Value);
+        target.inventory.AddItem(newItem, scrapItem.Value);
       }
     }
   }
@@ -49,29 +49,32 @@ public class DegradeEffect : Effect
     // Get the item from the chosen target.
     Item item = (Item)chosenEffectTarget.target!;
     // Get the person from the context.
-    IInventoryContext inventory = chosenEffectTarget.targetContext!;
+    IInventoryContext targetInventory = chosenEffectTarget.targetContext!;
     // We are only degrading a single item, so if the item is a stack, we need to split the stack.
     // So we create a new item that is a copy of the original item, remove it from the inventory,
     // degrade it, then add it back to the inventory.
 
     // Check if person has more than one of the item.
-    if (inventory[item] > Inventory.DEFAULT_QUANTITY)
+    if (targetInventory.inventory[item] > Inventory.DEFAULT_QUANTITY)
     {
       Item newItem = item.Clone();
       // Remove the original item from the inventory of the person in the context.
-      inventory.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
+      targetInventory.inventory.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
 
-      DegradeItem(chosenEffectTarget.runningContext, inventory, newItem);
+      DegradeItem(chosenEffectTarget.runningContext, targetInventory, newItem);
       // Add the new item back to the inventory of the person in the context.
-      inventory.AddItem(newItem, Inventory.DEFAULT_QUANTITY);
+      targetInventory.inventory.AddItem(newItem, Inventory.DEFAULT_QUANTITY);
     }
     else
     {
       // Degrade the item.
-      DegradeItem(chosenEffectTarget.runningContext, inventory, item);
+      DegradeItem(chosenEffectTarget.runningContext, targetInventory, item);
     }
+  }
 
-
+  public override bool AlwaysTargetsRunner()
+  {
+    return true;
   }
 
   // The amount to degrade the item by.

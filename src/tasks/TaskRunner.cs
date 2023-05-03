@@ -14,8 +14,8 @@ public class TaskRunner
 {
   // Start a task for a person, with the given list of Chosen Targets
   // If the task can be performed, returns a RunningTask and removes the
-  // inputs from the inventory. Otherwise, returns null.
-  public static RunningTask? StartTask(Person person, IInventoryContext inventory, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
+  // inputs from the target inventory. Otherwise, returns null.
+  public static RunningTask? StartTask(Person person, IInventoryContext target, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
   {
     // Verify that the size of the chosenTargets list matches the size of the task's targets list.
     // Or that the chosenTargets list is null iff the task's list is empty.
@@ -30,14 +30,14 @@ public class TaskRunner
     // Check that the task is potential. Inputs will be checked by the inventory later.
     if (person.PotentialTasks.Contains(task))
     {
-      // Remove the inputs from the inventory or return false if they are not present.
+      // Remove the inputs from the inventory or return null if they are not present.
       // The inventory will choose the worst version of the item that matches.
-      var inputs = task.Inputs(person);
-      if (!inventory.Remove(inputs))
+      var inputs = target.inventory.Get(task.Inputs(person));
+      if (inputs == null || !target.inventory.Remove(inputs))
       {
         return null;
       }
-      return new RunningTask(task, person, inputs, inventory, chosenTargets, Calendar.Ticks);
+      return new RunningTask(task, person, inputs, target, chosenTargets, Calendar.Ticks);
     }
     return null;
   }
@@ -51,7 +51,7 @@ public class TaskRunner
     // Add the outputs to the inventory.
     foreach (var output in runningTask.task.Outputs(runningTask.owner))
     {
-      runningTask.inventory.AddItem(output.Key, output.Value);
+      runningTask.target.inventory.AddItem(output.Key, output.Value);
     }
 
     // For each effect, resolve the target and apply the effect.
@@ -73,10 +73,8 @@ public class TaskRunner
         else
         {
           // The target isn't a target string, so resolve it.
-          // Note that this uses the owner's inventory, regardless of whether that
-          // is the target inventory for the task.
-          // TODO(chmeyers): Rethink this if we add effects that can target other inventories.
-          chosenTarget = EffectTargetResolver.ResolveEffectTarget(effectTarget, runningTask.owner as IInventoryContext, runningTask.owner);
+          IInventoryContext target = runningTask.target;
+          chosenTarget = EffectTargetResolver.ResolveEffectTarget(effect.Key, effectTarget, target, runningTask.owner);
         }
         if (chosenTarget == null)
         {
@@ -121,7 +119,7 @@ public class TaskRunner
   public static bool AdvanceTask(Person person)
   {
     // Peek at the first item in the person's running task queue.
-    if(!person.runningTasks.TryPeek(out var runningTask))
+    if (!person.runningTasks.TryPeek(out var runningTask))
     {
       // If there is no task, return true.
       return true;
@@ -146,9 +144,9 @@ public class TaskRunner
     {
       return false;
     }
-    
+
     FinishTask(runningTask, forceSync);
-    
+
     return true;
   }
 }

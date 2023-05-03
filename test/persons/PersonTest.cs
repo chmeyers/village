@@ -44,7 +44,7 @@ public class PersonUnitTest
     Assert.AreEqual(0, person.inventory.Count());
 
     // Add an item to the person's inventory.
-    person.AddItem(new Item(ItemType.itemTypes["axe"]), 100);
+    person.inventory.AddItem(new Item(ItemType.itemTypes["axe"]), 100);
     // Check that gather wood is a valid task.
     Assert.AreEqual(3, person.PotentialTasks.Count);
     Assert.IsTrue(person.PotentialTasks.Contains(gatherWoodTask));
@@ -53,7 +53,7 @@ public class PersonUnitTest
     Assert.IsTrue(person.AvailablePersonalTasks.Contains(gatherWoodTask));
     Assert.IsTrue(person.AvailablePersonalTasks.Contains(sleepTask));
     // Add some wood to the person's inventory.
-    person.AddItem(new Item(ItemType.itemTypes["wood"]), 100);
+    person.inventory.AddItem(new Item(ItemType.itemTypes["wood"]), 100);
     // Check that stack wood is a valid task.
     Assert.AreEqual(3, person.PotentialTasks.Count);
     Assert.IsTrue(person.PotentialTasks.Contains(WorkTask.tasks["stack_wood"]));

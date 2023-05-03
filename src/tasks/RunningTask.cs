@@ -20,17 +20,17 @@ public class RunningTask
   public int ticksRemaining;
 
   // The inventory that the task is running against.
-  public IInventoryContext inventory { get; private set; }
+  public IInventoryContext target { get; private set; }
 
   // The chosen targets for the task's effects.
   public Dictionary<string, ChosenEffectTarget>? chosenTargets { get; private set; }
 
   // The inputs that the task already consumed.
   // Used to provide refunds when the task is cancelled.
-  public Dictionary<ItemType, int> inputs { get; private set; }
+  public Dictionary<Item, int> inputs { get; private set; }
 
   // Constructor.
-  public RunningTask(WorkTask task, IAbilityContext owner, Dictionary<ItemType, int> inputs, IInventoryContext inventory, Dictionary<string, ChosenEffectTarget>? chosenTargets, long startTime)
+  public RunningTask(WorkTask task, IAbilityContext owner, Dictionary<Item, int> inputs, IInventoryContext inventory, Dictionary<string, ChosenEffectTarget>? chosenTargets, long startTime)
   {
     this.task = task;
     this.owner = owner;
@@ -38,7 +38,7 @@ public class RunningTask
     this.ticksRemaining = task.timeCost.GetValue(owner);
     this.endTime = startTime + ticksRemaining;
     this.inputs = inputs;
-    this.inventory = inventory;
+    this.target = inventory;
     this.chosenTargets = chosenTargets;
   }
 }

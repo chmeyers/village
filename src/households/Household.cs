@@ -33,8 +33,6 @@ public class Household : IInventoryContext, IHouseholdContext
   // TODO(chmeyers): protect with a lock.
   public List<Building> buildings { get; private set; }
 
-  public int this[Item item] => ((IInventoryContext)inventory)[item];
-
   // Event handler for when the abilities of a person change.
   public event AbilitiesChanged? AbilitiesChanged;
 
@@ -90,31 +88,5 @@ public class Household : IInventoryContext, IHouseholdContext
   {
     _abilitiesDirty = true;
     AbilitiesChanged?.Invoke();
-  }
-
-  public void AddItem(Item item, int quantity)
-  {
-    inventory.AddItem(item, quantity);
-  }
-
-  public Dictionary<AbilityType, List<Item>> ItemAbilities()
-  {
-    // Items in a household inventory do not grant abilities, so return an empty dictionary.
-    return new Dictionary<AbilityType, List<Item>>();
-  }
-
-  public bool RemoveItem(Item item, int quantity)
-  {
-    return inventory.RemoveItem(item, quantity);
-  }
-
-  public void Add(IDictionary<ItemType, int> items)
-  {
-    inventory.Add(items);
-  }
-
-  public bool Remove(IDictionary<ItemType, int> itemTypes)
-  {
-    return inventory.Remove(itemTypes);
   }
 }

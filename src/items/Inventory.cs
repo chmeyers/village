@@ -5,12 +5,7 @@ namespace Village.Items;
 
 public interface IInventoryContext
 {
-  public void AddItem(Item item, int quantity);
-  public bool RemoveItem(Item item, int quantity);
-  public void Add(IDictionary<ItemType, int> items);
-  public bool Remove(IDictionary<ItemType, int> itemTypes);
-  public int this[Item item] { get; }
-  public Dictionary<AbilityType, List<Item>> ItemAbilities();
+  public Inventory inventory { get; }
 }
 
 // An Inventory is a collection of items, owned by a person, building, trader, village, etc.
@@ -20,6 +15,8 @@ public class Inventory : IInventoryContext
   public const int DEFAULT_QUANTITY = 1;
 
   public Inventory() { }
+
+  public Inventory inventory => this;
 
   // A lock to control access to the inventory.
   private readonly object _itemsLock = new object();
@@ -165,15 +162,27 @@ public class Inventory : IInventoryContext
 
   // Remove itemTypes from the inventory, selecting the worst matching items first.
   // Items are destroyed.
-  public bool Remove(IDictionary<ItemType, int> itemTypes)
+  public bool Remove(IDictionary<Item, int> items)
   {
-    if (itemTypes == null || itemTypes.Count == 0)
+    if (items == null || items.Count == 0)
     {
       return true;
     }
     lock (_itemsLock)
     {
-      return _RemoveNoLock(itemTypes);
+      return _RemoveNoLock(items);
+    }
+  }
+
+  public Dictionary<Item, int>? Get(IDictionary<ItemType, int> itemTypes)
+  {
+    if (itemTypes == null || itemTypes.Count == 0)
+    {
+      return new Dictionary<Item, int>();
+    }
+    lock (_itemsLock)
+    {
+      return _GetNoLock(itemTypes);
     }
   }
 
@@ -319,55 +328,21 @@ public class Inventory : IInventoryContext
     return false;
   }
 
-  // Internal function to remove itemTypes from the inventory with no locking.
-  private bool _RemoveNoLock(IDictionary<ItemType, int> itemTypes)
+  // Internal function to remove items from the inventory with no locking.
+  private bool _RemoveNoLock(IDictionary<Item, int> items)
   {
     // First ensure that the inventory contains the items.
-    if (!_ContainsNoLock(itemTypes))
+    if (!_ContainsNoLock(items))
     {
       return false;
     }
-    foreach (var itemType in itemTypes)
+    foreach (var item in items)
     {
-      // Remove the items in sorted order so that the worst items go first.
-      // Keep removing until we have removed the required quantity.
-      int quantity = itemType.Value;
-      while (quantity > 0 && items[itemType.Key].Count > 0)
+      if (!_RemoveNoLock(item.Key, item.Value))
       {
-        // Get the first item in the dictionary.
-        var item = items[itemType.Key].First();
-        if (item.Value > quantity)
-        {
-          items[itemType.Key][item.Key] -= quantity;
-          quantity = 0;
-          break;
-        }
-        else
-        {
-          quantity -= item.Value;
-          items[itemType.Key].Remove(item.Key);
-          if (itemType.Key.abilities.Count > 0)
-          {
-            // Not removing an Ability, but the ItemAbilities lists need to change.
-            AbilitiesChanged?.Invoke();
-          }
-          if (quantity == 0) break;
-        }
-      }
-
-      if (items[itemType.Key].Count == 0)
-      {
-        items.Remove(itemType.Key);
-        if (itemType.Key.abilities.Count > 0)
-        {
-          AbilitiesChanged?.Invoke();
-        }
-      }
-      // Throw an exception if we didn't remove the required quantity.
-      if (quantity > 0)
-      {
-        // Should never happen, since we checked Contains above.
-        throw new System.Exception("Inventory.Remove: Failed to remove the required quantity of items with itemType " + itemType.Key + ".");
+        // This should never happen since we already checked that the items exist.
+        // If it does, it's likely due to calling this function without locking.
+        throw new System.Exception("Inventory.Remove: Failed to remove the required quantity of items with itemType " + item.Key.itemType);
       }
     }
     return true;
@@ -470,11 +445,37 @@ public class Inventory : IInventoryContext
     return true;
   }
 
+  // Internal function to get the a specific quantity of a dictionary of itemTypes
+  // in the inventory with no locking.
+  private Dictionary<Item, int>? _GetNoLock(IDictionary<ItemType, int> itemTypes)
+  {
+    var contents = new Dictionary<Item, int>();
+    foreach (var itemType in itemTypes)
+    {
+      if (!_GetNoLock(itemType.Key, itemType.Value, ref contents))
+      {
+        // Don't return partial contents if we don't have enough.
+        return null;
+      }
+    }
+    return contents;
+  }
+
+
   // Internal function to get the a specific quantity of items of a given type
   // in the inventory with no locking.
   private Dictionary<Item, int>? _GetNoLock(ItemType itemType, int quantity)
   {
     var contents = new Dictionary<Item, int>();
+    if (_GetNoLock(itemType, quantity, ref contents))
+    {
+      return contents;
+    }
+    return null;
+  }
+
+  private bool _GetNoLock(ItemType itemType, int quantity, ref Dictionary<Item, int> contents)
+  {
     if (items.ContainsKey(itemType))
     {
       foreach (var item in items[itemType])
@@ -482,7 +483,7 @@ public class Inventory : IInventoryContext
         if (item.Value >= quantity)
         {
           contents.Add(item.Key, quantity);
-          return contents;
+          return true;
         }
         else
         {
@@ -491,7 +492,6 @@ public class Inventory : IInventoryContext
         }
       }
     }
-    // Don't return partial contents if we don't have enough.
-    return null;
+    return false;
   }
 }
