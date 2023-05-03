@@ -83,7 +83,7 @@ public class ItemType
       // Get the item type spoil time.
       int spoilTime = (int)(long)itemData.GetValueOrDefault("spoilTime", 0L);
       // Get the item type loss rate.
-      int lossRate = (int)(long)itemData.GetValueOrDefault("lossRate", 0L);
+      double lossRate = (double)itemData.GetValueOrDefault("lossRate", 0.0);
       // Get the item type flammability or default to false.
       bool flammable = (bool)itemData.GetValueOrDefault("flammable", false);
       
@@ -165,7 +165,7 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, ItemType? parent, int spoilTime, int lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities)
+  public ItemType(string name, ItemGroup group, ItemType? parent, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities)
   {
     itemType = name;
     itemGroup = group;
@@ -205,8 +205,8 @@ public class ItemType
 
   // The default loss rate of an item of this type, or zero if it is not subject to loss.
   // Loss rate is the percentage of the item's quanity that is lost to vermin or other causes
-  // each turn and may be modified by other factors, such as the building it is stored in.
-  public readonly int lossRate;
+  // each month and may be modified by other factors, such as the building it is stored in.
+  public readonly double lossRate;
 
   // Whether this item is flammable.
   // Nonflammable items will survive a fire, but flammable items will be turned to scrap.

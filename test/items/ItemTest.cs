@@ -12,7 +12,7 @@ public class ItemUnitTest
     ItemType.Clear();
     string json = @"{
   'type1': { 'group': 'CURRENCY' },
-  'type2': { 'parent': 'type1', 'group': 'RESOURCE', spoilTime: 2, lossRate: 2, flammable: true, scrapItems: { 'type1': 50 } }
+  'type2': { 'parent': 'type1', 'group': 'RESOURCE', spoilTime: 2, lossRate: 0.02, flammable: true, scrapItems: { 'type1': 50 } }
 }";
     // Load the item types.
     ItemType.LoadString(json);
@@ -30,7 +30,7 @@ public class ItemUnitTest
     Assert.AreEqual("type2", ItemType.itemTypes["type2"].itemType);
     Assert.AreEqual("RESOURCE", ItemType.itemTypes["type2"].itemGroup.ToString());
     Assert.AreEqual(2, ItemType.itemTypes["type2"].spoilTime);
-    Assert.AreEqual(2, ItemType.itemTypes["type2"].lossRate);
+    Assert.AreEqual(0.02, ItemType.itemTypes["type2"].lossRate);
     Assert.AreEqual(true, ItemType.itemTypes["type2"].flammable);
     Assert.IsNotNull(ItemType.itemTypes["type2"].scrapItems);
     Assert.AreEqual(1, ItemType.itemTypes["type2"].scrapItems!.Count);
@@ -47,7 +47,7 @@ public class ItemUnitTest
     AbilityType.LoadString(@"{ 'cutting' : { 'levels': 10 } }");
     string json = @"{
   'type3': { 'group': 'CURRENCY'},
-  'type4': { 'parent': 'type3', 'group': 'RESOURCE', spoilTime: 2, lossRate: 2, flammable: true, scrapItems: { 'type3': 50 }, abilities: ['cutting_2'] }
+  'type4': { 'parent': 'type3', 'group': 'RESOURCE', spoilTime: 2, lossRate: 0.02, flammable: true, scrapItems: { 'type3': 50 }, abilities: ['cutting_2'] }
 }";
     // Load the item types.
     ItemType.LoadString(json);
