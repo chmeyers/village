@@ -71,14 +71,24 @@ public class ItemType
       Dictionary<string, object> itemData = item.Value;
       // Get the item type group.
       ItemGroup group = (ItemGroup)Enum.Parse(typeof(ItemGroup), (string)itemData["group"]);
-      // Get the item type parent.
-      ItemType? parent = null;
-      if (itemData.ContainsKey("parent")) {
-        // If parent isn't already in the dictionary, throw an error.
-        if (!_itemTypes.ContainsKey((string)itemData["parent"])) {
-          throw new Exception("Parent item type not found: " + (string)itemData["parent"] + " for item type: " + name);
+      // Get the item type parents.
+      List<ItemType> parents = new List<ItemType>();
+      if (itemData.ContainsKey("parents")) {
+        // Check that the parents is an array.
+        if (!(itemData["parents"] is Newtonsoft.Json.Linq.JArray)) {
+          throw new Exception("Parents must be an array for item type: " + name);
         }
-        parent = Find((string)itemData["parent"]);
+        List<string>? parentList = ((Newtonsoft.Json.Linq.JArray)itemData["parents"]).ToObject<List<string>>();
+        if (parentList == null) {
+          throw new Exception("Parents must not be null for item type: " + name);
+        }
+        // Check that each parent in the list exists in the ItemType dictionary.
+        foreach (var parent in parentList!) {
+          if (!_itemTypes.ContainsKey(parent)) {
+            throw new Exception("Parent item type not found: " + parent + " for item type: " + name);
+          }
+          parents.Add(_itemTypes[parent]!);
+        }
       }
       // Get the item type spoil time.
       int spoilTime = (int)(long)itemData.GetValueOrDefault("spoilTime", 0L);
@@ -135,7 +145,7 @@ public class ItemType
       
 
       // Create the item type.
-      ItemType itemType = new ItemType(name, group, parent, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet);
+      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet);
       // Add the item type to the dictionary.
       _itemTypes.Add(name, itemType);
     }
@@ -155,21 +165,18 @@ public class ItemType
   {
     // Load the JSON file.
     string json = File.ReadAllText(filename);
-    try {
-      LoadString(json);
-    }
-    catch (Exception e) {
-      throw new Exception("Failed to load item types from file: " + filename + "\n" + e.Message);
-    }
+    LoadString(json);
   }
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, ItemType? parent, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities)
+  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities)
   {
     itemType = name;
     itemGroup = group;
-    parentType = parent;
+    if (parents != null) {
+      parentTypes = parents;
+    }
     this.spoilTime = spoilTime;
     this.lossRate = lossRate;
     this.flammable = flammable;
@@ -188,6 +195,10 @@ public class ItemType
     else {
       this.abilities = abilities;
     }
+    // Add this item type to the parent's child types.
+    foreach (var parent in parentTypes) {
+      parent.childTypes.Add(this);
+    }
   }
 
   // The name of the item type.
@@ -197,8 +208,11 @@ public class ItemType
   // Top level item group for this item type.
   public readonly ItemGroup itemGroup;
 
-  // The parent type of this item type, or null if this is a root type.
-  public readonly ItemType? parentType;
+  // The parent types of this item type, or null if this is a root type.
+  public readonly List<ItemType> parentTypes = new List<ItemType>();
+
+  // The child types of this item type, or null if this is a leaf type.
+  public List<ItemType> childTypes { get; private set;} = new List<ItemType>();
 
   // The time it takes an item of this type to spoil in hundredths of a turn, or zero if it never spoils.
   public readonly int spoilTime;

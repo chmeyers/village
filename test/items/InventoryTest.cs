@@ -241,7 +241,7 @@ public class InventoryUnitTest
     var removing = new Dictionary<ItemType, int> { { itemType, 3 } };
     // Remove 3 of itemType from the inventory.
     Assert.IsTrue(inventory.Contains(removing));
-    Assert.IsTrue(inventory.Remove(inventory.Get(removing)));
+    Assert.IsTrue(inventory.Remove(inventory.Get(removing)!));
     // Check that the items were removed from the inventory, and
     // that item2 was removed before item.
     Assert.AreEqual(1, inventory.Count());
@@ -251,7 +251,7 @@ public class InventoryUnitTest
     Assert.AreEqual(1, inventory[item2]);
     Assert.AreEqual(4, inventory[item3]);
     // Remove more.
-    Assert.IsTrue(inventory.Remove(inventory.Get(removing)));
+    Assert.IsTrue(inventory.Remove(inventory.Get(removing)!));
     // Check that all of item2 was removed, and some of item.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(2, inventory.CountUnique());
@@ -259,14 +259,14 @@ public class InventoryUnitTest
     Assert.AreEqual(2, inventory[item]);
     Assert.AreEqual(4, inventory[item3]);
     // Remove more.
-    Assert.IsTrue(inventory.Remove(inventory.Get(removing)));
+    Assert.IsTrue(inventory.Remove(inventory.Get(removing)!));
     // Check that all of item was removed and one of item3.
     Assert.AreEqual(1, inventory.Count());
     Assert.AreEqual(1, inventory.CountUnique());
     Assert.AreEqual(3, inventory.CountAll());
     Assert.AreEqual(3, inventory[item3]);
     // Remove more.
-    Assert.IsTrue(inventory.Remove(inventory.Get(removing)));
+    Assert.IsTrue(inventory.Remove(inventory.Get(removing)!));
     // Check that all of item3 was removed.
     Assert.AreEqual(0, inventory.Count());
     Assert.AreEqual(0, inventory.CountUnique());

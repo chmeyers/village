@@ -100,7 +100,7 @@
   "rake": { "buy":427, "sell":589 },
   "rattan": { "buy":0, "sell":44 },
   "rope": { "buy":15, "sell":25 },
-  "saddle_tack": { "buy":3276, "sell":4401 },
+  "saddle": { "buy":3276, "sell":4401 },
   "salt": { "buy":15, "sell":25 },
   "scratch_plow": { "buy":2321, "sell":3233 },
   "scythe": { "buy":1252, "sell":2417 },

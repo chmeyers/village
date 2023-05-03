@@ -12,7 +12,7 @@ public class ItemUnitTest
     ItemType.Clear();
     string json = @"{
   'type1': { 'group': 'CURRENCY' },
-  'type2': { 'parent': 'type1', 'group': 'RESOURCE', spoilTime: 2, lossRate: 0.02, flammable: true, scrapItems: { 'type1': 50 } }
+  'type2': { 'parents': ['type1'], 'group': 'RESOURCE', spoilTime: 2, lossRate: 0.02, flammable: true, scrapItems: { 'type1': 50 } }
 }";
     // Load the item types.
     ItemType.LoadString(json);
@@ -24,7 +24,11 @@ public class ItemUnitTest
     Assert.AreEqual(false, ItemType.itemTypes["type1"].flammable);
     Assert.AreEqual(0, ItemType.itemTypes["type1"].spoilTime);
     Assert.AreEqual(0, ItemType.itemTypes["type1"].lossRate);
-    Assert.AreEqual(ItemType.itemTypes["type1"], ItemType.itemTypes["type2"].parentType);
+    Assert.AreEqual(ItemType.itemTypes["type1"], ItemType.itemTypes["type2"].parentTypes[0]);
+    // Check that type1 has a child type2.
+    Assert.IsNotNull(ItemType.itemTypes["type1"].childTypes);
+    Assert.AreEqual(1, ItemType.itemTypes["type1"].childTypes!.Count);
+    Assert.AreEqual(ItemType.itemTypes["type2"], ItemType.itemTypes["type1"].childTypes![0]);
 
 
     Assert.AreEqual("type2", ItemType.itemTypes["type2"].itemType);
@@ -47,7 +51,7 @@ public class ItemUnitTest
     AbilityType.LoadString(@"{ 'cutting' : { 'levels': 10 } }");
     string json = @"{
   'type3': { 'group': 'CURRENCY'},
-  'type4': { 'parent': 'type3', 'group': 'RESOURCE', spoilTime: 2, lossRate: 0.02, flammable: true, scrapItems: { 'type3': 50 }, abilities: ['cutting_2'] }
+  'type4': { 'parents': ['type3'], 'group': 'RESOURCE', spoilTime: 2, lossRate: 0.02, flammable: true, scrapItems: { 'type3': 50 }, abilities: ['cutting_2'] }
 }";
     // Load the item types.
     ItemType.LoadString(json);
@@ -57,7 +61,7 @@ public class ItemUnitTest
     Assert.AreEqual(false, ItemType.itemTypes["type3"].flammable);
     Assert.AreEqual(0, ItemType.itemTypes["type3"].spoilTime);
     Assert.AreEqual(0, ItemType.itemTypes["type3"].lossRate);
-    Assert.AreEqual(ItemType.itemTypes["type3"], ItemType.itemTypes["type4"].parentType);
+    Assert.AreEqual(ItemType.itemTypes["type3"], ItemType.itemTypes["type4"].parentTypes[0]);
     // Check that item2 contains the ability.
     Assert.IsNotNull(ItemType.itemTypes["type4"].abilities);
     Assert.AreEqual(1, ItemType.itemTypes["type4"].abilities!.Count);

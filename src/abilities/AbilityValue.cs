@@ -44,7 +44,10 @@ public class AbilityValue
       throw new Exception("Failed to load ability value from json");
     }
     // Get the base value.
-    this.baseValue = (int)(long)dict["val"];
+    if (dict.ContainsKey("val"))
+    {
+      this.baseValue = (int)(long)dict["val"];
+    }
     // Get the min and max values.
     if (dict.ContainsKey("min"))
     {
