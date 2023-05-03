@@ -47,8 +47,6 @@ namespace Village.Tasks
     {
       // Create a set to store the tasks.
       HashSet<WorkTask> tasks = new HashSet<WorkTask>();
-      // Keep track of which tasks are superceded so that we can remove them at the end.
-      HashSet<WorkTask> supercededTasks = new HashSet<WorkTask>();
       // Add all the tasks that have no requirements.
       if (tasksByAbility.ContainsKey(AbilityType.NULL))
       {
@@ -70,16 +68,37 @@ namespace Village.Tasks
             if (abilities.IsSupersetOf(task.requirements))
             {
               tasks.Add(task);
-              // Track the superceded tasks.
-              supercededTasks.UnionWith(task.supercedes);
             }
           }
         }
       }
-      // Remove the superceded tasks.
-      tasks.ExceptWith(supercededTasks);
       // Return the list of tasks.
       return tasks;
+    }
+
+    public static HashSet<WorkTask> FilterTasksForInventory(HashSet<WorkTask> tasks, Inventory inventory, IAbilityContext context)
+    {
+      // Create a set to store the tasks.
+      HashSet<WorkTask> filteredTasks = new HashSet<WorkTask>();
+      // Keep track of which tasks are superceded so that we can remove them at the end.
+      HashSet<WorkTask> supercededTasks = new HashSet<WorkTask>();
+      // Iterate over the tasks.
+      foreach (WorkTask task in tasks)
+      {
+        // Check that all the inputs required for the task are in the inventory.
+        // TODO(chmeyers): Check that all the effects have a possible valid target.
+        if (inventory.Contains(task.Inputs(context)))
+        {
+          filteredTasks.Add(task);
+          // Add the superceded tasks to the supercededTasks set.
+          supercededTasks.UnionWith(task.supercedes);
+        }
+      }
+      // Remove the superceded tasks.
+      filteredTasks.ExceptWith(supercededTasks);
+      // Return the list of tasks.
+      return filteredTasks;
+        
     }
 
     // Loader function to load all tasks from a JSON Dictionary.

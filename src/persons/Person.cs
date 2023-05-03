@@ -126,27 +126,21 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     }
   }
 
+  private HashSet<WorkTask> _AvailableTasks(Inventory inventory)
+  {
+    lock (_cacheLock)
+    {
+      CalculateValidTasks();
+      return WorkTask.FilterTasksForInventory(validTasks, inventory, this);
+    }
+  }
+
   // Set of available tasks, filtered by the person's personal inventory.
   public HashSet<WorkTask> AvailablePersonalTasks
   {
     get
     {
-      lock (_cacheLock)
-      {
-        CalculateValidTasks();
-        HashSet<WorkTask> availableTasks = new HashSet<WorkTask>();
-        foreach (WorkTask task in validTasks)
-        {
-          // Check that all the inputs required for the task are in the inventory.
-          if (!inventory.Contains(task.Inputs(this)))
-          {
-            continue;
-          }
-          // TODO(chmeyers): Check that all the effects have a possible valid target.
-          availableTasks.Add(task);
-        }
-        return availableTasks;
-      }
+      return _AvailableTasks(inventory);
     }
   }
 
@@ -155,20 +149,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   {
     get
     {
-      lock (_cacheLock)
-      {
-        CalculateValidTasks();
-        HashSet<WorkTask> availableTasks = new HashSet<WorkTask>();
-        foreach (WorkTask task in validTasks)
-        {
-          // Check that all the inputs required for the task are in the inventory.
-          if (household.inventory.Contains(task.Inputs(this)))
-          {
-            availableTasks.Add(task);
-          }
-        }
-        return availableTasks;
-      }
+      return _AvailableTasks(household.inventory);
     }
   }
 

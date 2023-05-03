@@ -141,8 +141,8 @@ public class TaskUnitTest
       Assert.AreEqual(100, axes.Last().Key.quality);
       Assert.AreEqual(1, axes.Last().Value);
 
-      Assert.IsTrue(person.PotentialTasks.Contains(WorkTask.tasks["gather_wood"]));
-      Assert.IsFalse(person.PotentialTasks.Contains(WorkTask.tasks["gather_more_wood"]));
+      Assert.IsTrue(person.AvailablePersonalTasks.Contains(WorkTask.tasks["gather_wood"]));
+      Assert.IsFalse(person.AvailablePersonalTasks.Contains(WorkTask.tasks["gather_more_wood"]));
       // Give them a big_axe
       Item big_axe = new Item(ItemType.Find("big_axe")!);
       person.inventory.AddItem(big_axe, 1);
@@ -150,8 +150,8 @@ public class TaskUnitTest
       Assert.IsTrue(TaskRunner.PerformTask(person, person, WorkTask.tasks["gather_more_wood"], null));
       // The gather_wood task should be superceded, so it shouldn't be in the person's
       // available tasks.
-      Assert.IsFalse(person.PotentialTasks.Contains(WorkTask.tasks["gather_wood"]));
-      Assert.IsTrue(person.PotentialTasks.Contains(WorkTask.tasks["gather_more_wood"]));
+      Assert.IsFalse(person.AvailablePersonalTasks.Contains(WorkTask.tasks["gather_wood"]));
+      Assert.IsTrue(person.AvailablePersonalTasks.Contains(WorkTask.tasks["gather_more_wood"]));
     }
   }
 }
