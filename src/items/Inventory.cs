@@ -565,7 +565,6 @@ public class Inventory : IInventoryContext
   }
 
   // Get including child types.
-  // TODO(chmeyers): Pick the proper ordering when there are multiple children.
   private Dictionary<Item, int>? _GetNoLock(IEnumerable<KeyValuePair<ItemType, int>> itemTypes)
   {
     var contents = new Dictionary<Item, int>();
