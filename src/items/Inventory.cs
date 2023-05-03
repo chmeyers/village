@@ -138,18 +138,6 @@ public class Inventory : IInventoryContext
     }
   }
 
-  // Add itemTypes to the inventory.
-  public void Add(IDictionary<ItemType, int> items)
-  {
-    lock (_itemsLock)
-    {
-      foreach (var itemType in items)
-      {
-        _AddNoLock(itemType.Key, itemType.Value);
-      }
-    }
-  }
-
   // Remove an exact item quantity from the inventory.
   // Items are destroyed.
   public bool RemoveItem(Item item, int quantity)
@@ -375,13 +363,6 @@ public class Inventory : IInventoryContext
         AbilitiesChanged?.Invoke();
       }
     }
-  }
-
-  private void _AddNoLock(ItemType item, int quantity)
-  {
-    // Make a new item of the given type.
-    var newItem = new Item(item);
-    _AddNoLock(newItem, quantity);
   }
 
   // Internal function to check whether a given quantity of an item exists

@@ -43,18 +43,22 @@ public class GameServer
     Person trader = new Person("trader", "Trader");
     trader.isTrader = true;
     // Stock the trader's inventory with iron tools, copper, iron, and leather.
-    Dictionary<ItemType, int> items = new Dictionary<ItemType, int>();
-    items[ItemType.Find("iron_axe")!] = 100;
-    items[ItemType.Find("iron_pickaxe")!] = 100;
-    items[ItemType.Find("iron_shovel")!] = 100;
-    items[ItemType.Find("iron_saw")!] = 100;
-    items[ItemType.Find("iron_knife")!] = 100;
-    items[ItemType.Find("iron_hoe")!] = 100;
-    items[ItemType.Find("copper")!] = 10000;
-    items[ItemType.Find("iron")!] = 10000;
-    items[ItemType.Find("leather")!] = 10000;
-    items[ItemType.Find("coin")!] = 100000;
-    trader.inventory.Add(items);
+    Dictionary<ItemType, int> itemTypes = new Dictionary<ItemType, int>();
+    itemTypes[ItemType.Find("iron_axe")!] = 100;
+    itemTypes[ItemType.Find("iron_pickaxe")!] = 100;
+    itemTypes[ItemType.Find("iron_shovel")!] = 100;
+    itemTypes[ItemType.Find("iron_saw")!] = 100;
+    itemTypes[ItemType.Find("iron_knife")!] = 100;
+    itemTypes[ItemType.Find("iron_hoe")!] = 100;
+    itemTypes[ItemType.Find("copper")!] = 10000;
+    itemTypes[ItemType.Find("iron")!] = 10000;
+    itemTypes[ItemType.Find("leather")!] = 10000;
+    itemTypes[ItemType.Find("coin")!] = 100000;
+    // Make items from itemTypes and add them to the trader's inventory.
+    foreach (var itemType in itemTypes)
+    {
+      trader.inventory.AddItem(new Item(itemType.Key, trader), itemType.Value);
+    }
     trader.priceList = ConfigPriceList.Default;
     return trader;
   }
