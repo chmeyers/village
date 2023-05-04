@@ -35,6 +35,9 @@ public enum EffectType
   BuildingComponent,
   // Propagate Skills up and down the skill tree.
   SkillTree,
+  // Eat a meal. (Or go hungry.) Intended as a mandatory effect that
+  // each person must perform at least once every day.
+  Meal,
 }
 
 public class EffectTarget

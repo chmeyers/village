@@ -295,3 +295,54 @@ public class SkillTreeEffect : Effect
   // Whether to propagate the skill up the tree.
   public bool propagateUp = false;
 }
+
+public class MealEffect : Effect
+{
+  public MealEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a person or self.
+    if (target != EffectTargetType.Person)
+    {
+      throw new Exception("Meal effect must target a person: " + effect);
+    }
+    if (data == null)
+    {
+      throw new Exception("Meal effect must have a config dictionary: " + effect);
+    }
+    // The quantity of the meal.
+    quantity = (int)(long)data["quantity"];
+    // The prestige of the meal.
+    prestige = (int)(long)data["prestige"];
+  }
+
+  // Apply the effect to the target.
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  {
+    // Get the person from the chosen target.
+    Person person = (Person)chosenEffectTarget.targetContext!;
+    // Make sure person is not null.
+    if (person == null)
+    {
+      // We ignore this effect if the person is null.
+      return;
+    }
+
+    // Adjust the person's muscle, fat, etc based on the quantity of the meal.
+    //
+    // TODO
+    //
+  }
+
+  // People always eat their own meals, even babies.
+  public override bool AlwaysTargetsRunner()
+  {
+    return true;
+  }
+
+  // The relative quantity of the meal, with 100 being a full meal.
+  // The actual amount of food consumed is based on the person's attributes.
+  // For example, a child needs less than an adult to qualify as a full meal.
+  public int quantity;
+  // The prestige of the meal.
+  public int prestige;
+}
