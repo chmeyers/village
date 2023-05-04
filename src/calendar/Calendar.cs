@@ -1,4 +1,7 @@
+using Village.Abilities;
+using Village.Attributes;
 
+namespace Village.Base;
 
 // Season of the year.
 public enum Season
@@ -20,6 +23,32 @@ public class Calendar
   // 30 days per game month.
   // 12 months per game year.
   private long _ticks = 0;
+
+  // The AttributeSet with the Calendar-based attributes.
+  // TODO(chmeyers): Set the target and context for the attributes to the environment?
+  private AttributeSet attributes = new AttributeSet(null, null);
+
+  public event AbilitiesChanged? _AbilitiesChanged;
+
+  public static event AbilitiesChanged? AbilitiesChanged
+  {
+    add
+    {
+      global_calendar._AbilitiesChanged += value;
+    }
+    remove
+    {
+      global_calendar._AbilitiesChanged -= value;
+    }
+  }
+
+  // Constructor for the Calendar.
+  private Calendar()
+  {
+    // Set the event handler for when the attributes change.
+    attributes.AbilitiesChanged += () => { _AbilitiesChanged?.Invoke(); };
+  }
+
 
   // The current time in game ticks.
   private long ticks { get { return _ticks; } }
@@ -63,7 +92,7 @@ public class Calendar
   // Advance the calendar by the given number of ticks.
   public static void Advance(uint ticks)
   {
-    global_calendar._ticks += ticks;
+    SetTime(global_calendar._ticks + ticks);
   }
 
   // Advance one tick.
@@ -75,13 +104,49 @@ public class Calendar
   // Reset the calendar.
   public static void Reset()
   {
-    global_calendar._ticks = 0;
+    SetTime(0);
   }
 
   // Set the calendar to the given time.
   public static void SetTime(long ticks)
   {
     global_calendar._ticks = ticks;
+    // Set all the attributes to the DayOfYear.
+    foreach (var attribute in global_calendar.attributes.attributes.Keys)
+    {
+      global_calendar.attributes.SetValue(attribute, global_calendar.dayOfYear);
+    }
+  }
+
+  public static HashSet<AbilityType> CalendarAbilities()
+  {
+    return global_calendar.attributes.AttributeAbilities();
+  }
+
+  private void AddAttribute(AttributeType attributeType)
+  {
+    // Verify that the attribute is calendar compatible, by checking
+    // that the min is zero and the max 360.
+    if (attributeType.minValue != 0 || attributeType.maxValue != 360)
+    {
+      throw new System.Exception("Attribute " + attributeType.name + " is not calendar compatible.");
+    }
+
+    attributes.Add(attributeType);
+  }
+
+  // Go through all the attributes and add the calendar attributes.
+  public static void AddCalendarAttributes()
+  {
+    foreach (var attributeType in AttributeType.types.Values)
+    {
+      if (attributeType.calendar)
+      {
+        global_calendar.AddAttribute(attributeType);
+        // Set the value of the attribute to the current day of the year.
+        global_calendar.attributes.SetValue(attributeType, global_calendar.dayOfYear);
+      }
+    }
   }
 
 }

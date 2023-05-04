@@ -52,6 +52,11 @@ public class AttributeType
       var max = (int)(long)attribute.Value["max"];
       var init = (int)(long)attribute.Value["initial"];
       AttributeType a = new AttributeType(attribute.Key, init, min, max);
+      // Check whether it's a calendar attribute.
+      if (attribute.Value.ContainsKey("calendar"))
+      {
+        a.calendar = (bool)attribute.Value["calendar"];
+      }
       // Cast the intervals to a newtonsoft JArray and check for null.
       var intervalArray = (Newtonsoft.Json.Linq.JArray)attribute.Value["intervals"];
       if (intervalArray == null)
@@ -173,6 +178,8 @@ public class AttributeType
   public int minValue { get; private set; }
   // The maximum value of the attribute.
   public int maxValue { get; private set; }
+  // Whether this is a calendar attribute.
+  public bool calendar { get; private set; } = false;
   // Intervals at which abilities will be granted and effects will be triggered.
   // The key is the lower limit of the interval, inclusive. The upper limit is
   // the key of the next interval, exclusive. The last interval will include

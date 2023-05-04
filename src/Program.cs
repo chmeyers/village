@@ -20,6 +20,7 @@ namespace Village
       AbilityType.LoadFile("config/abilities/abilitytypes.jsonc");
       // Load the attributes.
       AttributeType.LoadFile("config/attributes/attributes.jsonc");
+      Calendar.AddCalendarAttributes();
       // Load the item types, resources first since they are used by other items.
       ItemType.LoadFile("config/items/resources.jsonc");
       ItemType.LoadFile("config/items/tools.jsonc");

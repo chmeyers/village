@@ -1,4 +1,5 @@
 {
+  "seasons" : { "min": 0, "max": 360, "calendar": true , "initial": 0, "intervals": [{"lower": 0, "abilities": ["spring","not_winter","not_summer","not_fall"], "effects": []},{"lower": 90, "abilities": ["summer","not_winter","not_spring","not_fall"], "effects": []},{"lower": 180, "abilities": ["fall","not_winter","not_spring","not_summer"], "effects": []},{"lower": 270, "abilities": ["winter","not_spring","not_summer","not_fall"], "effects": []}]},
   "prestige" : { "min": 0, "max": 1000, "initial": 0, "intervals": []},
   "happiness" : { "min": 0, "max": 100, "initial": 80, "intervals": []},
   "stress" : { "min": 0, "max": 100, "initial": 5, "intervals": []},

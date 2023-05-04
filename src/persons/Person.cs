@@ -63,6 +63,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
       {
         allAbilities.UnionWith(abilityType.subTypes);
       }
+      // Add the global calendar abilities to the allAbilities set.
+      allAbilities.UnionWith(Calendar.CalendarAbilities());
       // The ability set is no longer dirty.
       _allAbilitiesDirty = false;
     }
@@ -274,6 +276,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     this.household.AbilitiesChanged += () => { _householdAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
     // Watch for changes to the inventory.
     this.inventory.AbilitiesChanged += () => { _itemAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
+    // Watch for changes to the global Calendar abilities.
+    Calendar.AbilitiesChanged += () => { _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
     // Add the person to the registry.
     if (global_persons.ContainsKey(this.household))
     {

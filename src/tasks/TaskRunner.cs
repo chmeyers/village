@@ -1,4 +1,5 @@
 using Village.Abilities;
+using Village.Base;
 using Village.Effects;
 using Village.Items;
 using Village.Persons;
