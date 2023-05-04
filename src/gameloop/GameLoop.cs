@@ -8,7 +8,7 @@ public class GameLoop
   // Reset the game.
   public void Reset()
   {
-    Calendar.global_calendar.Reset();
+    Calendar.Reset();
     // delete all the people in all the households.
     Person.global_persons.Clear();
     Household.global_households.Clear();
@@ -68,7 +68,7 @@ public class GameLoop
   public void Advance()
   {
     // Advance the calendar.
-    Calendar.global_calendar.Advance();
+    Calendar.Advance();
     // Advance the households.
     foreach (var household in Household.global_households)
     {

@@ -13,8 +13,8 @@ public enum Season
 // Calendar which tracks the game time.
 public class Calendar
 {
-  // static instance of the calendar.
-  public static Calendar global_calendar = new Calendar();
+  // Singleton instance of the calendar.
+  private static Calendar global_calendar = new Calendar();
   // The current time in game ticks.
   // There are 10 ticks per game day.
   // 30 days per game month.
@@ -22,31 +22,31 @@ public class Calendar
   private long _ticks = 0;
 
   // The current time in game ticks.
-  public long ticks { get { return _ticks; } }
+  private long ticks { get { return _ticks; } }
 
   // The current time in game days.
-  public long days { get { return _ticks / 10; } }
+  private long days { get { return _ticks / 10; } }
 
   // The current time in game months.
-  public long months { get { return _ticks / 300; } }
+  private long months { get { return _ticks / 300; } }
 
   // The current time in game years.
-  public long year { get { return _ticks / 3600; } }
+  private long year { get { return _ticks / 3600; } }
 
   // The current month of the year.
-  public int month { get { return (int)(months % 12); } }
+  private int month { get { return (int)(months % 12); } }
 
   // The current day of the month.
-  public int day { get { return (int)(days % 30); } }
+  private int day { get { return (int)(days % 30); } }
 
   // The current hour of the day.
-  public int hour { get { return (int)(_ticks % 10); } }
+  private int hour { get { return (int)(_ticks % 10); } }
 
   // The current day of the year.
-  public int dayOfYear { get { return (int)(days % 360); } }
+  private int dayOfYear { get { return (int)(days % 360); } }
 
   // The current season.
-  public Season season { get { return (Season)(month / 3); } }
+  private Season season { get { return (Season)(month / 3); } }
 
   // Static versions of the above properties using the global calendar.
   public static long Ticks { get { return global_calendar.ticks; } }
@@ -61,27 +61,27 @@ public class Calendar
   
 
   // Advance the calendar by the given number of ticks.
-  public void Advance(uint ticks)
+  public static void Advance(uint ticks)
   {
-    _ticks += ticks;
+    global_calendar._ticks += ticks;
   }
 
   // Advance one tick.
-  public void Advance()
+  public static void Advance()
   {
     Advance(1);
   }
 
   // Reset the calendar.
-  public void Reset()
+  public static void Reset()
   {
-    _ticks = 0;
+    global_calendar._ticks = 0;
   }
 
   // Set the calendar to the given time.
-  public void SetTime(long ticks)
+  public static void SetTime(long ticks)
   {
-    _ticks = ticks;
+    global_calendar._ticks = ticks;
   }
 
 }
