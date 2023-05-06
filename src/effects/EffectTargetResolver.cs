@@ -10,13 +10,6 @@ public class EffectTargetResolver
   // Returns a ChosenEffectTarget.
   public static ChosenEffectTarget? ResolveEffectTarget(Effect effect, EffectTarget effectTarget, IInventoryContext? targetContext, IAbilityContext? runningContext)
   {
-    // Check whether the effect always targets the runner.
-    // Degrade Item effects always does this as it targets the tool used.
-    var inventory = targetContext as IInventoryContext;
-    if (effect.AlwaysTargetsRunner())
-    {
-      inventory = (runningContext as IInventoryContext)!;
-    }
     switch (effectTarget.effectTargetType)
     {
       case EffectTargetType.Village:
@@ -27,13 +20,18 @@ public class EffectTargetResolver
         throw new Exception("Building targets not yet implemented.");
       case EffectTargetType.Person:
         // Check that the context is a person.
-        // TODO(chmeyers): This is currently broken for effects that target other people.
-        var person = inventory as Person;
-        if (person == null)
+        Person? person = null;
+        if (effectTarget.target == "")
         {
-          throw new Exception("Invalid effect target context for person target: " + targetContext);
+          // Targetting the runner.
+          person = runningContext as Person;
         }
-        return new ChosenEffectTarget(effectTarget.effectTargetType, null, person, runningContext);
+        else
+        {
+          // Everything else not yet supported.
+          throw new NotImplementedException("Invalid effect target context for person target: " + targetContext);
+        }
+        return new ChosenEffectTarget(effectTarget.effectTargetType, person, targetContext, runningContext);
       case EffectTargetType.Item:
         // Resolve the item from the person's inventory.
         // Pick an item that gives the ability specified by the effect target.
@@ -44,6 +42,13 @@ public class EffectTargetResolver
         if (targetAbility == null)
         {
           throw new Exception("Invalid ability target: " + effectTarget.target);
+        }
+        // Check whether the effect always targets the runner.
+        // Degrade Item effects always does this as it targets the tool used.
+        var inventory = targetContext as IInventoryContext;
+        if (effect.AlwaysTargetsRunner())
+        {
+          inventory = (runningContext as IInventoryContext)!;
         }
         // Get the list of items that give the ability.
         if (inventory == null)

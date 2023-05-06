@@ -110,7 +110,7 @@ public class SkillEffect : Effect
   public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
   {
     // Get the person from the chosen target.
-    ISkillContext person = (ISkillContext)chosenEffectTarget.targetContext!;
+    Person person = (Person)chosenEffectTarget.target!;
     // Make sure person is not null.
     if (person == null)
     {
@@ -144,12 +144,6 @@ public class SkillEffect : Effect
     {
       person.GrantXP(_skill, trainingAmount * 2);
     }
-  }
-
-  // TODO(chmeyers): Fix this so that this effect can target other people.
-  public override bool AlwaysTargetsRunner()
-  {
-    return true;
   }
 
   // The name of the skill to increase.
@@ -259,7 +253,7 @@ public class SkillTreeEffect : Effect
   public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
   {
     // Get the person from the chosen target.
-    ISkillContext person = (ISkillContext)chosenEffectTarget.targetContext!;
+    Person person = (Person)chosenEffectTarget.target!;
     // Make sure person is not null.
     if (person == null)
     {
@@ -325,7 +319,7 @@ public class MealEffect : Effect
   public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
   {
     // Get the person from the chosen target.
-    Person person = (Person)chosenEffectTarget.targetContext!;
+    Person person = (Person)chosenEffectTarget.target!;
     // Make sure person is not null.
     if (person == null)
     {
