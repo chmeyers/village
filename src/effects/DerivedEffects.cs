@@ -146,6 +146,12 @@ public class SkillEffect : Effect
     }
   }
 
+  // TODO(chmeyers): Fix this so that this effect can target other people.
+  public override bool AlwaysTargetsRunner()
+  {
+    return true;
+  }
+
   // The name of the skill to increase.
   public string skill;
   // Cached Skill object.

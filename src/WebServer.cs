@@ -182,7 +182,7 @@ public class GameServer
     }
     
     // Perform the task using the TaskRunner
-    var runningTask = TaskRunner.StartTask(person, (personal ? person.inventory : person.household.inventory), task, targets);
+    var runningTask = TaskRunner.StartTask(person, (personal ? person : person.household), task, targets);
     if (runningTask != null)
     {
       Console.WriteLine("Task started.");
