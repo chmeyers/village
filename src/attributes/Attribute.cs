@@ -29,6 +29,10 @@ public class AttributeType
   // Dictionary of attribute types.
   public static Dictionary<string, AttributeType> types { get; private set; } = new Dictionary<string, AttributeType>();
 
+  // Set of abilities that have been referenced by the attributes loaded so far.
+  // This is used to check for circular dependencies.
+  private static HashSet<AbilityType> _referencedAbilities = new HashSet<AbilityType>();
+
   // Clear the types dictionary.
   public static void Clear()
   {
@@ -52,7 +56,14 @@ public class AttributeType
     {
       var min = (int)(long)attribute.Value["min"];
       var max = (int)(long)attribute.Value["max"];
-      var init = (int)(long)attribute.Value["initial"];
+      AbilityValue init = AbilityValue.FromJson(attribute.Value["initial"]);
+      // Check that any abilities referenced by the initial value
+      // are not in the referenced abilities set. This is to prevent
+      // circular dependencies.
+      if (_referencedAbilities.Overlaps(init.Abilities))
+      {
+        throw new Exception("Possible circular dependency detected in attribute: " + attribute.Key);
+      }
       AttributeType a = new AttributeType(attribute.Key, init, min, max);
       // Check whether it's a calendar attribute.
       if (attribute.Value.ContainsKey("calendar"))
@@ -123,6 +134,13 @@ public class AttributeType
             attributeInterval.Abilities.Add(abilityType);
             attributeInterval.Abilities.UnionWith(abilityType.subTypes);
           }
+          // Don't allow attributes to create abilities that they reference.
+          if (attributeInterval.Abilities.Overlaps(init.Abilities))
+          {
+            throw new Exception("Circular dependency detected in attribute: " + attribute.Key + ". It depends on an ability that it creates.");
+          }
+          // Save the abilities that were referenced.
+          _referencedAbilities.UnionWith(attributeInterval.Abilities);
         }
 
         // Check whether effects is present.
@@ -137,6 +155,7 @@ public class AttributeType
               throw new Exception("Failed to find effect type: " + effect + " for attribute: " + attribute.Key);
             }
             attributeInterval.effects.Add(effectType);
+            // TODO(chmeyers): It would be good to check for circular dependencies caused by effects, too.
           }
         }
 
@@ -164,20 +183,13 @@ public class AttributeType
   {
     // Load the JSON from the file.
     string json = File.ReadAllText(filename);
-    try
-    {
-      LoadString(json);
-    }
-    catch (Exception e)
-    {
-      throw new Exception("Failed to load attribute types from file: " + filename + "\n" + e.Message);
-    }
+    LoadString(json);
   }
 
   // The name of the attribute.
   public string name { get; private set; }
   // The initial value of the attribute.
-  public int initialValue { get; private set; }
+  public AbilityValue initialValue { get; private set; }
   // The minimum value of the attribute.
   public int minValue { get; private set; }
   // The maximum value of the attribute.
@@ -209,7 +221,7 @@ public class AttributeType
     return upper;
   }
 
-  public AttributeType(string name, int initialValue, int minValue, int maxValue)
+  public AttributeType(string name, AbilityValue initialValue, int minValue, int maxValue)
   {
     this.name = name;
     this.initialValue = initialValue;
@@ -222,8 +234,10 @@ public class AttributeType
 
 public class Attribute : IAbilityCollection
 {
-  // The current value of the attribute.
+  // The current value of the attribute, including modifiers.
   public int value { get; private set; }
+  // The real underlying value of the attribute is stored in this ability value.
+  private AbilityValue abilityValue;
   // Cached min of the range the attribute is currently in.
   public int rangeMin { get; private set; }
   // Cached max of the range the attribute is currently in.
@@ -234,28 +248,39 @@ public class Attribute : IAbilityCollection
   public AttributeType attributeType;
   // target for effects
   private IInventoryContext? target;
-  // context for effects
+  // context for effects and abilityValues.
   private IAbilityContext? context;
+  // Set of Abilities that can trigger value updates.
+  private HashSet<AbilityType> _modifierAbilities = new HashSet<AbilityType>();
+  
 
   // List of async effects that are currently running.
   List<Task> _asyncEffects = new List<Task>();
 
   public event AbilitiesChanged? AbilitiesChanged;
 
-  public Attribute(AttributeType attributeType, IInventoryContext? effectTarget, IAbilityContext? effectContext)
+  public Attribute(AttributeType attributeType, IInventoryContext? effectTarget, IAbilityContext? context)
   {
     this.attributeType = attributeType;
-    this.value = attributeType.initialValue;
+    this.value = attributeType.initialValue.GetValue(context);
+    this.abilityValue = new AbilityValue(attributeType.initialValue);
+    this._modifierAbilities = attributeType.initialValue.Abilities;
+    
     // Use a binary search to find the interval that the initial value is in.
     // We find the key of the interval that is just less than the initial value.
     // The interval that the initial value is in is the interval that starts at
     // the key we found.
-    this.intervalIndex = attributeType.FindIntervalIndex(attributeType.initialValue);
+    this.intervalIndex = attributeType.FindIntervalIndex(this.value);
     var interval = attributeType.intervals.GetValueAtIndex(this.intervalIndex);
     this.rangeMin = interval.lower;
     this.rangeMax = interval.upper;
     this.target = effectTarget;
-    this.context = effectContext;
+    this.context = context;
+    // If the context is not null and we have modifier abilities, register for updates.
+    if (context != null && _modifierAbilities.Count > 0)
+    {
+      context.AbilitiesChanged += OnAbilitiesChanged;
+    }
   }
 
   public HashSet<AbilityType> Abilities
@@ -270,21 +295,34 @@ public class Attribute : IAbilityCollection
     set => throw new NotImplementedException();
   }
 
-  // Set the value of the attribute.
-  public int SetValue(int newValue)
+  private void OnAbilitiesChanged(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
-    if (newValue == value) return value;
-
-    if (newValue < attributeType.minValue)
+    // Check whether the added or removed abilities are modifier abilities.
+    // If so, we need to update the value.
+    // TODO(chmeyers): Theoretically we could index the event by ability type and only
+    // register for updates we care about, but that might be overcomplicating things.
+    // We can revisit this if we find that this is a performance bottleneck.
+    if ((added != null && _modifierAbilities.Overlaps(added)) ||
+        (removed != null && _modifierAbilities.Overlaps(removed)))
     {
-      newValue = attributeType.minValue;
+      UpdateValue();
     }
-    else if (newValue > attributeType.maxValue)
-    {
-      newValue = attributeType.maxValue;
-    }
+  }
 
-    value = newValue;
+  private int UpdateValue()
+  {
+    // Recalculate the value.
+    value = abilityValue.GetValue(context);
+
+    // Post-modifier value is also gated by the min/max.
+    if (value < attributeType.minValue)
+    {
+      value = attributeType.minValue;
+    }
+    else if (value > attributeType.maxValue)
+    {
+      value = attributeType.maxValue;
+    }
 
     // if value is still inside the current range, we don't need to update the range
     if (value >= rangeMin && value < rangeMax) return value;
@@ -293,7 +331,7 @@ public class Attribute : IAbilityCollection
     // We find the key of the interval that is just less than the new value.
     // The interval that the new value is in is the interval that starts at
     // the key we found.
-    int newIntervalIndex = attributeType.FindIntervalIndex(newValue);
+    int newIntervalIndex = attributeType.FindIntervalIndex(value);
     if (newIntervalIndex != intervalIndex)
     {
       // Check whether the new intervals' abilities are different from
@@ -320,10 +358,28 @@ public class Attribute : IAbilityCollection
 
     return value;
   }
+  // Set the base value of the attribute.
+  public int SetValue(int newBaseValue)
+  {
+    if (newBaseValue == abilityValue.baseValue) return value;
+
+    if (newBaseValue < attributeType.minValue)
+    {
+      newBaseValue = attributeType.minValue;
+    }
+    else if (newBaseValue > attributeType.maxValue)
+    {
+      newBaseValue = attributeType.maxValue;
+    }
+
+    abilityValue.baseValue = newBaseValue;
+
+    return UpdateValue();
+  }
 
   // Add a value to the attribute.
   public int AddValue(int addValue)
   {
-    return SetValue(value + addValue);
+    return SetValue(abilityValue.baseValue + addValue);
   }
 }

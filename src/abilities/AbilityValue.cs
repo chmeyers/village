@@ -20,10 +20,31 @@ public class AbilityValue
   // The abilities that affect the AbilityValue.
   private Dictionary<AbilityType, int> addAbilities = new Dictionary<AbilityType, int>();
   private Dictionary<AbilityType, float> multAbilities = new Dictionary<AbilityType, float>();
+  // Set of abilities that can affect the AbilityValue.
+  public HashSet<AbilityType> Abilities
+  {
+    get
+    {
+      HashSet<AbilityType> abilities = new HashSet<AbilityType>();
+      abilities.UnionWith(addAbilities.Keys);
+      abilities.UnionWith(multAbilities.Keys);
+      return abilities;
+    }
+  }
   // The AbilityValue constructor.
   public AbilityValue(int baseValue)
   {
     this.baseValue = baseValue;
+  }
+
+  // Copy constructor does a shallow copy, as the dictionaries are immutable.
+  public AbilityValue(AbilityValue abilityValue)
+  {
+    this.baseValue = abilityValue.baseValue;
+    this.min = abilityValue.min;
+    this.max = abilityValue.max;
+    this.addAbilities = abilityValue.addAbilities;
+    this.multAbilities = abilityValue.multAbilities;
   }
   
   public AbilityValue(Newtonsoft.Json.Linq.JToken? json)

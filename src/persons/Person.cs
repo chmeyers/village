@@ -123,6 +123,12 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     return attributes.AddValue(attributeType, value);
   }
 
+  public int AddAttribute(AttributeType attributeType)
+  {
+    attributes.Add(attributeType);
+    return attributes.GetValue(attributeType);
+  }
+
   // Get the amount this person will offer for a set of items.
   // In this case the other person (the seller) is assumed to be the one initiating the trade.
   // The offer may depend on the seller, such as the buyer's relationship with the seller.

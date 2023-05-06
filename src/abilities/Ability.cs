@@ -205,6 +205,8 @@ public interface IAbilityCollection : IAbilityProvider
       abilitySet.ExceptWith(removedAbilities);
       abilitySet.UnionWith(addedAbilities);
     }
+    // TODO(chmeyers): Should we be exiting any locks before calling the event?
+    // If you're reading this and suffering a deadlock, the answer is probably yes.
     abilityEvent?.Invoke(addedProvider, addedAbilities, removedProvider, removedAbilities);
   }
 }
