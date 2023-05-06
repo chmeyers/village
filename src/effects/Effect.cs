@@ -35,9 +35,8 @@ public enum EffectType
   BuildingComponent,
   // Propagate Skills up and down the skill tree.
   SkillTree,
-  // Eat a meal. (Or go hungry.) Intended as a mandatory effect that
-  // each person must perform at least once every day.
-  Meal,
+  // Pulls an attribute towards a target value.
+  AttributePuller,
 }
 
 public class EffectTarget
@@ -177,6 +176,10 @@ public class Effect
   {
     throw new Exception("Effect.ApplySync not implemented for " + effectType);
   }
+
+  // Initialize is called after all effects and other types have been loaded.
+  // This is used to resolve any references between effects.
+  public virtual void Initialize() {}
 
   public Effect(string effect, EffectTargetType target, EffectType effectType)
   {

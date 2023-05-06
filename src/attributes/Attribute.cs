@@ -111,9 +111,13 @@ public class AttributeType
           upper = (int)(long)intervals[intervals.IndexOf(interval) + 1]["lower"];
         }
         // Check that the lower bound is less than the upper bound.
-        if (lower >= upper)
+        if (lower == upper)
         {
-          throw new Exception("Intervals must be sorted for attribute: " + attribute.Key);
+          throw new Exception("Intervals must not be empty for attribute: " + attribute.Key + ". Lower bound: " + lower + " is equal to upper bound: " + upper);
+        }
+        else if (lower > upper)
+        {
+          throw new Exception("Intervals must be sorted for attribute: " + attribute.Key + ". Lower bound: " + lower + " is greater than upper bound: " + upper);
         }
 
         AttributeInterval attributeInterval = new AttributeInterval();

@@ -118,6 +118,11 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     return attributes.SetValue(attributeType, value);
   }
 
+  public int GetAttributeValue(AttributeType attributeType)
+  {
+    return attributes.GetValue(attributeType);
+  }
+
   public int AddAttribute(AttributeType attributeType, int value)
   {
     return attributes.AddValue(attributeType, value);

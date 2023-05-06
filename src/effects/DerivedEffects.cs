@@ -1,5 +1,6 @@
 // Classes that inherit from Effect
 using Village.Abilities;
+using Village.Attributes;
 using Village.Base;
 using Village.Buildings;
 using Village.Items;
@@ -118,16 +119,6 @@ public class SkillEffect : Effect
       return;
     }
 
-    if (_skill == null)
-    {
-      _skill = Skill.Find(skill);
-      // Make sure the skill exists.
-      if (_skill == null)
-      {
-        throw new Exception("Skill does not exist: " + skill + " in skill effect " + effect);
-      }
-    }
-
     // Increase the skill of the target.
     // Note that the amount uses the ability context which may be a different context
     // than the target, for example if one person is teaching another person.
@@ -136,13 +127,24 @@ public class SkillEffect : Effect
     // if more they get nothing.
     var trainingLevel = level.GetValue(chosenEffectTarget.runningContext);
     var trainingAmount = amount.GetValue(chosenEffectTarget.runningContext);
-    if (person.GetLevel(_skill) == trainingLevel)
+    if (person.GetLevel(_skill!) == trainingLevel)
     {
-      person.GrantXP(_skill, trainingAmount);
+      person.GrantXP(_skill!, trainingAmount);
     }
-    else if (person.GetLevel(_skill) < trainingLevel)
+    else if (person.GetLevel(_skill!) < trainingLevel)
     {
-      person.GrantXP(_skill, trainingAmount * 2);
+      person.GrantXP(_skill!, trainingAmount * 2);
+    }
+  }
+
+  // Initialize should resolve the skill name to the actual skill object.
+  public override void Initialize()
+  {
+    _skill = Skill.Find(skill);
+    // Make sure the skill exists.
+    if (_skill == null)
+    {
+      throw new Exception("Skill does not exist: " + skill + " in skill effect " + effect);
     }
   }
 
@@ -261,27 +263,28 @@ public class SkillTreeEffect : Effect
       return;
     }
 
-    if (_skill == null)
-    {
-      _skill = Skill.Find(skill);
-      // Make sure the skill exists.
-      if (_skill == null)
-      {
-        throw new Exception("Skill does not exist: " + skill + " in skill effect " + effect);
-      }
-    }
-
     // If we are propagating up the tree, then add amount XP to each parent of the skill.
-    var relatives = _skill.children;
+    var relatives = _skill!.children;
     if (propagateUp)
     {
       // Use the parents instead of the children.
-      relatives = _skill.parents;
+      relatives = _skill!.parents;
     }
     foreach (var relative in relatives)
     {
       // Increase the skill of the target.
       person.GrantXP(relative, amount.GetValue(chosenEffectTarget.runningContext));
+    }
+  }
+
+  // Initialize should resolve the skill name to the actual skill object.
+  public override void Initialize()
+  {
+    _skill = Skill.Find(skill);
+    // Make sure the skill exists.
+    if (_skill == null)
+    {
+      throw new Exception("Skill does not exist: " + skill + " in skill effect " + effect);
     }
   }
 
@@ -296,23 +299,37 @@ public class SkillTreeEffect : Effect
   public bool propagateUp = false;
 }
 
-public class MealEffect : Effect
+public class AttributePullerEffect : Effect
 {
-  public MealEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  public AttributePullerEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
     // Target must be a person or self.
     if (target != EffectTargetType.Person)
     {
-      throw new Exception("Meal effect must target a person: " + effect);
+      throw new Exception("AttributePuller effect must target a person: " + effect);
     }
     if (data == null)
     {
-      throw new Exception("Meal effect must have a config dictionary: " + effect);
+      throw new Exception("AttributePuller effect must have a config dictionary: " + effect);
     }
-    // The quantity of the meal.
-    quantity = (int)(long)data["quantity"];
-    // The prestige of the meal.
-    prestige = (int)(long)data["prestige"];
+    // All the keys in the data dictionary are the attributes to pull.
+    // The value is the the AttributePuller info.
+    foreach (var key in data.Keys)
+    {
+      var attributePuller = new AttributePuller();
+      attributePuller.attribute = key;
+      var attributePullerData = ((Newtonsoft.Json.Linq.JToken)data[key]).ToObject<Dictionary<string, object>>();
+      if (attributePullerData == null)
+      {
+        throw new Exception("AttributePuller effect " + effect + " has an invalid config entry: " + key);
+      }
+      
+      // The target value of the attribute.
+      attributePuller.target = (int)(long)attributePullerData["target"];
+      // The amount to pull the attribute by.
+      attributePuller.amount = (int)(long)attributePullerData["amount"];
+      _pullers.Add(attributePuller);
+    }
   }
 
   // Apply the effect to the target.
@@ -327,22 +344,49 @@ public class MealEffect : Effect
       return;
     }
 
-    // Adjust the person's muscle, fat, etc based on the quantity of the meal.
-    //
-    // TODO
-    //
+    foreach (var puller in _pullers)
+    {
+      // Get the attribute from the person.
+      int currentValue = person.GetAttributeValue(puller.type!);
+      // If the current value is within amount of the target, then set it to the target.
+      if (currentValue >= puller.target - puller.amount && currentValue <= puller.target + puller.amount)
+      {
+        person.SetAttribute(puller.type!, puller.target);
+      }
+      // Otherwise, pull the attribute towards the target by amount.
+      else if (currentValue < puller.target)
+      {
+        person.SetAttribute(puller.type!, currentValue + puller.amount);
+      }
+      else
+      {
+        person.SetAttribute(puller.type!, currentValue - puller.amount);
+      }
+
+    }
   }
 
-  // People always eat their own meals, even babies.
-  public override bool AlwaysTargetsRunner()
+  // Initialize should resolve the attribute names to the actual attribute type.
+  public override void Initialize()
   {
-    return true;
+    foreach (var puller in _pullers)
+    {
+      puller.type = AttributeType.Find(puller.attribute);
+      // Make sure the attribute exists.
+      if (puller.type == null)
+      {
+        throw new Exception("Attribute does not exist: " + puller.attribute + " in attribute puller effect " + effect);
+      }
+    }
   }
 
-  // The relative quantity of the meal, with 100 being a full meal.
-  // The actual amount of food consumed is based on the person's attributes.
-  // For example, a child needs less than an adult to qualify as a full meal.
-  public int quantity;
-  // The prestige of the meal.
-  public int prestige;
+  class AttributePuller
+  {
+    public string attribute = "";
+    public AttributeType? type;
+    public int target;
+    public int amount;
+  }
+  // List of attributes to pull.
+  private List<AttributePuller> _pullers = new List<AttributePuller>();
 }

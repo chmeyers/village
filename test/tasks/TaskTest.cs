@@ -57,6 +57,8 @@ public class TaskUnitTest
       }";
       // Load the tasks.
       WorkTask.LoadString(json);
+      // Initialize the Effects.
+      EffectLoader.Initialize();
       // Check that the tasks were loaded.
       Assert.AreEqual(4, WorkTask.tasks.Count);
       // Check that the tasks were loaded correctly.

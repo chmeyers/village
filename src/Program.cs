@@ -18,18 +18,18 @@ namespace Village
     {
       // Load the ability types.
       AbilityType.LoadFile("config/abilities/abilitytypes.jsonc");
-      // Load the attributes.
-      AttributeType.LoadFile("config/attributes/attributes.jsonc");
-      Calendar.AddCalendarAttributes();
       // Load the item types, resources first since they are used by other items.
       ItemType.LoadFile("config/items/resources.jsonc");
       ItemType.LoadFile("config/items/tools.jsonc");
       ItemType.LoadFile("config/items/item.jsonc");
-      // Load the effects.
+      // Load the effects. Must be done before Attributes, Tasks, and Skills.
       EffectLoader.LoadFile("config/effects/effects.jsonc");
       EffectLoader.LoadFile("config/effects/building_components.jsonc");
       EffectLoader.LoadFile("config/effects/skill_effects.jsonc");
       EffectLoader.LoadFile("config/effects/skilltree.jsonc");
+      // Load the attributes.
+      AttributeType.LoadFile("config/attributes/attributes.jsonc");
+      Calendar.AddCalendarAttributes();
       // Load the tasks.
       WorkTask.LoadFile("config/tasks/gathering.jsonc");
       WorkTask.LoadFile("config/tasks/crafting.jsonc");
@@ -43,6 +43,8 @@ namespace Village
       Skill.LoadParentsFile("config/skills/skilltree.jsonc");
       // Load the default price list.
       ConfigPriceList.LoadDefault("config/items/pricelist.jsonc");
+      // Do the Effect Initialization after everything else is loaded.
+      EffectLoader.Initialize();
     }
 
     public static void PrintInventory(Inventory inventory)

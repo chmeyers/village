@@ -88,6 +88,8 @@ public class SkillUnitTest
   }";
       // Load the skills.
       Skill.LoadString(json);
+      // Initialize the Effects.
+      EffectLoader.Initialize();
       // Check that the skills were loaded.
       Assert.AreEqual(3, Skill.skills.Count);
       // Check that the skills were loaded correctly.

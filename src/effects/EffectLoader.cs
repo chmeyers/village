@@ -45,6 +45,10 @@ public class EffectLoader : Effect
           // Create the effect.
           newEffect = new SkillTreeEffect(name, effectTarget, effectType, config);
           break;
+        case EffectType.AttributePuller:
+          // Create the effect.
+          newEffect = new AttributePullerEffect(name, effectTarget, effectType, config);
+          break;
         default:
           throw new Exception("Unknown effect type: " + effectType);
       }
@@ -72,6 +76,17 @@ public class EffectLoader : Effect
     // Load the JSON file.
     string json = File.ReadAllText(filename);
     LoadString(json);
+  }
+
+  // Initialize is called after all the other types have been loaded.
+  // This is used to resolve any references between effects and other types.
+  public new static void Initialize()
+  {
+    // Call initialize on all the effects.
+    foreach (var effect in _effects)
+    {
+      effect.Value.Initialize();
+    }
   }
 
   // Constructor, which always throws an exception.
