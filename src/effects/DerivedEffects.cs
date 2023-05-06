@@ -110,7 +110,7 @@ public class SkillEffect : Effect
   public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
   {
     // Get the person from the chosen target.
-    Person person = (Person)chosenEffectTarget.target!;
+    ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
     // Make sure person is not null.
     if (person == null)
     {

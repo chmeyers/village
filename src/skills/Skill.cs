@@ -326,7 +326,7 @@ public class PersonSkill
     foreach (var effect in skill.levels[level - 1].effects)
     {
       // Apply the effect, the target is always the person whose skill this is.
-      effect.Apply(new ChosenEffectTarget(EffectTargetType.Person, null, _context, _context));
+      effect.Apply(new ChosenEffectTarget(EffectTargetType.Person, _context, _context, _context));
     }
     return true;
   }
