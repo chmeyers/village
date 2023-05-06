@@ -119,6 +119,32 @@ public class TaskRunner
   // This should only be called by the GameLoop.
   public static bool AdvanceTask(Person person)
   {
+    // Complete all the tasks in the person's zero cost task queue.
+    while (person.zeroCostTasks.TryDequeue(out var zeroCostTask))
+    {
+      FinishTask(zeroCostTask);
+    }
+    // If the person has priority tasks, take from that queue.
+    if (person.priorityTasks.Count > 0)
+    {
+      // Peek at the first item in the person's priority task queue.
+      if (!person.priorityTasks.TryPeek(out var priorityTask))
+      {
+        // Should never happen since we just checked the count.
+        // If this happens it's probably because something other than
+        // the GameLoop is calling AdvanceTask.
+        throw new Exception("Priority task queue is empty with Count > 0.");
+      }
+      // Advance the task by one tick.
+      if (AdvanceTask(priorityTask, 1))
+      {
+        // If the task is finished, remove it from the queue.
+        person.priorityTasks.TryDequeue(out _);
+        return true;
+      }
+      return false;
+    }
+    // No priority tasks, so take from the running task queue.
     // Peek at the first item in the person's running task queue.
     if (!person.runningTasks.TryPeek(out var runningTask))
     {

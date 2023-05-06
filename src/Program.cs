@@ -22,6 +22,7 @@ namespace Village
       ItemType.LoadFile("config/items/resources.jsonc");
       ItemType.LoadFile("config/items/tools.jsonc");
       ItemType.LoadFile("config/items/item.jsonc");
+      ItemType.LoadFile("config/items/food.jsonc");
       // Load the effects. Must be done before Attributes, Tasks, and Skills.
       EffectLoader.LoadFile("config/effects/effects.jsonc");
       EffectLoader.LoadFile("config/effects/building_components.jsonc");
@@ -36,6 +37,8 @@ namespace Village
       WorkTask.LoadFile("config/tasks/tool_crafting.jsonc");
       WorkTask.LoadFile("config/tasks/resources.jsonc");
       WorkTask.LoadFile("config/tasks/building.jsonc");
+      WorkTask.LoadFile("config/tasks/meals.jsonc");
+      TaskSet.LoadFile("config/tasks/task_sets.jsonc");
       // Load the buildings.
       BuildingType.LoadFile("config/buildings/buildings.jsonc");
       // Load the skills, followed by the skill tree.

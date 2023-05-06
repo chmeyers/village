@@ -1,0 +1,4 @@
+{
+  // People must run one of the tasks in this list every day, if possible.
+  "daily": [ "go_hungry", "scrounge_for_food", "forage_to_eat", "hunt_to_eat", "cook_for_self_with_leftovers", "eat_meal" ],
+}

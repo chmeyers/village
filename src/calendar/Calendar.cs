@@ -80,6 +80,9 @@ public class Calendar
   // The current season.
   private Season season { get { return (Season)(month / 3); } }
 
+  // Whether this tick is the start of a new day.
+  private bool startOfDay { get { return _ticks % 10 == 0; } }
+
   // Static versions of the above properties using the global calendar.
   public static long Ticks { get { return global_calendar.ticks; } }
   public static long Days { get { return global_calendar.days; } }
@@ -90,6 +93,7 @@ public class Calendar
   public static int Hour { get { return global_calendar.hour; } }
   public static int DayOfYear { get { return global_calendar.dayOfYear; } }
   public static Season Season { get { return global_calendar.season; } }
+  public static bool StartOfDay { get { return global_calendar.startOfDay; } }
 
 
   // Advance the calendar by the given number of ticks.

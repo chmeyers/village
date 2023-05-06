@@ -254,6 +254,25 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   // Only the main game loop thread should remove from this queue.
   // Only the oldest task in the queue will be advanced.
   public ConcurrentQueue<RunningTask> runningTasks { get; protected set; } = new ConcurrentQueue<RunningTask>();
+  // High priority tasks, these will be run before any other tasks.
+  public ConcurrentQueue<RunningTask> priorityTasks { get; protected set; } = new ConcurrentQueue<RunningTask>();
+  // Zero cost tasks, any tasks in this queue will be run on the next game tick.
+  public ConcurrentQueue<RunningTask> zeroCostTasks { get; protected set; } = new ConcurrentQueue<RunningTask>();
+  public void EnqueueTask(RunningTask task, bool prioritize)
+  {
+    if (task.ticksRemaining == 0)
+    {
+      zeroCostTasks.Enqueue(task);
+    }
+    else if (prioritize)
+    {
+      priorityTasks.Enqueue(task);
+    }
+    else
+    {
+      runningTasks.Enqueue(task);
+    }
+  }
 
   // The person's current job.
   // TODO(chmeyers): Support configable job types.
@@ -288,7 +307,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
       _permAbilities.UnionWith(added);
       // Update the abilities cache.
       UpdateAbilities(this, added, null, null);
-      
+
     }
   }
 
@@ -393,6 +412,22 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     }
     // Transfer the items from the person to the household.
     inventory.Transfer(household.inventory, items);
+  }
+
+  public void PickTaskFromSet(HashSet<WorkTask> taskset, bool prioritize = false)
+  {
+    // Filter the taskset to only tasks that the person can do.
+    var available = AvailableHouseholdTasks.Intersect(taskset);
+    if (available.Count() == 0) return;
+    // Pick the best task from the set.
+    // TODO(chmeyers): Implement an intelligent picking algorithm.
+    WorkTask best = available.Max()!;
+    // TODO(chmeyers): Deal with targets.
+    if (best.targets.Count > 0) throw new Exception("Targeted Mandatory tasks not implemented yet.");
+    // Enqueue the task as a running task. Prioritized tasks go to the front of the queue.
+    var runningTask = TaskRunner.StartTask(this, this.household, best, null);
+    if (runningTask == null) throw new Exception("Failed to start Mandatory task: " + best.task + " for person: " + name);
+    EnqueueTask(runningTask, prioritize);
   }
 
 

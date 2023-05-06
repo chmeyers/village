@@ -187,7 +187,7 @@ public class GameServer
     {
       Console.WriteLine("Task started.");
       // Enqueue the task to the person.
-      person.runningTasks.Enqueue(runningTask);
+      person.EnqueueTask(runningTask, false);
     }
     else
     {

@@ -1,0 +1,7 @@
+{
+  "food": { "group": "FOOD", "flammable": true },
+  "meal": { "group": "FOOD", "flammable": true, "spoilTime": 70 },
+  "prestige_meal": { "group": "FOOD", "scrapItems": {"meal": 1}, "flammable": true, "spoilTime": 10 },
+  "grain": { "group": "FOOD", "parents": ["food"], "flammable": true, "lossRate": 0.01 },
+  "meat": { "group": "FOOD", "parents": ["food"], "flammable": true, "spoilTime": 140 },
+}

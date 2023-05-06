@@ -5,6 +5,20 @@ using Village.Tasks;
 namespace Village.Base;
 public class GameLoop
 {
+  private HashSet<WorkTask> dailyTasks = new HashSet<WorkTask>();
+
+  // Constructor.
+  public GameLoop()
+  {
+    Load();
+  }
+
+  // Load the game.
+  public void Load()
+  {
+    dailyTasks = TaskSet.Find("daily") ?? throw new Exception("Failed to find daily taskset");
+  }
+
   // Reset the game.
   public void Reset()
   {
@@ -26,7 +40,7 @@ public class GameLoop
       {
         foreach (var person in Person.global_persons[household])
         {
-          if (person.runningTasks.Count == 0)
+          if (person.runningTasks.Count == 0 && person.priorityTasks.Count == 0)
           {
             return false;
           }
@@ -50,7 +64,12 @@ public class GameLoop
       person.TakeNeedsFromHousehold();
       // 4) Transfer to Household inventory.
       person.GiveSurplusToHousehold();
-      // 5) Do zero-time tasks.
+      // 5) Do Mandatory tasks.
+      if (Calendar.StartOfDay)
+      {
+        // Pick a task from the "daily" taskset.
+        person.PickTaskFromSet(dailyTasks, true);
+      }
       // 6) Register remaining needs with household.
     }
     // 7) Calculate the household's needs.

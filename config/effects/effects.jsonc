@@ -1,3 +1,6 @@
 {
-  "degrade_1" : { "target" : "Item", "effectType" : "Degrade", "config" : {"amount": 1} },
+  "degrade_1" : { "target": "Item", "effectType": "Degrade", "config": { "amount": 1 } },
+  "starve_effect" : { "target": "Person", "effectType": "AttributePuller", "config": { "fat" : { "target":0, "amount": 10}, "muscle_effectiveness": { "target": 0, "amount": 2}, "muscle": {"target":0, "amount": 10} } },
+  "scrounge_effect" : { "target": "Person", "effectType": "AttributePuller", "config": { "fat" : { "target":1, "amount": 1}, "muscle_effectiveness": { "target": 50, "amount": 2}, "muscle": {"target":50, "amount": 4} } },
+  "full_meal_effect" : { "target": "Person", "effectType": "AttributePuller", "config": { "fat" : { "target":150, "amount": 1}, "muscle_effectiveness": { "target": 100, "amount": 1}, "muscle": {"target":100, "amount": 1} } },
 }
