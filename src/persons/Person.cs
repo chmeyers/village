@@ -20,96 +20,18 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   // Registry of all the persons, keyed on what household they are in.
   public static Dictionary<Household, HashSet<Person>> global_persons = new Dictionary<Household, HashSet<Person>>();
 
-  // Calculate the ability sets for this Person.
-  private void CalculateAbilities()
-  {
-    if (_attributeAbilitiesDirty || _itemAbilitiesDirty || _householdAbilitiesDirty || _allAbilitiesDirty)
-    {
-      // Clear the allAbilities set.
-      allAbilities.Clear();
-      // Add the abilities set to the allAbilities set.
-      allAbilities.UnionWith(abilities);
-      // Add the sub-abilities of the abilities set to the allAbilities set.
-      foreach (AbilityType abilityType in abilities)
-      {
-        allAbilities.UnionWith(abilityType.subTypes);
-      }
-      // Recalculate the itemAbilities set if it's dirty.
-      CalculateItemAbilities();
-      // Add the itemAbilities set to the allAbilities set.
-      allAbilities.UnionWith(itemAbilities.Keys);
-      // Add the sub-abilities of the itemAbilities set to the allAbilities set.
-      foreach (AbilityType abilityType in itemAbilities.Keys)
-      {
-        allAbilities.UnionWith(abilityType.subTypes);
-      }
-      // Get the attribute abilities
-      var attributeAbilities = attributes.AttributeAbilities();
-      // Add the attributeAbilities set to the allAbilities set.
-      allAbilities.UnionWith(attributeAbilities);
-      // Add the sub-abilities of the attributeAbilities set to the allAbilities set.
-      foreach (AbilityType abilityType in attributeAbilities)
-      {
-        allAbilities.UnionWith(abilityType.subTypes);
-      }
-      _attributeAbilitiesDirty = false;
-      // Get the household abilities
-      var householdAbilities = household.BuildingAbilities();
-      // Add the householdAbilities set to the allAbilities set.
-      allAbilities.UnionWith(householdAbilities.Keys);
-      _householdAbilitiesDirty = false;
-      // Add the sub-abilities of the householdAbilities set to the allAbilities set.
-      foreach (AbilityType abilityType in householdAbilities.Keys)
-      {
-        allAbilities.UnionWith(abilityType.subTypes);
-      }
-      // Add the global calendar abilities to the allAbilities set.
-      allAbilities.UnionWith(Calendar.CalendarAbilities());
-      // The ability set is no longer dirty.
-      _allAbilitiesDirty = false;
-    }
-  }
-
-  // Calculate the item abilities for this Person.
-  private void CalculateItemAbilities()
-  {
-    // Only recalculate the itemAbilities set if it's dirty.
-    if (_itemAbilitiesDirty)
-    {
-      // Clear the itemAbilities set.
-      itemAbilities.Clear();
-      itemAbilities = inventory.ItemAbilities();
-      // The item abilities are no longer dirty.
-      _itemAbilitiesDirty = false;
-    }
-  }
-
   // Calculate the valid tasks for this Person.
   private void CalculateValidTasks()
   {
     // Only recalculate the validTasks set if it's dirty.
-    if (_validTasksDirty || _itemAbilitiesDirty || _householdAbilitiesDirty || _allAbilitiesDirty)
+    if (_validTasksDirty)
     {
       // Clear the validTasks set.
       validTasks.Clear();
-      CalculateAbilities();
       // Get Tasks based on abilities.
-      validTasks.UnionWith(WorkTask.GetTasksForAbilities(allAbilities));
+      validTasks.UnionWith(WorkTask.GetTasksForAbilities(Abilities));
       // The valid tasks are no longer dirty.
       _validTasksDirty = false;
-    }
-  }
-
-  // Readonly accessors for the abilities.
-  public HashSet<AbilityType> Abilities
-  {
-    get
-    {
-      lock (_cacheLock)
-      {
-        CalculateAbilities();
-        return abilities;
-      }
     }
   }
 
@@ -157,18 +79,17 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
 
   private void CalculateValidBuildings()
   {
-    // Only recalculate the validTasks set if it's dirty.
-    if (_validBuildingsDirty || _itemAbilitiesDirty || _householdAbilitiesDirty || _allAbilitiesDirty)
+    // Only recalculate the valid buildings set if it's dirty.
+    if (_validBuildingsDirty)
     {
       // Clear the validTasks set.
       validBuildings.Clear();
-      CalculateAbilities();
       // Only the head of household can build buildings.
       if (householdRole == Role.HeadOfHousehold)
       {
         foreach (BuildingType buildingType in BuildingType.buildingTypes.Values)
         {
-          if (allAbilities.IsSupersetOf(buildingType.requirements))
+          if (Abilities.IsSupersetOf(buildingType.requirements))
           {
             validBuildings.Add(buildingType);
           }
@@ -264,7 +185,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     this.name = name;
     // Target and Context for Attribute effects point back at this Person.
     this.attributes = new AttributeSet(this, this);
-    attributes.AbilitiesChanged += () => { _attributeAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
+    attributes.AbilitiesChanged += UpdateAbilities;
     this.skills = new SkillSet(this);
     // If household is null, create a new household for the person.
     if (household == null && role != null && role != Role.HeadOfHousehold)
@@ -273,11 +194,17 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     }
     this.household = (household == null ? new Household() : household);
     this.householdRole = ((Role)(role == null ? Role.HeadOfHousehold : role));
-    this.household.AbilitiesChanged += () => { _householdAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
+    this.household.AbilitiesChanged += UpdateAbilities;
+    // If the household already existed, we need to get it's existing abilities.
+    if (household != null)
+    {
+      PopulateAbilities(this.household);
+    }
     // Watch for changes to the inventory.
-    this.inventory.AbilitiesChanged += () => { _itemAbilitiesDirty = true; _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
+    this.inventory.AbilitiesChanged += UpdateAbilities;
     // Watch for changes to the global Calendar abilities.
-    Calendar.AbilitiesChanged += () => { _allAbilitiesDirty = true; _validBuildingsDirty = true; _validTasksDirty = true; };
+    Calendar.AbilitiesChanged += UpdateAbilities;
+    PopulateAbilities(Calendar.CalendarAbilityCollection());
     // Add the person to the registry.
     if (global_persons.ContainsKey(this.household))
     {
@@ -323,32 +250,68 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   public bool isTrader = false;
 
   // Set of permanant abilities the person has.
-  protected HashSet<AbilityType> abilities = new HashSet<AbilityType>();
+  protected HashSet<AbilityType> _permAbilities = new HashSet<AbilityType>();
 
   // Cache of temporary abilities the person has from items, along with the item
   // that granted the ability.
   // This contains just the item's direct abilities, not the
   // sub-abilities of those abilities.
-  protected Dictionary<AbilityType, List<Item>> itemAbilities = new Dictionary<AbilityType, List<Item>>();
+  protected Dictionary<AbilityType, HashSet<IAbilityProvider>> _abilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>();
 
-  // Item abilities for the inventory interface.
-  public Dictionary<AbilityType, List<Item>> ItemAbilities()
-  {
-    lock (_cacheLock)
-    {
-      CalculateItemAbilities();
-      return itemAbilities;
-    }
-  }
+  public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders { get { return _abilityProviders; } }
+
+  private HashSet<AbilityType> _abilities = new HashSet<AbilityType>();
+
+  public HashSet<AbilityType> Abilities { get { return _abilities; } }
+
+  public event AbilitiesChanged? AbilitiesChanged;
 
   public void GrantAbility(AbilityType ability)
   {
-    lock(_cacheLock)
+    lock (_cacheLock)
     {
-      // Add the ability to the abilities set.
-      abilities.Add(ability);
-      // Set the dirty bit for the allAbilities set.
-      _allAbilitiesDirty = true;
+      HashSet<AbilityType> added = new HashSet<AbilityType>();
+      added.Add(ability);
+      added.UnionWith(ability.subTypes);
+      // Add the abilities to the abilities set.
+      _permAbilities.UnionWith(added);
+      // Update the abilities cache.
+      UpdateAbilities(this, added, null, null);
+      
+    }
+  }
+
+  private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
+  {
+    lock (_cacheLock)
+    {
+      IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, addedProvider, added, removedProvider, removed, AbilitiesChanged);
+      _validTasksDirty = true;
+      _validBuildingsDirty = true;
+    }
+  }
+
+  private void PopulateAbilities(IAbilityCollection abilityCollection)
+  {
+    lock (_cacheLock)
+    {
+      foreach (var providerAbilities in abilityCollection.AbilityProviders)
+      {
+        foreach (var provider in providerAbilities.Value)
+        {
+          if (_abilityProviders.ContainsKey(providerAbilities.Key))
+          {
+            _abilityProviders[providerAbilities.Key].Add(provider);
+          }
+          else
+          {
+            _abilityProviders.Add(providerAbilities.Key, new HashSet<IAbilityProvider>() { provider });
+          }
+        }
+        _abilities.Add(providerAbilities.Key);
+      }
+      _validTasksDirty = true;
+      _validBuildingsDirty = true;
     }
   }
 
@@ -421,26 +384,6 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     inventory.Transfer(household.inventory, items);
   }
 
-  // Dirty bit for attribute abilities.
-  protected bool _attributeAbilitiesDirty = true;
-
-  // Dirty bit for the item abilities, it should be set to dirty
-  // whenever the person loses an item that gives them an ability.
-  protected bool _itemAbilitiesDirty = true;
-
-  // Dirty bit for the household abilities, it should be set to dirty
-  // whenever the person's household building abilities change.
-  protected bool _householdAbilitiesDirty = true;
-
-  // Cache for all the abilities the person currently has.
-  // This is the union of the abilities and itemAbilities sets, as
-  // well as the sub-abilities of those abilities.
-  // TODO(chmeyers): Include abilities granted by the environment and buildings.
-  protected HashSet<AbilityType> allAbilities = new HashSet<AbilityType>();
-
-  // Dirty bit for the all abilities, it should be set to dirty
-  // whenever the person's abilities change.
-  protected bool _allAbilitiesDirty = true;
 
   // Cache of work tasks the person can do, based on their abilities.
   // They may not have the required item inputs to do the task.

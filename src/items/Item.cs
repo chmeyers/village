@@ -133,6 +133,8 @@ public class ItemType
             throw new Exception("Ability not found: " + ability + " for item type: " + name);
           }
           abilitySet.Add(AbilityType.abilityTypes[ability]!);
+          // Add the subtype abilities to the set of abilities.
+          abilitySet.UnionWith(AbilityType.abilityTypes[ability]!.subTypes);
         }
       }
 
@@ -277,7 +279,7 @@ public class ItemType
 }
 
 // An Item is a specific instance of an ItemType.
-public class Item : IComparable<Item>
+public class Item : IComparable<Item>, IAbilityProvider
 {
 
   // Constructor
@@ -319,6 +321,8 @@ public class Item : IComparable<Item>
 
   // How many tenths of a day until this item spoils, or MAX_INT if it never spoils.
   public int timeUntilSpoilage;
+
+  public HashSet<AbilityType> Abilities => itemType.abilities;
 
   // Clone this item.
   public Item Clone()

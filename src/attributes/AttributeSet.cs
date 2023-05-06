@@ -4,16 +4,22 @@ using Village.Items;
 namespace Village.Attributes;
 
 // An AttributeSet contains the set of attributes for a person.
-public class AttributeSet
+public class AttributeSet : IAbilityCollection
 {
   // The attributes.
-  public Dictionary<AttributeType, Attribute> attributes { get; private set;} = new Dictionary<AttributeType, Attribute>();
+  public Dictionary<AttributeType, Attribute> attributes { get; private set; } = new Dictionary<AttributeType, Attribute>();
   // Cache of the abilities given by the attributes.
-  private HashSet<AbilityType> attributeAbilities = new HashSet<AbilityType>();
-  // Dirty bit for the attribute abilities.
-  private bool attributeAbilitiesDirty = true;
+  private Dictionary<AbilityType, HashSet<IAbilityProvider>> _abilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>();
+
+  public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders { get { return _abilityProviders; } }
+
+  private HashSet<AbilityType> _abilities = new HashSet<AbilityType>();
+
+  public HashSet<AbilityType> Abilities { get { return _abilities; } }
+
   // Event handler for when the abilities of a person change.
   public event AbilitiesChanged? AbilitiesChanged;
+
   // lock for the attribute abilities.
   private object _lock = new object();
 
@@ -48,34 +54,25 @@ public class AttributeSet
     }
   }
 
+  // Update Abilities from the attributes.
+  private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
+  {
+    lock (_lock)
+    {
+      IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, addedProvider, added, removedProvider, removed, AbilitiesChanged);
+    }
+  }
+
   // Add without the lock.
   private void AddNoLock(AttributeType attributeType)
   {
     var attribute = new Attribute(attributeType, effectTarget, effectContext);
     attributes.Add(attributeType, attribute);
-    if (attribute.GetAbilities().Count > 0)
+    // Chain the event handler.
+    attribute.AbilitiesChanged += UpdateAbilities;
+    if (attribute.Abilities.Count > 0)
     {
-      attributeAbilitiesDirty = true;
-      AbilitiesChanged?.Invoke();
-    }
-  }
-
-  // Get the set of abilities currently given by the attributes.
-  public HashSet<AbilityType> AttributeAbilities()
-  {
-    lock (_lock)
-    {
-      if (!attributeAbilitiesDirty)
-      {
-        return attributeAbilities;
-      }
-      attributeAbilities.Clear();
-      foreach (Attribute attribute in attributes.Values)
-      {
-        attributeAbilities.UnionWith(attribute.GetAbilities());
-      }
-      attributeAbilitiesDirty = false;
-      return attributeAbilities;
+      UpdateAbilities(attribute, attribute.Abilities, null, null);
     }
   }
 
@@ -90,12 +87,7 @@ public class AttributeSet
       {
         AddNoLock(attributeType);
       }
-      if (attributes[attributeType].SetValue(value))
-      {
-        attributeAbilitiesDirty = true;
-        AbilitiesChanged?.Invoke();
-      }
-      return attributes[attributeType].value;
+      return attributes[attributeType].SetValue(value);
     }
   }
 
@@ -104,18 +96,13 @@ public class AttributeSet
   // Returns the new value of the attribute.
   public int AddValue(AttributeType attributeType, int value)
   {
-    lock(_lock)
+    lock (_lock)
     {
       if (!attributes.ContainsKey(attributeType))
       {
         AddNoLock(attributeType);
       }
-      if (attributes[attributeType].AddValue(value))
-      {
-        attributeAbilitiesDirty = true;
-        AbilitiesChanged?.Invoke();
-      }
-      return attributes[attributeType].value;
+      return attributes[attributeType].AddValue(value);
     }
   }
 

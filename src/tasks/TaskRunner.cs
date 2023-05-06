@@ -138,9 +138,9 @@ public class TaskRunner
   // Have the person perform a task, with the given list of Chosen Targets
   // Immediately finishes the task, ignoring the time cost.
   // Returns true if the task was performed, false otherwise.
-  public static bool PerformTask(Person person, IInventoryContext inventory, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets, bool forceSync = false)
+  public static bool PerformTask(Person person, IInventoryContext target, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets, bool forceSync = false)
   {
-    var runningTask = StartTask(person, inventory, task, chosenTargets);
+    var runningTask = StartTask(person, target, task, chosenTargets);
     if (runningTask == null)
     {
       return false;

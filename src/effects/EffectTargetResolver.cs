@@ -27,7 +27,8 @@ public class EffectTargetResolver
         throw new Exception("Building targets not yet implemented.");
       case EffectTargetType.Person:
         // Check that the context is a person.
-        var person = targetContext as Person;
+        // TODO(chmeyers): This is currently broken for effects that target other people.
+        var person = inventory as Person;
         if (person == null)
         {
           throw new Exception("Invalid effect target context for person target: " + targetContext);
@@ -49,10 +50,11 @@ public class EffectTargetResolver
         {
           throw new Exception("Invalid effect context for item target: " + targetContext);
         }
-        
-        if (inventory.inventory.ItemAbilities().ContainsKey(targetAbility))
+
+        if (inventory.inventory.AbilityProviders.ContainsKey(targetAbility))
         {
-          var items = inventory.inventory.ItemAbilities()[targetAbility];
+          // The inventories AbilityProviders are all Items, I promise.
+          var items = inventory.inventory.AbilityProviders[targetAbility].Cast<Item>();
           // Chose the worst item that gives the ability. The logic behind this
           // is that item effects are typically negative unless the item is
           // specified. i.e. degrade a tool when used.

@@ -10,14 +10,15 @@ using Village.Items;
 
 namespace Village.Attributes;
 
-public class AttributeInterval
+public class AttributeInterval : IAbilityProvider
 {
   // The lower limit of the interval, inclusive.
   public int lower;
   // The upper limit of the interval, exclusive.
   public int upper;
   // The abilities that will be granted while in this interval.
-  public HashSet<AbilityType> abilities = new HashSet<AbilityType>();
+  public HashSet<AbilityType> Abilities { get; } = new HashSet<AbilityType>();
+
   // The effects that will be triggered when entering this interval.
   // Effects are not triggered during initialization.
   public List<Effect> effects = new List<Effect>();
@@ -37,7 +38,8 @@ public class AttributeType
   // Find an attribute type by name.
   public static AttributeType? Find(string name)
   {
-    if (types.ContainsKey(name)) {
+    if (types.ContainsKey(name))
+    {
       return types[name];
     }
     return null;
@@ -110,7 +112,7 @@ public class AttributeType
         if (intervalData.ContainsKey("abilities"))
         {
           var abilities = ((Newtonsoft.Json.Linq.JArray)intervalData["abilities"]).ToObject<List<string>>();
-          
+
           foreach (var ability in abilities!)
           {
             AbilityType? abilityType = AbilityType.Find(ability);
@@ -118,10 +120,11 @@ public class AttributeType
             {
               throw new Exception("Failed to find ability type: " + ability + " for attribute: " + attribute.Key);
             }
-            attributeInterval.abilities.Add(abilityType);
+            attributeInterval.Abilities.Add(abilityType);
+            attributeInterval.Abilities.UnionWith(abilityType.subTypes);
           }
         }
-        
+
         // Check whether effects is present.
         if (intervalData.ContainsKey("effects"))
         {
@@ -136,7 +139,7 @@ public class AttributeType
             attributeInterval.effects.Add(effectType);
           }
         }
-        
+
         a.intervals.Add(lower, attributeInterval);
       }
       types.Add(attribute.Key, a);
@@ -148,7 +151,8 @@ public class AttributeType
   {
     // Load the JSON into a dictionary.
     Dictionary<string, Dictionary<string, object>>? data = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, object>>>(json);
-    if (data == null) {
+    if (data == null)
+    {
       throw new Exception("Failed to load attribute types from string");
     }
     // Load the dictionary.
@@ -216,14 +220,14 @@ public class AttributeType
 
 }
 
-public class Attribute
+public class Attribute : IAbilityCollection
 {
   // The current value of the attribute.
   public int value { get; private set; }
   // Cached min of the range the attribute is currently in.
-  public int rangeMin { get; private set;}
+  public int rangeMin { get; private set; }
   // Cached max of the range the attribute is currently in.
-  public int rangeMax { get; private set;}
+  public int rangeMax { get; private set; }
   // Cached index of the interval the attribute is currently in.
   private int intervalIndex;
   // The attribute type.
@@ -235,6 +239,8 @@ public class Attribute
 
   // List of async effects that are currently running.
   List<Task> _asyncEffects = new List<Task>();
+
+  public event AbilitiesChanged? AbilitiesChanged;
 
   public Attribute(AttributeType attributeType, IInventoryContext? effectTarget, IAbilityContext? effectContext)
   {
@@ -252,17 +258,22 @@ public class Attribute
     this.context = effectContext;
   }
 
-  public HashSet<AbilityType> GetAbilities()
+  public HashSet<AbilityType> Abilities
   {
-    return attributeType.intervals.GetValueAtIndex(intervalIndex).abilities;
+    get => attributeType.intervals.GetValueAtIndex(intervalIndex).Abilities;
+    set => throw new NotImplementedException();
+  }
+
+  public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders
+  {
+    get => throw new NotImplementedException();
+    set => throw new NotImplementedException();
   }
 
   // Set the value of the attribute.
-  // Returns true if the range of the attribute has changed and that
-  // caused the abilities to change.
-  public bool SetValue(int newValue)
+  public int SetValue(int newValue)
   {
-    if (newValue == value) return false;
+    if (newValue == value) return value;
 
     if (newValue < attributeType.minValue)
     {
@@ -276,7 +287,7 @@ public class Attribute
     value = newValue;
 
     // if value is still inside the current range, we don't need to update the range
-    if (value >= rangeMin && value < rangeMax) return false;
+    if (value >= rangeMin && value < rangeMax) return value;
 
     // Use a binary search to find the interval that the new value is in.
     // We find the key of the interval that is just less than the new value.
@@ -295,23 +306,23 @@ public class Attribute
       // Run effects on the new interval, if we have a target and context.
       if (target != null && context != null)
       {
-        
         foreach (var effect in newInterval.effects)
         {
           // Apply the effect, the target is always the person whose attribute this is.
           effect.Apply(new ChosenEffectTarget(effect.target, null, target, context));
         }
       }
-      return !newInterval.abilities.SetEquals(oldInterval.abilities);
+      if (!newInterval.Abilities.SetEquals(oldInterval.Abilities))
+      {
+        AbilitiesChanged?.Invoke(this, newInterval.Abilities, this, oldInterval.Abilities);
+      }
     }
 
-    return false;
+    return value;
   }
 
   // Add a value to the attribute.
-  // Returns true if the range of the attribute has changed and that
-  // caused the abilities to change.
-  public bool AddValue(int addValue)
+  public int AddValue(int addValue)
   {
     return SetValue(value + addValue);
   }

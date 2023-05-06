@@ -46,7 +46,10 @@ public class Calendar
   private Calendar()
   {
     // Set the event handler for when the attributes change.
-    attributes.AbilitiesChanged += () => { _AbilitiesChanged?.Invoke(); };
+    attributes.AbilitiesChanged += (IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed) =>
+    {
+      _AbilitiesChanged?.Invoke(addedProvider, added, removedProvider, removed);
+    };
   }
 
 
@@ -87,7 +90,7 @@ public class Calendar
   public static int Hour { get { return global_calendar.hour; } }
   public static int DayOfYear { get { return global_calendar.dayOfYear; } }
   public static Season Season { get { return global_calendar.season; } }
-  
+
 
   // Advance the calendar by the given number of ticks.
   public static void Advance(uint ticks)
@@ -120,7 +123,12 @@ public class Calendar
 
   public static HashSet<AbilityType> CalendarAbilities()
   {
-    return global_calendar.attributes.AttributeAbilities();
+    return global_calendar.attributes.Abilities;
+  }
+
+  public static IAbilityCollection CalendarAbilityCollection()
+  {
+    return global_calendar.attributes;
   }
 
   private void AddAttribute(AttributeType attributeType)

@@ -40,12 +40,13 @@ public class AttributeUnitTest
     Assert.AreEqual(9, AttributeType.types["strength"].intervals.GetValueAtIndex(2).upper);
     Assert.AreEqual(9, AttributeType.types["strength"].intervals.GetValueAtIndex(3).lower);
     Assert.AreEqual(10, AttributeType.types["strength"].intervals.GetValueAtIndex(3).upper);
-    Assert.AreEqual(1, AttributeType.types["strength"].intervals.GetValueAtIndex(0).abilities.Count);
-    Assert.AreEqual(0, AttributeType.types["strength"].intervals.GetValueAtIndex(1).abilities.Count);
-    Assert.AreEqual(1, AttributeType.types["strength"].intervals.GetValueAtIndex(2).abilities.Count);
-    Assert.AreEqual(1, AttributeType.types["strength"].intervals.GetValueAtIndex(3).abilities.Count);
-    
-    Assert.IsTrue(AttributeType.types["strength"].intervals[0].abilities.Contains(AbilityType.Find("weak_1")!));
+    Assert.AreEqual(2, AttributeType.types["strength"].intervals.GetValueAtIndex(0).Abilities.Count);
+    Assert.AreEqual(0, AttributeType.types["strength"].intervals.GetValueAtIndex(1).Abilities.Count);
+    Assert.AreEqual(2, AttributeType.types["strength"].intervals.GetValueAtIndex(2).Abilities.Count);
+    Assert.AreEqual(3, AttributeType.types["strength"].intervals.GetValueAtIndex(3).Abilities.Count);
+
+    Assert.IsTrue(AttributeType.types["strength"].intervals[0].Abilities.Contains(AbilityType.Find("weak_1")!));
+    Assert.IsTrue(AttributeType.types["strength"].intervals[0].Abilities.Contains(AbilityType.Find("weak_0")!));
 
     // Create an attribute.
     Attribute a = new Attribute(AttributeType.Find("strength")!, null, null);
@@ -53,29 +54,27 @@ public class AttributeUnitTest
     Assert.AreEqual(2, a.value);
     Assert.AreEqual(0, a.rangeMin);
     Assert.AreEqual(3, a.rangeMax);
-    // GetAbilities should contain the ability from the first interval.
-    Assert.AreEqual(1, a.GetAbilities().Count);
-    Assert.IsTrue(a.GetAbilities().Contains(AbilityType.Find("weak_1")!));
+    // GetAbilities should contain the ability from the first interval, and it's sub-ability.
+    Assert.AreEqual(2, a.Abilities.Count);
+    Assert.IsTrue(a.Abilities.Contains(AbilityType.Find("weak_1")!));
+    Assert.IsTrue(a.Abilities.Contains(AbilityType.Find("weak_0")!));
     // Set the value to 1 and verify that abilities didn't change.
-    Assert.IsFalse(a.SetValue(1));
-    Assert.AreEqual(1, a.value);
+    Assert.AreEqual(1, a.SetValue(1));
     Assert.AreEqual(0, a.rangeMin);
     Assert.AreEqual(3, a.rangeMax);
-    Assert.AreEqual(1, a.GetAbilities().Count);
-    Assert.IsTrue(a.GetAbilities().Contains(AbilityType.Find("weak_1")!));
+    Assert.AreEqual(2, a.Abilities.Count);
+    Assert.IsTrue(a.Abilities.Contains(AbilityType.Find("weak_1")!));
     // Set the value to 4 and verify that abilities changed.
-    Assert.IsTrue(a.SetValue(4));
-    Assert.AreEqual(4, a.value);
+    Assert.AreEqual(4, a.SetValue(4));
     Assert.AreEqual(3, a.rangeMin);
     Assert.AreEqual(6, a.rangeMax);
-    Assert.AreEqual(0, a.GetAbilities().Count);
+    Assert.AreEqual(0, a.Abilities.Count);
     // Set the value to 7 and verify that abilities changed.
-    Assert.IsTrue(a.SetValue(7));
-    Assert.AreEqual(7, a.value);
+    Assert.AreEqual(7, a.SetValue(7));
     Assert.AreEqual(6, a.rangeMin);
     Assert.AreEqual(9, a.rangeMax);
-    Assert.AreEqual(1, a.GetAbilities().Count);
-    Assert.IsTrue(a.GetAbilities().Contains(AbilityType.Find("strong_1")!));
+    Assert.AreEqual(2, a.Abilities.Count);
+    Assert.IsTrue(a.Abilities.Contains(AbilityType.Find("strong_1")!));
 
   }
 

@@ -17,7 +17,7 @@ public interface IHouseholdContext
   Household household { get; }
 }
 
-public class Household : IInventoryContext, IHouseholdContext
+public class Household : IInventoryContext, IHouseholdContext, IAbilityCollection
 {
   // Registry of all the households.
   public static HashSet<Household> global_households = new HashSet<Household>();
@@ -28,7 +28,7 @@ public class Household : IInventoryContext, IHouseholdContext
   public bool isPlayerHousehold { get; set; } = false;
   // The inventory of the household.
   public Inventory inventory { get; private set; }
-  
+
   // The buildings owned by the household.
   // TODO(chmeyers): protect with a lock.
   public List<Building> buildings { get; private set; }
@@ -36,10 +36,14 @@ public class Household : IInventoryContext, IHouseholdContext
   // Event handler for when the abilities of a person change.
   public event AbilitiesChanged? AbilitiesChanged;
 
-  private bool _abilitiesDirty = true;
-
   // Cache of the abilities granted by the buildings in the household.
-  private Dictionary<AbilityType, List<Building>> _buildingAbilities = new Dictionary<AbilityType, List<Building>>();
+  private Dictionary<AbilityType, HashSet<IAbilityProvider>> _abilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>();
+
+  public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders { get { return _abilityProviders; } }
+
+  private HashSet<AbilityType> _abilities = new HashSet<AbilityType>();
+
+  public HashSet<AbilityType> Abilities { get { return _abilities; } }
 
   public Household(bool isPlayerHousehold = false)
   {
@@ -50,43 +54,21 @@ public class Household : IInventoryContext, IHouseholdContext
     global_households.Add(this);
   }
 
-  public Dictionary<AbilityType, List<Building>> BuildingAbilities()
-  {
-    if (!_abilitiesDirty)
-    {
-      return _buildingAbilities;
-    }
-    // loop through the buildings and add their abilities to the dictionary.
-    _buildingAbilities.Clear();
-    foreach (var building in buildings)
-    {
-      foreach (var ability in building.abilities)
-      {
-        if (!_buildingAbilities.ContainsKey(ability))
-        {
-          _buildingAbilities[ability] = new List<Building>();
-        }
-        _buildingAbilities[ability].Add(building);
-      }
-    }
-    _abilitiesDirty = false;
-    return _buildingAbilities;
-  }
-
   public void AddBuilding(BuildingType buildingType)
   {
     Building building = new Building(buildingType);
-    building.AbilitiesChanged += BuildingAbilitiesChanged;
+    building.AbilitiesChanged += UpdateAbilities;
     buildings.Add(building);
-    if (building.abilities.Count > 0)
+    if (building.Abilities.Count > 0)
     {
-      BuildingAbilitiesChanged();
+      UpdateAbilities(building, building.Abilities, null, null);
     }
   }
 
-  private void BuildingAbilitiesChanged()
+
+  private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
-    _abilitiesDirty = true;
-    AbilitiesChanged?.Invoke();
+    IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, addedProvider, added, removedProvider, removed, AbilitiesChanged);
   }
+
 }

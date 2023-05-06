@@ -4,9 +4,6 @@ using System.Runtime.CompilerServices;
 
 namespace Village.Abilities;
 
-// Event handler for when the abilities of a person change.
-public delegate void AbilitiesChanged();
-
 public class AbilityType
 {
   // The null ability type with an empty name.
@@ -157,16 +154,77 @@ public class AbilityType
   }
 }
 
-public interface IAbilityContext
+public interface IAbilityProvider
 {
   public HashSet<AbilityType> Abilities { get; }
+}
+
+// Event handler for when the abilities of a collection change.
+public delegate void AbilitiesChanged(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed);
+
+// A collection of abilities, which can be treated as a provider itself.
+public interface IAbilityCollection : IAbilityProvider
+{
+  public event AbilitiesChanged? AbilitiesChanged;
+  public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders { get; }
+  
+  // Default implementation of an ability provider listener
+  public static void UpdateAbilities(ref Dictionary<AbilityType, HashSet<IAbilityProvider>> providerDict, ref HashSet<AbilityType> abilitySet, IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed, AbilitiesChanged? abilityEvent)
+  {
+    HashSet<AbilityType> removedAbilities = new HashSet<AbilityType>();
+    HashSet<AbilityType> addedAbilities = new HashSet<AbilityType>();
+    if (removed != null && removedProvider != null)
+    {
+      foreach (var ability in removed)
+      {
+        if (providerDict.ContainsKey(ability))
+        {
+          providerDict[ability].Remove(removedProvider);
+          if (providerDict[ability].Count == 0)
+          {
+            providerDict.Remove(ability);
+            removedAbilities.Add(ability);
+          }
+        }
+      }
+    }
+    if (added != null && addedProvider != null)
+    {
+      foreach (var ability in added)
+      {
+        if (!providerDict.ContainsKey(ability))
+        {
+          providerDict.Add(ability, new HashSet<IAbilityProvider>());
+        }
+        providerDict[ability].Add(addedProvider);
+        addedAbilities.Add(ability);
+      }
+    }
+    if (abilitySet != null)
+    {
+      abilitySet.ExceptWith(removedAbilities);
+      abilitySet.UnionWith(addedAbilities);
+    }
+    abilityEvent?.Invoke(addedProvider, addedAbilities, removedProvider, removedAbilities);
+  }
+}
+
+public interface IAbilityContext : IAbilityCollection
+{
   public void GrantAbility(AbilityType ability);
 }
 
 public class ConcreteAbilityContext: IAbilityContext
 {
   private HashSet<AbilityType> _abilities = new HashSet<AbilityType>();
+
+  
+  public event AbilitiesChanged? AbilitiesChanged { add { } remove { } }
+
   public HashSet<AbilityType> Abilities { get { return _abilities; } }
+
+  public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders => throw new NotImplementedException();
+
   public ConcreteAbilityContext(HashSet<AbilityType> abilities)
   {
     this._abilities = abilities;

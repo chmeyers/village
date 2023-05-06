@@ -73,8 +73,8 @@ public class BuildingUnitTest
     // Building should be in phase 1.
     Assert.AreEqual("phase_1", building.currentPhase);
     // The only ability the building should provide is the one for the phase.
-    Assert.AreEqual(1, building.abilities.Count());
-    Assert.IsTrue(building.abilities.Contains("construction_phase_phase_1"));
+    Assert.AreEqual(1, building.Abilities.Count());
+    Assert.IsTrue(building.Abilities.Contains("construction_phase_phase_1"));
     // The building should have no components.
     Assert.AreEqual(0, building.completedComponents.Count());
 
@@ -108,8 +108,8 @@ public class BuildingUnitTest
     // The building should now be in phase 2.
     Assert.AreEqual("phase_2", building.currentPhase);
     // The building should now provide the ability for phase 2.
-    Assert.AreEqual(1, building.abilities.Count());
-    Assert.IsTrue(building.abilities.Contains("construction_phase_phase_2"));
+    Assert.AreEqual(1, building.Abilities.Count());
+    Assert.IsTrue(building.Abilities.Contains("construction_phase_phase_2"));
 
     // For phase 2, run tasks out of order, to ensure it works.
     // Run task_4, which should build component_4.
@@ -124,8 +124,8 @@ public class BuildingUnitTest
     // The building should still be in phase 2.
     Assert.AreEqual("phase_2", building.currentPhase);
     // The building should still provide the ability for phase 2.
-    Assert.AreEqual(1, building.abilities.Count());
-    Assert.IsTrue(building.abilities.Contains("construction_phase_phase_2"));
+    Assert.AreEqual(1, building.Abilities.Count());
+    Assert.IsTrue(building.Abilities.Contains("construction_phase_phase_2"));
 
     // Run task_3, which should build component_3.
     WorkTask? task3 = WorkTask.Find("task_3");
@@ -137,8 +137,8 @@ public class BuildingUnitTest
     // The building should now be complete.
     Assert.IsTrue(building.completed);
     // The building should now provide it's completed abilities.
-    Assert.AreEqual(2, building.abilities.Count());
-    Assert.IsTrue(building.abilities.Contains("ability_1"));
-    Assert.IsTrue(building.abilities.Contains("ability_2"));
+    Assert.AreEqual(2, building.Abilities.Count());
+    Assert.IsTrue(building.Abilities.Contains("ability_1"));
+    Assert.IsTrue(building.Abilities.Contains("ability_2"));
   }
 }

@@ -9,7 +9,7 @@ public interface IInventoryContext
 }
 
 // An Inventory is a collection of items, owned by a person, building, trader, village, etc.
-public class Inventory : IInventoryContext
+public class Inventory : IInventoryContext, IAbilityCollection
 {
   // Default quantity for items that don't specify a quantity.
   public const int DEFAULT_QUANTITY = 1;
@@ -23,36 +23,40 @@ public class Inventory : IInventoryContext
 
   // The items in the inventory with their quantities.
   // Items of the same type are sorted so that the "worst" items are used first.
-  public Dictionary<ItemType, SortedDictionary<Item, int>> items { get; private set;} = new Dictionary<ItemType, SortedDictionary<Item, int>>();
+  public Dictionary<ItemType, SortedDictionary<Item, int>> items { get; private set; } = new Dictionary<ItemType, SortedDictionary<Item, int>>();
 
   // Event handler for when the abilities of a person change.
   public event AbilitiesChanged? AbilitiesChanged;
 
-  // Get a list of abilities granted by the items in the inventory.
-  public Dictionary<AbilityType, List<Item>> ItemAbilities()
-  {
-    Dictionary<AbilityType, List<Item>> abilities = new Dictionary<AbilityType, List<Item>>();
-    lock (_itemsLock)
-    {
-      foreach (ItemType itemType in items.Keys)
+  private void _RefreshAbilityProviders() {
+    lock (_itemsLock) {
+      // Clear the ability providers.
+      _abilityProviders.Clear();
+      // Loop through the items and add their abilities to the dictionary.
+      foreach (var itemType in items.Keys)
       {
-        // Add the itemType's abilities to the list.
-        foreach (AbilityType ability in itemType.abilities)
+        foreach (var ability in itemType.abilities) 
         {
-          if (!abilities.ContainsKey(ability))
+          if (!_abilityProviders.ContainsKey(ability))
           {
-            abilities[ability] = new List<Item>();
+            _abilityProviders[ability] = new HashSet<IAbilityProvider>();
           }
-          // Add every item of that type to the list.
-          foreach (Item item in items[itemType].Keys)
+          foreach (var item in items[itemType].Keys)
           {
-            abilities[ability].Add(item);
+            _abilityProviders[ability].Add(item);
           }
         }
       }
     }
-    return abilities;
   }
+  private Dictionary<AbilityType, HashSet<IAbilityProvider>> _abilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>();
+
+  // Get a list of abilities granted by the items in the inventory.
+  public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders { get { return _abilityProviders; } }
+
+  private HashSet<AbilityType> _abilities = new HashSet<AbilityType>();
+
+  public HashSet<AbilityType> Abilities { get { return _abilities; } }
 
   // Trade items between two inventories.
   // Fails without trading if the items don't exist in the correct inventory.
@@ -300,7 +304,7 @@ public class Inventory : IInventoryContext
       return _ContainsExactNoLock(items);
     }
   }
-  
+
 
   // Bracket operator to get the quantity of an item in the inventory.
   public int this[Item item]
@@ -335,6 +339,28 @@ public class Inventory : IInventoryContext
     }
   }
 
+  private bool _RemoveAll(Item item)
+  {
+    if(!items[item.itemType].Remove(item))
+    {
+      return false;
+    }
+    if (item.itemType.abilities.Count > 0)
+    {
+      IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, null, null, item, item.itemType.abilities, AbilitiesChanged);
+    }
+    if (items[item.itemType].Count == 0)
+    {
+      items.Remove(item.itemType);
+      if (item.itemType.abilities.Count > 0)
+      {
+        // If this was the last item with a given ability, remove the entry from the dictionary.
+        // and fire the AbilityChanged event.
+        IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, null, null, item, item.itemType.abilities, AbilitiesChanged);
+      }
+    }
+    return true;
+  }
 
   // Internal function to remove items from the inventory with no locking.
   private bool _RemoveNoLock(Item item, int quantity)
@@ -349,15 +375,7 @@ public class Inventory : IInventoryContext
       }
       else if (items[item.itemType][item] == quantity)
       {
-        items[item.itemType].Remove(item);
-        if (items[item.itemType].Count == 0)
-        {
-          items.Remove(item.itemType);
-          if (item.itemType.abilities.Count > 0)
-          {
-            AbilitiesChanged?.Invoke();
-          }
-        }
+        _RemoveAll(item);
         return true;
       }
     }
@@ -398,8 +416,7 @@ public class Inventory : IInventoryContext
         items[item.itemType].Add(item, quantity);
         if (item.itemType.abilities.Count > 0)
         {
-          // Not a new Ability, but the ItemAbilities lists need to change.
-          AbilitiesChanged?.Invoke();
+          IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, item, item.itemType.abilities, null, null, AbilitiesChanged);
         }
       }
     }
@@ -408,7 +425,7 @@ public class Inventory : IInventoryContext
       items.Add(item.itemType, new SortedDictionary<Item, int> { { item, quantity } });
       if (item.itemType.abilities.Count > 0)
       {
-        AbilitiesChanged?.Invoke();
+        IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, item, item.itemType.abilities, null, null, AbilitiesChanged);
       }
     }
   }
@@ -667,7 +684,7 @@ public class Inventory : IInventoryContext
         }
       }
     }
-    
+
     // Loop until we have enough items or we run out of items.
     while (quantity > 0)
     {

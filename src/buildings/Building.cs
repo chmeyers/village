@@ -55,6 +55,7 @@ public class BuildingType
         }
 
         abilities.Add(x);
+        abilities.UnionWith(x.subTypes);
       }
     }
     if (data.ContainsKey("requirements"))
@@ -171,7 +172,7 @@ public class BuildingType
 // A Building is a structure that can be built by a household.
 // Buildings are owned by a household, and can be used by the people in the household.
 // Buildings provide abilities to the people in the household, and to the household itself.
-public class Building
+public class Building : IAbilityCollection
 {
   public const string BUILDING_COMPLETE_PHASE = "building_complete";
   // Constructor.
@@ -179,7 +180,7 @@ public class Building
   {
     this.buildingType = buildingType;
     this.phase = 0;
-    abilities = CalculateBuildingAbilities();
+    ChangeBuildingAbilities();
   }
 
   // The building type.
@@ -208,6 +209,7 @@ public class Building
   public HashSet<BuildingComponent> completedComponents { get; private set; } = new HashSet<BuildingComponent>();
 
   public event AbilitiesChanged? AbilitiesChanged;
+
   // Add a component to the building.
   // Returns true if the component was added, false if the component was already added.
   public bool AddComponent(BuildingComponent component)
@@ -224,9 +226,8 @@ public class Building
       if (completedComponents.IsSupersetOf(buildingType.phases[phase].Value))
       {
         phase++;
+        ChangeBuildingAbilities();
       }
-      abilities = CalculateBuildingAbilities();
-      AbilitiesChanged?.Invoke();
       return true;
     }
     return false;
@@ -255,17 +256,39 @@ public class Building
   // The abilities that the building provides.
   // During construction, the building provides the abilities of the current phase.
   // Once the building is complete, the building provides all the abilities of the building type.
-  public HashSet<AbilityType> abilities { get; private set; }
-  private HashSet<AbilityType> CalculateBuildingAbilities()
+  public HashSet<AbilityType> Abilities { get; private set; } = new HashSet<AbilityType>();
+
+  public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders { get; private set; } = new Dictionary<AbilityType, HashSet<IAbilityProvider>>();
+
+  private void ChangeBuildingAbilities()
   {
+    // Save a copy of the existing abilities and ability providers.
+    var oldAbilities = new HashSet<AbilityType>(Abilities);
+    var oldAbilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>(AbilityProviders);
+    Abilities.Clear();
+    AbilityProviders.Clear();
     if (completed)
     {
-      return buildingType.abilities;
+      Abilities.UnionWith(buildingType.abilities);
+      // The AbilityProvider for all the abilities is the building itself.
+      foreach (var ability in Abilities)
+      {
+        AbilityProviders[ability] = new HashSet<IAbilityProvider>() { this };
+      }
     }
     else
     {
       var phaseAbility = AbilityType.Find(BuildingType.BUILDING_PHASE_ABILITY_PREFIX + buildingType.phases[phase].Key)!;
-      return new HashSet<AbilityType>() { phaseAbility };
+      var abilities = new HashSet<AbilityType>() { phaseAbility };
+      abilities.UnionWith(phaseAbility.subTypes);
+      Abilities.UnionWith(abilities);
+      // The AbilityProvider for all the abilities is the building itself.
+      foreach (var ability in Abilities)
+      {
+        AbilityProviders[ability] = new HashSet<IAbilityProvider>() { this };
+      }
     }
+    // Notify that the abilities have changed.
+    AbilitiesChanged?.Invoke(this, Abilities.Except(oldAbilities), this, oldAbilities.Except(Abilities));
   }
 }
