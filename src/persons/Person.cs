@@ -430,6 +430,41 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     EnqueueTask(runningTask, prioritize);
   }
 
+  public void PickRandomTask(Random randomizer, HashSet<WorkTask> blacklist)
+  {
+    // Traders still immune to real behavior.
+    if (isTrader) return;
+    // Only pick a task if the person has no tasks.
+    if (runningTasks.Count > 0) return;
+    // Pick a random task from the set of available tasks.
+    HashSet<WorkTask> available = AvailableHouseholdTasks.Except(blacklist).ToHashSet();
+    if (available.Count() == 0) return;
+    // Eliminate any tasks that have targets.
+    available.ExceptWith(available.Where(t => t.targets.Count > 0));
+    // Pick a random task from the set.
+    var random = available.ElementAt(randomizer.Next(available.Count()));
+    // Enqueue the task as a running task.
+    var runningTask = TaskRunner.StartTask(this, this.household, random, null);
+    if (runningTask == null) throw new Exception("Failed to start Random task: " + random.task + " for person: " + name);
+    EnqueueTask(runningTask, false);
+  }
+
+  public void BuildAllUnownedBuildings()
+  {
+    // Filter the taskset to only tasks that the person can do.
+    var available = AvailableBuildings;
+    if (available.Count() == 0) return;
+    // Filter out any buildings the household already has.
+    available.ExceptWith(household.buildings.Select(b => b.buildingType));
+    if (available.Count() == 0) return;
+    // Build everything in the set.
+    foreach (var buildingType in available)
+    {
+      // Add the building to the household.
+      household.AddBuilding(buildingType);
+    }
+  }
+
 
   // Cache of work tasks the person can do, based on their abilities.
   // They may not have the required item inputs to do the task.

@@ -159,15 +159,11 @@ public class Effect
     var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
     if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))
     {
-      // debug print
-      Console.WriteLine("Apply effect " + effect + " to " + chosenEffectTarget.target + " in " + chosenEffectTarget.targetContext + " from " + chosenEffectTarget.runningContext);
       ApplySync(chosenEffectTarget);
     }
     // Everything else is applied asynchronously.
     else
     {
-      // debug print
-      Console.WriteLine("Apply async effect " + effect + " to " + chosenEffectTarget.target + " in " + chosenEffectTarget.targetContext + " from " + chosenEffectTarget.runningContext);
       Task.Run(() => ApplySync(chosenEffectTarget));
     }
   }

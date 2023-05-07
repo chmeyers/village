@@ -6,6 +6,7 @@ namespace Village.Base;
 public class GameLoop
 {
   private HashSet<WorkTask> dailyTasks = new HashSet<WorkTask>();
+  private Random random = new Random();
 
   // Constructor.
   public GameLoop()
@@ -73,10 +74,19 @@ public class GameLoop
       // 6) Register remaining needs with household.
     }
     // 7) Calculate the household's needs.
-    // 8) Sell to Traders
-    // 9) Buy from Traders
-    // 10) Assign tasks to people.
-    // 11) Hire other households' people.
+    // 8) Start Buildings.
+    // 9) Sell to Traders
+    // 10) Buy from Traders
+    // 11) Assign tasks to people.
+    if (!household.isPlayerHousehold)
+    {
+      foreach (var person in Person.global_persons[household])
+      {
+        person.BuildAllUnownedBuildings();
+        person.PickRandomTask(random, dailyTasks);
+      }
+    }
+    // 12) Hire other households' people.
 
     // TODO(chmeyers):
     // Spoil/rot food in the household inventory.
@@ -111,6 +121,12 @@ public class GameLoop
       // And I'm going to be very sad.
       // TODO(chmeyers): Remove this.
       Thread.Sleep(100);
+      // Print to the console every month.
+      if (Calendar.Ticks % 300 == 0)
+      {
+        Console.WriteLine("Month: " + Calendar.Year + "-" + Calendar.Month + " Clock Time:" + DateTime.Now.ToString("yyyy-MM-dd HH:mm:ss"));
+
+      }
     }
   }
 }
