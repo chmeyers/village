@@ -5,4 +5,5 @@
   "hunt_to_eat": { "timeCost": {"val": 1, "min":1, "modifiers": { "intelligence_10":{ "mult":0.9},"intelligence_15":{ "mult":0.9}, "hunting_1":{ "mult":0.8},"hunting_2":{ "mult":0.8}}}, "supercedes": ["scrounge_for_food"], "requirements": ["hunting_2"], "inputs": {}, "outputs": {"food" : 1 }, "effects": {"skill_hunting_2": [""],"full_meal_effect":[""]} },
   "cook_for_self_with_leftovers": { "timeCost": {"val": 1, "min":1, "modifiers": { "dexterity_10":{ "mult":0.9},"dexterity_15":{ "mult":0.9}, "cooking_1":{ "mult":0.8},"cooking_2":{ "mult":0.8}}}, "supercedes": ["forage_to_eat","hunt_to_eat"], "inputs": {"food" : 3}, "outputs": {"meal" : 20 }, "effects": {"skill_cooking_1": [""],"full_meal_effect":[""]} },
   "eat_meal": { "timeCost": 0, "supercedes": ["cook_for_self_with_leftovers"], "inputs": {"meal" : 10}, "outputs": { }, "effects": {"full_meal_effect":[""]} },
+  "hunt": { "timeCost": {"val": 10, "min":1, "modifiers": { "intelligence_10":{ "mult":0.9},"intelligence_15":{ "mult":0.9}, "hunting_1":{ "mult":0.8},"hunting_2":{ "mult":0.8}}}, "inputs": {}, "outputs": {"meat" : 12 }, "effects": {"skill_hunting_2": [""],"full_meal_effect":[""]} },
 }
