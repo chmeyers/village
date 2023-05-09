@@ -370,6 +370,11 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     return skills.GetXP(skill);
   }
 
+  public int GetNextLevelXP(Skill skill)
+  {
+    return skills.GetNextLevelXP(skill);
+  }
+
   // Take whatever stuff from the household inventory that the person needs.
   public void TakeNeedsFromHousehold()
   {

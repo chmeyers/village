@@ -25,7 +25,7 @@ public class EffectUnitTest
     AttributeType.LoadString(json);
     // Load a swords skill.
     Skill.Clear();
-    json = @"{ 'swords' : [ {'xp': 100, 'requirements' : [], 'abilities': [] } ] }";
+    json = @"{ 'swords' : [ {'xp': 100, 'requirements' : [], 'abilities': [] }, {'xp': 500, 'requirements' : [], 'abilities': [] } ] }";
     // Load the skill types.
     Skill.LoadString(json);
     Effect.Clear();
@@ -36,6 +36,8 @@ public class EffectUnitTest
   'pull_strength_10' : { 'target' : 'Person', 'effectType' : 'AttributePuller', 'config' : {'strength':{ 'amount': 1, 'target': 10}} },
   'pull_strength_5' : { 'target' : 'Person', 'effectType' : 'AttributePuller', 'config' : {'strength':{ 'amount': 1, 'target': 5}} },
 }";
+    // Create person.
+    Person person = new Person("bob", "Bob");
     // Load the effects.
     EffectLoader.LoadString(json);
     EffectLoader.Initialize();
@@ -88,14 +90,27 @@ public class EffectUnitTest
     // With the context, the amount should be (2+1+3)*2*5 = 60
     Assert.AreEqual(60, skillEffect.amount.GetValue(context));
     Assert.AreEqual(5, skillEffect.level.GetValue(context));
+    // Apply the effect to person.
+    skillEffect.ApplySync(new ChosenEffectTarget(EffectTargetType.Person, person, person, person));
+    // Check that the skill was added.
+    Skill swords = Skill.Find("swords")!;
+    Assert.AreEqual(0, person.GetLevel(swords));
+    // Check that the skill was added correctly.
+    Assert.AreEqual(4, person.GetXP(swords));
+    // Apply as a batch.
+    skillEffect.ApplySync(new ChosenEffectTarget(EffectTargetType.Person, person, person, person), 10, 5);
+    // Check that the skill xp changed.
+    Assert.AreEqual(204, person.GetXP(swords));
+    skillEffect.ApplySync(new ChosenEffectTarget(EffectTargetType.Person, person, person, person), 100, 5);
+    // XP should max out at 100+500 = 600.
+    Assert.AreEqual(600, person.GetXP(swords));
 
     // Check the AttributePuller effects.
     Assert.AreEqual(EffectType.AttributePuller, Effect.effects["pull_strength_10"].effectType);
     Assert.AreEqual(EffectTargetType.Person, Effect.effects["pull_strength_10"].target);
     // Check that it's a AttributePullerEffect class.
     Assert.IsInstanceOfType(Effect.effects["pull_strength_10"], typeof(AttributePullerEffect));
-    // Create person and run the effect.
-    Person person = new Person("bob", "Bob");
+
     AttributeType strength = AttributeType.Find("strength")!;
     // Initial value of strength is 8.
     Assert.AreEqual(8, person.GetAttributeValue(strength));
@@ -125,6 +140,13 @@ public class EffectUnitTest
     }
     // Strength should be 5.
     Assert.AreEqual(5, person.GetAttributeValue(strength));
+    // Batch apply the pull10 effect.
+    pull10.ApplySync(target, 3, 1);
+    // Strength should be 8.
+    Assert.AreEqual(8, person.GetAttributeValue(strength));
+    pull10.ApplySync(target, 100, 1);
+    // Strength should be 10.
+    Assert.AreEqual(10, person.GetAttributeValue(strength));
     
   }
 

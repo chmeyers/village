@@ -122,7 +122,7 @@ public class TaskUnitTest
       Assert.IsTrue(TaskRunner.PerformTask(person, person, WorkTask.tasks["gather_wood"], null));
       // Person should have 100 wood.
       Assert.IsTrue(person.inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 100 } }));
-      // Person should have one axe with full quality, and one degrade axe.
+      // Person should have one axe with full quality, and one degraded axe.
       axes = person.inventory[ItemType.Find("axe")!];
       Assert.AreEqual(2, axes.Count);
       // The lower quality one should be sorted first.

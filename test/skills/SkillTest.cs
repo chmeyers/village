@@ -50,6 +50,11 @@ public class SkillUnitTest
     {
       return skills.GetXP(skill);
     }
+
+    public int GetNextLevelXP(Skill skill)
+    {
+      return skills.GetNextLevelXP(skill);
+    }
   }
 
   [TestMethod]

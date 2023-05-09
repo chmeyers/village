@@ -27,25 +27,16 @@ public class DegradeEffect : Effect
     amount = AbilityValue.FromJson(data["amount"]);
   }
 
-  private void DegradeItem(IAbilityContext? context, IInventoryContext target, Item item)
+  private void AddScraps(IInventoryContext target, Item item)
   {
-    // Decrease the new item's quality by the specified amount.
-    item.quality -= amount.GetValue(context);
-    if (item.quality <= 0)
+    foreach (var scrapItem in item.itemType.scrapItems)
     {
-      item.quality = 0;
-      // Remove the item from the inventory, replace it with it's scrap items, if any.
-      // TODO(chmeyers): Move the scraps to the household inventory?
-      target.inventory.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
-      foreach (var scrapItem in item.itemType.scrapItems)
-      {
-        Item newItem = new Item(scrapItem.Key);
-        target.inventory.AddItem(newItem, scrapItem.Value);
-      }
+      Item newItem = new Item(scrapItem.Key);
+      target.inventory.AddItem(newItem, scrapItem.Value);
     }
   }
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
   {
     // Get the item from the chosen target.
     Item item = (Item)chosenEffectTarget.target!;
@@ -55,6 +46,12 @@ public class DegradeEffect : Effect
     // So we create a new item that is a copy of the original item, remove it from the inventory,
     // degrade it, then add it back to the inventory.
 
+    // Calculate the amount to degrade the item by.
+    // Batching is equivalent to degrading the item for the specified amount of time.
+    // Note that we don't overflow the degradation onto a second item,
+    // so batching is not exactly equivalent.
+    int degradeAmount = amount.GetValue(chosenEffectTarget.runningContext) * batchSize * batchTime;
+
     // Check if person has more than one of the item.
     if (targetInventory.inventory[item] > Inventory.DEFAULT_QUANTITY)
     {
@@ -62,18 +59,41 @@ public class DegradeEffect : Effect
       // Remove the original item from the inventory of the person in the context.
       targetInventory.inventory.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
 
-      DegradeItem(chosenEffectTarget.runningContext, targetInventory, newItem);
-      // Add the new item back to the inventory of the person in the context.
-      targetInventory.inventory.AddItem(newItem, Inventory.DEFAULT_QUANTITY);
+      if (newItem.quality <= degradeAmount)
+      {
+        // Item completely degraded.
+        AddScraps(targetInventory, newItem);
+      }
+      else
+      {
+        // Degrade the item.
+        newItem.quality -= degradeAmount;
+        targetInventory.inventory.AddItem(newItem, Inventory.DEFAULT_QUANTITY);
+      }
     }
     else
     {
       // Degrade the item.
-      DegradeItem(chosenEffectTarget.runningContext, targetInventory, item);
+      if (item.quality <= degradeAmount)
+      {
+        // Item completely degraded.
+        targetInventory.inventory.RemoveItem(item, Inventory.DEFAULT_QUANTITY);
+        AddScraps(targetInventory, item);
+      }
+      else
+      {
+        // Degrade the item.
+        item.quality -= degradeAmount;
+      }
     }
   }
 
   public override bool AlwaysTargetsRunner()
+  {
+    return true;
+  }
+
+  public override bool SupportsBatching()
   {
     return true;
   }
@@ -108,7 +128,7 @@ public class SkillEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
   {
     // Get the person from the chosen target.
     ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
@@ -126,14 +146,31 @@ public class SkillEffect : Effect
     // If the person is currently at level, they get one XP, if less they get two,
     // if more they get nothing.
     var trainingLevel = level.GetValue(chosenEffectTarget.runningContext);
-    var trainingAmount = amount.GetValue(chosenEffectTarget.runningContext);
-    if (person.GetLevel(_skill!) == trainingLevel)
+    var trainingAmount = amount.GetValue(chosenEffectTarget.runningContext) * batchSize * batchTime;
+    while (trainingAmount > 0 && person.GetLevel(_skill!) <= trainingLevel)
     {
-      person.GrantXP(_skill!, trainingAmount);
-    }
-    else if (person.GetLevel(_skill!) < trainingLevel)
-    {
-      person.GrantXP(_skill!, trainingAmount * 2);
+      // Grant the max of trainingAmount or the amount needed to get to the next level.
+      var nextLevelXP = person.GetNextLevelXP(_skill!);
+      if (person.GetLevel(_skill!) == trainingLevel)
+      {
+        var grant = Math.Min(trainingAmount, nextLevelXP);
+        if(!person.GrantXP(_skill!, grant))
+        {
+          // We can't grant any more XP, so we are done.
+          break;
+        }
+        trainingAmount -= grant;
+      }
+      else if (person.GetLevel(_skill!) < trainingLevel)
+      {
+        var grant = Math.Min(trainingAmount * 2, nextLevelXP);
+        if (!person.GrantXP(_skill!, grant))
+        {
+          // We can't grant any more XP, so we are done.
+          break;
+        }
+        trainingAmount -= grant/2;
+      }
     }
   }
 
@@ -146,6 +183,11 @@ public class SkillEffect : Effect
     {
       throw new Exception("Skill does not exist: " + skill + " in skill effect " + effect);
     }
+  }
+
+  public override bool SupportsBatching()
+  {
+    return true;
   }
 
   // The name of the skill to increase.
@@ -186,7 +228,7 @@ public class BuildingComponentEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
   {
     // Get the building from the chosen target.
     Building building = (Building)chosenEffectTarget.target!;
@@ -252,7 +294,7 @@ public class SkillTreeEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
   {
     // Get the person from the chosen target.
     Person person = (Person)chosenEffectTarget.target!;
@@ -316,8 +358,6 @@ public class AttributePullerEffect : Effect
     // The value is the the AttributePuller info.
     foreach (var key in data.Keys)
     {
-      var attributePuller = new AttributePuller();
-      attributePuller.attribute = key;
       var attributePullerData = ((Newtonsoft.Json.Linq.JToken)data[key]).ToObject<Dictionary<string, object>>();
       if (attributePullerData == null)
       {
@@ -325,15 +365,15 @@ public class AttributePullerEffect : Effect
       }
       
       // The target value of the attribute.
-      attributePuller.target = (int)(long)attributePullerData["target"];
+      var targetVal = AbilityValue.FromJson(attributePullerData["target"]);
       // The amount to pull the attribute by.
-      attributePuller.amount = (int)(long)attributePullerData["amount"];
-      _pullers.Add(attributePuller);
+      var amount = AbilityValue.FromJson(attributePullerData["amount"]);
+      _pullers.Add(new AttributePuller(key, targetVal, amount));
     }
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
   {
     // Get the person from the chosen target.
     Person person = (Person)chosenEffectTarget.target!;
@@ -346,21 +386,23 @@ public class AttributePullerEffect : Effect
 
     foreach (var puller in _pullers)
     {
+      int target = puller.target.GetValue(chosenEffectTarget.runningContext);
+      int amount = puller.amount.GetValue(chosenEffectTarget.runningContext) * batchSize * batchTime;
       // Get the attribute from the person.
       int currentValue = person.GetAttributeValue(puller.type!);
       // If the current value is within amount of the target, then set it to the target.
-      if (currentValue >= puller.target - puller.amount && currentValue <= puller.target + puller.amount)
+      if (currentValue >= target - amount && currentValue <= target + amount)
       {
-        person.SetAttribute(puller.type!, puller.target);
+        person.SetAttribute(puller.type!, target);
       }
       // Otherwise, pull the attribute towards the target by amount.
-      else if (currentValue < puller.target)
+      else if (currentValue < target)
       {
-        person.SetAttribute(puller.type!, currentValue + puller.amount);
+        person.SetAttribute(puller.type!, currentValue + amount);
       }
       else
       {
-        person.SetAttribute(puller.type!, currentValue - puller.amount);
+        person.SetAttribute(puller.type!, currentValue - amount);
       }
 
     }
@@ -380,12 +422,25 @@ public class AttributePullerEffect : Effect
     }
   }
 
+  public override bool SupportsBatching()
+  {
+    return true;
+  }
+
   class AttributePuller
   {
+    // Constructor
+    public AttributePuller(string attribute, AbilityValue target, AbilityValue amount)
+    {
+      this.attribute = attribute;
+      this.target = target;
+      this.amount = amount;
+    }
+    
     public string attribute = "";
     public AttributeType? type;
-    public int target;
-    public int amount;
+    public AbilityValue target;
+    public AbilityValue amount;
   }
   // List of attributes to pull.
   private List<AttributePuller> _pullers = new List<AttributePuller>();

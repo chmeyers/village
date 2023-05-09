@@ -135,6 +135,11 @@ public class Skill
         // Add the level
         s.levels.Add(SkillLevel.FromJson((Newtonsoft.Json.Linq.JToken)level));
       }
+      // Skills must have at least one level
+      if (s.levels.Count == 0)
+      {
+        throw new Exception("Skill: " + skill.Key + " has no levels");
+      }
       // Add the skill to the dictionary
       skills.Add(skill.Key, s);
 
@@ -235,6 +240,8 @@ public interface ISkillContext : IAbilityContext, IInventoryContext
   public int GetLevel(Skill skill);
   // Get the current xp of the given skill.
   public int GetXP(Skill skill);
+  // Get the amount of xp required to reach the next level.
+  public int GetNextLevelXP(Skill skill);
 }
 
 // A skill for a particular person.
@@ -374,6 +381,15 @@ public class PersonSkill
       }
     }
     return true;
+  }
+
+  public int GetNextLevelXP()
+  {
+    if (level >= skill.levels.Count)
+    {
+      return int.MaxValue;
+    }
+    return skill.levels[level].xp - xp;
   }
 
 }

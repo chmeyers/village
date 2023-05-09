@@ -151,7 +151,7 @@ public class Effect
   }
 
   // Apply the effect to the chosen target, using the given person as context.
-  public void Apply(ChosenEffectTarget chosenEffectTarget)
+  public void Apply(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
   {
     // Effects where the runningContext is the same as targetContext or they are
     // in the same household are applied synchronously.
@@ -159,16 +159,16 @@ public class Effect
     var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
     if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))
     {
-      ApplySync(chosenEffectTarget);
+      ApplySync(chosenEffectTarget, batchSize, batchTime);
     }
     // Everything else is applied asynchronously.
     else
     {
-      Task.Run(() => ApplySync(chosenEffectTarget));
+      Task.Run(() => ApplySync(chosenEffectTarget, batchSize, batchTime));
     }
   }
 
-  public virtual void ApplySync(ChosenEffectTarget chosenEffectTarget)
+  public virtual void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
   {
     throw new Exception("Effect.ApplySync not implemented for " + effectType);
   }
@@ -197,6 +197,16 @@ public class Effect
   public virtual bool IsOptional()
   {
     return true;
+  }
+
+  // Whether an effect supports batching.
+  // If an effect supports batching, then the effect can receive a multiplier
+  // for the number of times the effect should be applied.
+  // Batched effects are allowed to apply approximations of the effect,
+  // instead of calculating the exact effect for each batch.
+  public virtual bool SupportsBatching()
+  {
+    return false;
   }
 
   // Whether this effect always targets the person performing the task.

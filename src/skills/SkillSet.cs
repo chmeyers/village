@@ -118,6 +118,19 @@ public class SkillSet
     }
   }
 
+  public int GetNextLevelXP(Skill skill)
+  {
+    lock (_lock)
+    {
+      if (skills.TryGetValue(skill, out var personSkill))
+      {
+        return personSkill.GetNextLevelXP();
+      }
+      // Return the default level 1 XP for this skill.
+      return skill.levels[0].xp;
+    }
+  }
+
 
 
 }
