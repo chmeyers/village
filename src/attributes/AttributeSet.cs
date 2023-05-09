@@ -8,6 +8,8 @@ public class AttributeSet : IAbilityCollection
 {
   // The attributes.
   public Dictionary<AttributeType, Attribute> attributes { get; private set; } = new Dictionary<AttributeType, Attribute>();
+  // Attributes that may have ongoing effects.
+  public List<Attribute> effectAttributes { get; private set; } = new List<Attribute>();
   // Cache of the abilities given by the attributes.
   private Dictionary<AbilityType, HashSet<IAbilityProvider>> _abilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>();
 
@@ -56,6 +58,17 @@ public class AttributeSet : IAbilityCollection
     }
   }
 
+  public void Advance()
+  {
+    lock (_lock)
+    {
+      foreach (var attribute in effectAttributes)
+      {
+        attribute.Advance();
+      }
+    }
+  }
+
   // Update Abilities from the attributes.
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
@@ -75,6 +88,10 @@ public class AttributeSet : IAbilityCollection
     if (attribute.Abilities.Count > 0)
     {
       UpdateAbilities(attribute, attribute.Abilities, null, null);
+    }
+    if (attributeType.HasOngoingEffects())
+    {
+      effectAttributes.Add(attribute);
     }
   }
 

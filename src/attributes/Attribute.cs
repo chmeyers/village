@@ -5,6 +5,7 @@
 // certain trigger thresholds.
 using Newtonsoft.Json;
 using Village.Abilities;
+using Village.Base;
 using Village.Effects;
 using Village.Items;
 
@@ -21,7 +22,11 @@ public class AttributeInterval : IAbilityProvider
 
   // The effects that will be triggered when entering this interval.
   // Effects are not triggered during initialization.
-  public List<Effect> effects = new List<Effect>();
+  public List<Effect> entryEffects = new List<Effect>();
+
+  // The effects that will be applied for every day that the attribute is in this interval.
+  // These effects must be batchable, as we won't necessarily run them every day.
+  public List<Effect> dailyEffects = new List<Effect>();
 }
 
 public class AttributeType
@@ -148,9 +153,9 @@ public class AttributeType
         }
 
         // Check whether effects is present.
-        if (intervalData.ContainsKey("effects"))
+        if (intervalData.ContainsKey("entry_effects"))
         {
-          var effects = ((Newtonsoft.Json.Linq.JArray)intervalData["effects"]).ToObject<List<string>>();
+          var effects = ((Newtonsoft.Json.Linq.JArray)intervalData["entry_effects"]).ToObject<List<string>>();
           foreach (var effect in effects!)
           {
             Effect? effectType = Effect.Find(effect);
@@ -158,7 +163,27 @@ public class AttributeType
             {
               throw new Exception("Failed to find effect type: " + effect + " for attribute: " + attribute.Key);
             }
-            attributeInterval.effects.Add(effectType);
+            attributeInterval.entryEffects.Add(effectType);
+            // TODO(chmeyers): It would be good to check for circular dependencies caused by effects, too.
+          }
+        }
+
+        if (intervalData.ContainsKey("daily_effects"))
+        {
+          var effects = ((Newtonsoft.Json.Linq.JArray)intervalData["daily_effects"]).ToObject<List<string>>();
+          foreach (var effect in effects!)
+          {
+            Effect? effectType = Effect.Find(effect);
+            if (effectType == null)
+            {
+              throw new Exception("Failed to find effect type: " + effect + " for attribute: " + attribute.Key);
+            }
+            // Daily effects must be batchable.
+            if (!effectType.SupportsBatching())
+            {
+              throw new Exception("Effect type: " + effect + " for attribute: " + attribute.Key + " is not batchable.");
+            }
+            attributeInterval.dailyEffects.Add(effectType);
             // TODO(chmeyers): It would be good to check for circular dependencies caused by effects, too.
           }
         }
@@ -233,6 +258,17 @@ public class AttributeType
     this.maxValue = maxValue;
   }
 
+  public bool HasOngoingEffects()
+  {
+    foreach (var interval in intervals.Values)
+    {
+      if (interval.dailyEffects.Count > 0)
+      {
+        return true;
+      }
+    }
+    return false;
+  }
 
 }
 
@@ -258,10 +294,9 @@ public class Attribute : IAbilityCollection
   private IAbilityContext? abilityContext;
   // Set of Abilities that can trigger value updates.
   private HashSet<AbilityType> _modifierAbilities = new HashSet<AbilityType>();
+  // When were the daily effects last triggered?
+  private long _lastEffectTick = 0;
   
-
-  // List of async effects that are currently running.
-  List<Task> _asyncEffects = new List<Task>();
 
   public event AbilitiesChanged? AbilitiesChanged;
 
@@ -288,6 +323,7 @@ public class Attribute : IAbilityCollection
     {
       abilityContext.AbilitiesChanged += OnAbilitiesChanged;
     }
+    this._lastEffectTick = Calendar.Ticks;
   }
 
   public HashSet<AbilityType> Abilities
@@ -300,6 +336,32 @@ public class Attribute : IAbilityCollection
   {
     get => throw new NotImplementedException();
     set => throw new NotImplementedException();
+  }
+
+  public void Advance()
+  {
+    // Get ongoing effects up to the current tick.
+    RunOngoingEffects(attributeType.intervals.GetValueAtIndex(intervalIndex));
+  }
+
+  private void RunOngoingEffects(AttributeInterval interval)
+  {
+    // If the last time we ran the daily effects was not today, run them again.
+    long ticksSinceLastRun = _lastEffectTick - Calendar.Ticks;
+    // Apply daily effects up to the current tick.
+    if (ticksSinceLastRun > Calendar.ticksPerDay / 2)
+    {
+      if (interval.dailyEffects.Count > 0)
+      {
+        foreach (var effect in interval.dailyEffects)
+        {
+          // Apply the effect, batching up the number of days since the last run.
+          // We count a half day as a full day here.
+          effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext), 1, (int)((ticksSinceLastRun + (Calendar.ticksPerDay / 2)) / Calendar.ticksPerDay));
+        }
+      }
+      _lastEffectTick = Calendar.Ticks;
+    }
   }
 
   private void OnAbilitiesChanged(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
@@ -348,10 +410,12 @@ public class Attribute : IAbilityCollection
       intervalIndex = newIntervalIndex;
       rangeMin = newInterval.lower;
       rangeMax = newInterval.upper;
+      // If the old interval had daily effects, get them up to date.
+      RunOngoingEffects(oldInterval);
       // Run effects on the new interval, if we have a target and context.
       if (targetContext != null && abilityContext != null)
       {
-        foreach (var effect in newInterval.effects)
+        foreach (var effect in newInterval.entryEffects)
         {
           // Apply the effect, the target is always one specified when creating the attribute,
           // typically the owner of the attribute.

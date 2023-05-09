@@ -68,6 +68,8 @@ public class GameLoop
       // 5) Do Mandatory tasks.
       if (Calendar.StartOfDay)
       {
+        // Advance their attributes.
+        person.attributes.Advance();
         // Pick a task from the "daily" taskset.
         person.PickTaskFromSet(dailyTasks, true);
       }

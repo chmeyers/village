@@ -16,6 +16,11 @@ public enum Season
 // Calendar which tracks the game time.
 public class Calendar
 {
+  // Constants defining the length of a day, month, and year in ticks.
+  public const uint ticksPerDay = 10;
+  public const uint ticksPerMonth = 300;
+  public const uint ticksPerYear = 3600;
+
   // Singleton instance of the calendar.
   private static Calendar global_calendar = new Calendar();
   // The current time in game ticks.
@@ -57,13 +62,13 @@ public class Calendar
   private long ticks { get { return _ticks; } }
 
   // The current time in game days.
-  private long days { get { return _ticks / 10; } }
+  private long days { get { return _ticks / ticksPerDay; } }
 
   // The current time in game months.
-  private long months { get { return _ticks / 300; } }
+  private long months { get { return _ticks / ticksPerMonth; } }
 
   // The current time in game years.
-  private long year { get { return _ticks / 3600; } }
+  private long year { get { return _ticks / ticksPerYear; } }
 
   // The current month of the year.
   private int month { get { return (int)(months % 12); } }
@@ -72,7 +77,7 @@ public class Calendar
   private int day { get { return (int)(days % 30); } }
 
   // The current hour of the day.
-  private int hour { get { return (int)(_ticks % 10); } }
+  private int hour { get { return (int)(_ticks % ticksPerDay); } }
 
   // The current day of the year.
   private int dayOfYear { get { return (int)(days % 360); } }
@@ -81,7 +86,7 @@ public class Calendar
   private Season season { get { return (Season)(month / 3); } }
 
   // Whether this tick is the start of a new day.
-  private bool startOfDay { get { return _ticks % 10 == 0; } }
+  private bool startOfDay { get { return _ticks % ticksPerDay == 0; } }
 
   // Static versions of the above properties using the global calendar.
   public static long Ticks { get { return global_calendar.ticks; } }
@@ -94,6 +99,10 @@ public class Calendar
   public static int DayOfYear { get { return global_calendar.dayOfYear; } }
   public static Season Season { get { return global_calendar.season; } }
   public static bool StartOfDay { get { return global_calendar.startOfDay; } }
+
+
+  
+  
 
 
   // Advance the calendar by the given number of ticks.
