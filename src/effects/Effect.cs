@@ -151,7 +151,7 @@ public class Effect
   }
 
   // Apply the effect to the chosen target, using the given person as context.
-  public void Apply(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
+  public void Apply(ChosenEffectTarget chosenEffectTarget, int multiplier = 1, int timeBatch = 1)
   {
     // Effects where the runningContext is the same as targetContext or they are
     // in the same household are applied synchronously.
@@ -159,16 +159,16 @@ public class Effect
     var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
     if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))
     {
-      ApplySync(chosenEffectTarget, batchSize, batchTime);
+      ApplySync(chosenEffectTarget, multiplier, timeBatch);
     }
     // Everything else is applied asynchronously.
     else
     {
-      Task.Run(() => ApplySync(chosenEffectTarget, batchSize, batchTime));
+      Task.Run(() => ApplySync(chosenEffectTarget, multiplier, timeBatch));
     }
   }
 
-  public virtual void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
+  public virtual void ApplySync(ChosenEffectTarget chosenEffectTarget, int multiplier = 1, int timeBatch = 1)
   {
     throw new Exception("Effect.ApplySync not implemented for " + effectType);
   }

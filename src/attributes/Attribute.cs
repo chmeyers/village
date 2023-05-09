@@ -284,6 +284,8 @@ public class Attribute : IAbilityCollection
   public int rangeMax { get; private set; }
   // Scale all the ranges in the attribute by this amount.
   public int scale { get; private set; } = 1;
+  // Multiplier for effects.
+  public int effectMultiplier = 1;
   private int _scaleRemainder = 0;
   private int _scaledMaxValue = 0;
   private int _scaledMinValue = 0;
@@ -364,7 +366,7 @@ public class Attribute : IAbilityCollection
         {
           // Apply the effect, batching up the number of days since the last run.
           // We count a half day as a full day here.
-          effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext), 1, (int)((ticksSinceLastRun + (Calendar.ticksPerDay / 2)) / Calendar.ticksPerDay));
+          effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext), effectMultiplier, (int)((ticksSinceLastRun + (Calendar.ticksPerDay / 2)) / Calendar.ticksPerDay));
         }
       }
       _lastEffectTick = Calendar.Ticks;
@@ -426,7 +428,7 @@ public class Attribute : IAbilityCollection
         {
           // Apply the effect, the target is always one specified when creating the attribute,
           // typically the owner of the attribute.
-          effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext));
+          effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext), effectMultiplier);
         }
       }
       if (!newInterval.Abilities.SetEquals(oldInterval.Abilities))

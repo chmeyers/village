@@ -36,7 +36,7 @@ public class DegradeEffect : Effect
     }
   }
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int multiplier = 1, int timeBatch = 1)
   {
     // Get the item from the chosen target.
     Item item = (Item)chosenEffectTarget.target!;
@@ -50,7 +50,7 @@ public class DegradeEffect : Effect
     // Batching is equivalent to degrading the item for the specified amount of time.
     // Note that we don't overflow the degradation onto a second item,
     // so batching is not exactly equivalent.
-    int degradeAmount = amount.GetValue(chosenEffectTarget.runningContext) * batchSize * batchTime;
+    int degradeAmount = amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
 
     // Check if person has more than one of the item.
     if (targetInventory.inventory[item] > Inventory.DEFAULT_QUANTITY)
@@ -128,7 +128,7 @@ public class SkillEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int multiplier = 1, int timeBatch = 1)
   {
     // Get the person from the chosen target.
     ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
@@ -146,7 +146,7 @@ public class SkillEffect : Effect
     // If the person is currently at level, they get one XP, if less they get two,
     // if more they get nothing.
     var trainingLevel = level.GetValue(chosenEffectTarget.runningContext);
-    var trainingAmount = amount.GetValue(chosenEffectTarget.runningContext) * batchSize * batchTime;
+    var trainingAmount = amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
     while (trainingAmount > 0 && person.GetLevel(_skill!) <= trainingLevel)
     {
       // Grant the max of trainingAmount or the amount needed to get to the next level.
@@ -228,7 +228,7 @@ public class BuildingComponentEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int multiplier = 1, int timeBatch = 1)
   {
     // Get the building from the chosen target.
     Building building = (Building)chosenEffectTarget.target!;
@@ -294,7 +294,7 @@ public class SkillTreeEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int multiplier = 1, int timeBatch = 1)
   {
     // Get the person from the chosen target.
     Person person = (Person)chosenEffectTarget.target!;
@@ -373,7 +373,7 @@ public class AttributePullerEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int batchSize = 1, int batchTime = 1)
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, int multiplier = 1, int timeBatch = 1)
   {
     // Get the person from the chosen target.
     Person person = (Person)chosenEffectTarget.target!;
@@ -387,7 +387,7 @@ public class AttributePullerEffect : Effect
     foreach (var puller in _pullers)
     {
       int target = puller.target.GetValue(chosenEffectTarget.runningContext);
-      int amount = puller.amount.GetValue(chosenEffectTarget.runningContext) * batchSize * batchTime;
+      int amount = puller.amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
       // Get the attribute from the person.
       int currentValue = person.GetAttributeValue(puller.type!);
       // If the current value is within amount of the target, then set it to the target.

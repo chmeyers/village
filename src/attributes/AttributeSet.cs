@@ -32,6 +32,7 @@ public class AttributeSet : IAbilityCollection
   private IAbilityContext? abilityContext;
 
   private int _scale = 1;
+  private int _effectMultiplier = 1;
 
   // Constructor for an AttributeSet.
   public AttributeSet(object? target, IInventoryContext? effectTarget, IAbilityContext? effectContext)
@@ -84,6 +85,18 @@ public class AttributeSet : IAbilityCollection
     }
   }
 
+  public void SetEffectMultiplier(int value)
+  {
+    lock (_lock)
+    {
+      _effectMultiplier = value;
+      foreach (var attribute in effectAttributes)
+      {
+        attribute.effectMultiplier = value;
+      }
+    }
+  }
+
   // Update Abilities from the attributes.
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
@@ -98,6 +111,7 @@ public class AttributeSet : IAbilityCollection
   {
     var attribute = new Attribute(attributeType, target, targetContext, abilityContext);
     attribute.Rescale(_scale);
+    attribute.effectMultiplier = _effectMultiplier;
     attributes.Add(attributeType, attribute);
     // Chain the event handler.
     attribute.AbilitiesChanged += UpdateAbilities;

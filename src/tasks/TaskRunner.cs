@@ -89,11 +89,11 @@ public class TaskRunner
         // Apply the effect to the chosen target.
         if (forceSync)
         {
-          effect.Key.ApplySync(chosenTarget);
+          effect.Key.ApplySync(chosenTarget, runningTask.effectMultiplier);
         }
         else
         {
-          effect.Key.Apply(chosenTarget);
+          effect.Key.Apply(chosenTarget, runningTask.effectMultiplier);
         }
       }
     }
