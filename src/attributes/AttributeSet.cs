@@ -25,14 +25,16 @@ public class AttributeSet : IAbilityCollection
 
   // The target and context for any effects run.
   // Typically this will be the person the attributes belong to.
-  private IInventoryContext? effectTarget;
-  private IAbilityContext? context;
+  private object? target;
+  private IInventoryContext? targetContext;
+  private IAbilityContext? abilityContext;
 
   // Constructor for an AttributeSet.
-  public AttributeSet(IInventoryContext? effectTarget, IAbilityContext? effectContext)
+  public AttributeSet(object? target, IInventoryContext? effectTarget, IAbilityContext? effectContext)
   {
-    this.effectTarget = effectTarget;
-    this.context = effectContext;
+    this.target = target;
+    this.targetContext = effectTarget;
+    this.abilityContext = effectContext;
   }
 
 
@@ -66,7 +68,7 @@ public class AttributeSet : IAbilityCollection
   // Add without the lock.
   private void AddNoLock(AttributeType attributeType)
   {
-    var attribute = new Attribute(attributeType, effectTarget, context);
+    var attribute = new Attribute(attributeType, target, targetContext, abilityContext);
     attributes.Add(attributeType, attribute);
     // Chain the event handler.
     attribute.AbilitiesChanged += UpdateAbilities;
@@ -115,7 +117,7 @@ public class AttributeSet : IAbilityCollection
     {
       if (!attributes.ContainsKey(attributeType))
       {
-        return attributeType.initialValue.GetValue(context);
+        return attributeType.initialValue.GetValue(abilityContext);
       }
       return attributes[attributeType].value;
     }

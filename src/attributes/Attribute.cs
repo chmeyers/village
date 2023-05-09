@@ -251,9 +251,11 @@ public class Attribute : IAbilityCollection
   // The attribute type.
   public AttributeType attributeType;
   // target for effects
-  private IInventoryContext? target;
+  private object? target;
+  // target Context for effects
+  private IInventoryContext? targetContext;
   // context for effects and abilityValues.
-  private IAbilityContext? context;
+  private IAbilityContext? abilityContext;
   // Set of Abilities that can trigger value updates.
   private HashSet<AbilityType> _modifierAbilities = new HashSet<AbilityType>();
   
@@ -263,10 +265,10 @@ public class Attribute : IAbilityCollection
 
   public event AbilitiesChanged? AbilitiesChanged;
 
-  public Attribute(AttributeType attributeType, IInventoryContext? effectTarget, IAbilityContext? context)
+  public Attribute(AttributeType attributeType, object? effectTarget, IInventoryContext? targetContext, IAbilityContext? abilityContext)
   {
     this.attributeType = attributeType;
-    this.value = attributeType.initialValue.GetValue(context);
+    this.value = attributeType.initialValue.GetValue(abilityContext);
     this.abilityValue = new AbilityValue(attributeType.initialValue);
     this._modifierAbilities = attributeType.initialValue.Abilities;
     
@@ -279,11 +281,12 @@ public class Attribute : IAbilityCollection
     this.rangeMin = interval.lower;
     this.rangeMax = interval.upper;
     this.target = effectTarget;
-    this.context = context;
+    this.targetContext = targetContext;
+    this.abilityContext = abilityContext;
     // If the context is not null and we have modifier abilities, register for updates.
-    if (context != null && _modifierAbilities.Count > 0)
+    if (abilityContext != null && _modifierAbilities.Count > 0)
     {
-      context.AbilitiesChanged += OnAbilitiesChanged;
+      abilityContext.AbilitiesChanged += OnAbilitiesChanged;
     }
   }
 
@@ -316,7 +319,7 @@ public class Attribute : IAbilityCollection
   private int UpdateValue()
   {
     // Recalculate the value.
-    value = abilityValue.GetValue(context);
+    value = abilityValue.GetValue(abilityContext);
 
     // Post-modifier value is also gated by the min/max.
     if (value < attributeType.minValue)
@@ -346,12 +349,13 @@ public class Attribute : IAbilityCollection
       rangeMin = newInterval.lower;
       rangeMax = newInterval.upper;
       // Run effects on the new interval, if we have a target and context.
-      if (target != null && context != null)
+      if (targetContext != null && abilityContext != null)
       {
         foreach (var effect in newInterval.effects)
         {
-          // Apply the effect, the target is always the person whose attribute this is.
-          effect.Apply(new ChosenEffectTarget(effect.target, null, target, context));
+          // Apply the effect, the target is always one specified when creating the attribute,
+          // typically the owner of the attribute.
+          effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext));
         }
       }
       if (!newInterval.Abilities.SetEquals(oldInterval.Abilities))

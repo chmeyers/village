@@ -195,7 +195,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     this.id = id;
     this.name = name;
     // Target and Context for Attribute effects point back at this Person.
-    this.attributes = new AttributeSet(this, this);
+    this.attributes = new AttributeSet(this, this, this);
     attributes.AbilitiesChanged += UpdateAbilities;
     this.skills = new SkillSet(this);
     // If household is null, create a new household for the person.
