@@ -31,6 +31,8 @@ public class AttributeSet : IAbilityCollection
   private IInventoryContext? targetContext;
   private IAbilityContext? abilityContext;
 
+  private int _scale = 1;
+
   // Constructor for an AttributeSet.
   public AttributeSet(object? target, IInventoryContext? effectTarget, IAbilityContext? effectContext)
   {
@@ -69,6 +71,19 @@ public class AttributeSet : IAbilityCollection
     }
   }
 
+  public void Rescale(int scale)
+  {
+    if (scale <= 0) throw new ArgumentException("Attribute Scale must be positive.");
+    lock (_lock)
+    {
+      _scale = scale;
+      foreach (var attribute in effectAttributes)
+      {
+        attribute.Rescale(scale);
+      }
+    }
+  }
+
   // Update Abilities from the attributes.
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
@@ -82,6 +97,7 @@ public class AttributeSet : IAbilityCollection
   private void AddNoLock(AttributeType attributeType)
   {
     var attribute = new Attribute(attributeType, target, targetContext, abilityContext);
+    attribute.Rescale(_scale);
     attributes.Add(attributeType, attribute);
     // Chain the event handler.
     attribute.AbilitiesChanged += UpdateAbilities;

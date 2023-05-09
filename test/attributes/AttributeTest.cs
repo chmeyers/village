@@ -111,6 +111,23 @@ public class AttributeUnitTest
     Assert.AreEqual(2, a.Abilities.Count);
     Assert.IsTrue(a.Abilities.Contains(AbilityType.Find("strong_1")!));
 
+    // Rescale the person's strength attribute.
+    a.Rescale(20);
+    // Check that the strength value is now 6*20 = 120.
+    Assert.AreEqual(120, a.value);
+    // Check that the strength value has the strong_1 ability.
+    Assert.AreEqual(2, a.Abilities.Count);
+    Assert.IsTrue(a.Abilities.Contains(AbilityType.Find("strong_1")!));
+
+    // Add 5 to the strength value.
+    Assert.AreEqual(145, a.AddValue(25));
+    // Check that the strength value is now 145.
+    Assert.AreEqual(145, a.value);
+
+    // Rescale it back.
+    a.Rescale(1);
+    // Check that the strength value is now 145/20 = 7.
+    Assert.AreEqual(7, a.value);
 
   }
 

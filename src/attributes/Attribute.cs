@@ -282,6 +282,11 @@ public class Attribute : IAbilityCollection
   public int rangeMin { get; private set; }
   // Cached max of the range the attribute is currently in.
   public int rangeMax { get; private set; }
+  // Scale all the ranges in the attribute by this amount.
+  public int scale { get; private set; } = 1;
+  private int _scaleRemainder = 0;
+  private int _scaledMaxValue = 0;
+  private int _scaledMinValue = 0;
   // Cached index of the interval the attribute is currently in.
   private int intervalIndex;
   // The attribute type.
@@ -324,6 +329,8 @@ public class Attribute : IAbilityCollection
       abilityContext.AbilitiesChanged += OnAbilitiesChanged;
     }
     this._lastEffectTick = Calendar.Ticks;
+    _scaledMaxValue = attributeType.maxValue * scale;
+    _scaledMinValue = attributeType.minValue * scale;
   }
 
   public HashSet<AbilityType> Abilities
@@ -381,16 +388,16 @@ public class Attribute : IAbilityCollection
   private int UpdateValue()
   {
     // Recalculate the value.
-    value = abilityValue.GetValue(abilityContext);
+    value = abilityValue.GetValue(abilityContext) * scale + _scaleRemainder;
 
     // Post-modifier value is also gated by the min/max.
-    if (value < attributeType.minValue)
+    if (value < _scaledMinValue)
     {
-      value = attributeType.minValue;
+      value = _scaledMinValue;
     }
-    else if (value > attributeType.maxValue)
+    else if (value > _scaledMaxValue)
     {
-      value = attributeType.maxValue;
+      value = _scaledMaxValue;
     }
 
     // if value is still inside the current range, we don't need to update the range
@@ -408,8 +415,8 @@ public class Attribute : IAbilityCollection
       var newInterval = attributeType.intervals.GetValueAtIndex(newIntervalIndex);
       var oldInterval = attributeType.intervals.GetValueAtIndex(intervalIndex);
       intervalIndex = newIntervalIndex;
-      rangeMin = newInterval.lower;
-      rangeMax = newInterval.upper;
+      rangeMin = newInterval.lower * scale;
+      rangeMax = newInterval.upper * scale;
       // If the old interval had daily effects, get them up to date.
       RunOngoingEffects(oldInterval);
       // Run effects on the new interval, if we have a target and context.
@@ -435,16 +442,17 @@ public class Attribute : IAbilityCollection
   {
     if (newBaseValue == abilityValue.baseValue) return value;
 
-    if (newBaseValue < attributeType.minValue)
+    if (newBaseValue < _scaledMinValue)
     {
-      newBaseValue = attributeType.minValue;
+      newBaseValue = _scaledMinValue;
     }
-    else if (newBaseValue > attributeType.maxValue)
+    else if (newBaseValue > _scaledMaxValue)
     {
-      newBaseValue = attributeType.maxValue;
+      newBaseValue = _scaledMaxValue;
     }
 
-    abilityValue.baseValue = newBaseValue;
+    abilityValue.baseValue = newBaseValue/scale;
+    _scaleRemainder = newBaseValue % scale;
 
     return UpdateValue();
   }
@@ -452,6 +460,20 @@ public class Attribute : IAbilityCollection
   // Add a value to the attribute.
   public int AddValue(int addValue)
   {
-    return SetValue(abilityValue.baseValue + addValue);
+    return SetValue(abilityValue.baseValue*scale + _scaleRemainder + addValue);
+  }
+
+  public void Rescale(int newScale)
+  {
+    if (newScale == scale) return;
+    if (scale <= 0) throw new ArgumentException("Attribute Scale must be positive.");
+    _scaleRemainder = _scaleRemainder * newScale / scale;
+    scale = newScale;
+    _scaledMaxValue = attributeType.maxValue * scale;
+    _scaledMinValue = attributeType.minValue * scale;
+    var currentInterval = attributeType.intervals.GetValueAtIndex(intervalIndex);
+    rangeMin = currentInterval.lower * scale;
+    rangeMax = currentInterval.upper * scale;
+    UpdateValue();
   }
 }
