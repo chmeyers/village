@@ -24,9 +24,9 @@ public class AttributeInterval : IAbilityProvider
   // Effects are not triggered during initialization.
   public List<Effect> entryEffects = new List<Effect>();
 
-  // The effects that will be applied for every day that the attribute is in this interval.
-  // These effects must be batchable, as we won't necessarily run them every day.
-  public List<Effect> dailyEffects = new List<Effect>();
+  // The effects that will be applied for every tick that the attribute is in this interval.
+  // These effects must be batchable, as we won't actually run them every tick.
+  public List<Effect> ongoingEffects = new List<Effect>();
 }
 
 public class AttributeType
@@ -74,6 +74,14 @@ public class AttributeType
       if (attribute.Value.ContainsKey("calendar"))
       {
         a.calendar = (bool)attribute.Value["calendar"];
+      }
+      if (attribute.Value.ContainsKey("changePerTick"))
+      {
+        if (a.calendar)
+        {
+          throw new Exception("Calendar attributes cannot have changePerTick: " + attribute.Key);
+        }
+        a.changePerTick = (int)(long)attribute.Value["changePerTick"];
       }
       // Cast the intervals to a newtonsoft JArray and check for null.
       var intervalArray = (Newtonsoft.Json.Linq.JArray)attribute.Value["intervals"];
@@ -183,7 +191,7 @@ public class AttributeType
             {
               throw new Exception("Effect type: " + effect + " for attribute: " + attribute.Key + " is not batchable.");
             }
-            attributeInterval.dailyEffects.Add(effectType);
+            attributeInterval.ongoingEffects.Add(effectType);
             // TODO(chmeyers): It would be good to check for circular dependencies caused by effects, too.
           }
         }
@@ -225,6 +233,8 @@ public class AttributeType
   public int maxValue { get; private set; }
   // Whether this is a calendar attribute.
   public bool calendar { get; private set; } = false;
+  // How much this attribute will change each tick.
+  public int changePerTick { get; private set; } = 0;
   // Intervals at which abilities will be granted and effects will be triggered.
   // The key is the lower limit of the interval, inclusive. The upper limit is
   // the key of the next interval, exclusive. The last interval will include
@@ -262,7 +272,7 @@ public class AttributeType
   {
     foreach (var interval in intervals.Values)
     {
-      if (interval.dailyEffects.Count > 0)
+      if (interval.ongoingEffects.Count > 0)
       {
         return true;
       }
@@ -289,6 +299,7 @@ public class Attribute : IAbilityCollection
   private int _scaleRemainder = 0;
   private int _scaledMaxValue = 0;
   private int _scaledMinValue = 0;
+  private int _scaledChangePerTick = 0;
   // Cached index of the interval the attribute is currently in.
   private int intervalIndex;
   // The attribute type.
@@ -303,6 +314,8 @@ public class Attribute : IAbilityCollection
   private HashSet<AbilityType> _modifierAbilities = new HashSet<AbilityType>();
   // When were the daily effects last triggered?
   private long _lastEffectTick = 0;
+
+  private object _lock = new object();
   
 
   public event AbilitiesChanged? AbilitiesChanged;
@@ -349,28 +362,68 @@ public class Attribute : IAbilityCollection
 
   public void Advance()
   {
-    // Get ongoing effects up to the current tick.
-    RunOngoingEffects(attributeType.intervals.GetValueAtIndex(intervalIndex));
+    lock(_lock) {
+      // Advance one interval at a time, to ensure that we don't miss entry effects,
+      // and ongoing effects are accurately applied.
+      int ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), _lastEffectTick - Calendar.Ticks);
+      while (ticksForCurrentInterval > 0)
+      {
+        RunOngoingEffects(attributeType.intervals.GetValueAtIndex(intervalIndex), ticksForCurrentInterval);
+        // Update the value by the change per tick.
+        AdvanceChangePerTick(ticksForCurrentInterval);
+        _lastEffectTick += ticksForCurrentInterval;
+        ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), _lastEffectTick - Calendar.Ticks);
+      }
+    }
   }
 
-  private void RunOngoingEffects(AttributeInterval interval)
+  private void AdvanceChangePerTick(int ticks)
   {
-    // If the last time we ran the daily effects was not today, run them again.
-    long ticksSinceLastRun = _lastEffectTick - Calendar.Ticks;
-    // Apply daily effects up to the current tick.
-    if (ticksSinceLastRun > Calendar.ticksPerDay / 2)
+    if (ticks == 0 || _scaledChangePerTick == 0) return;
+    if (_scaledChangePerTick < 0 && IsMinned()) return;
+    if (_scaledChangePerTick > 0 && IsMaxed()) return;
+    AddValue(_scaledChangePerTick * ticks);
+  }
+
+  private int TicksToNextInterval()
+  {
+    if (_scaledChangePerTick == 0) return int.MaxValue;
+    if (_scaledChangePerTick > 0)
     {
-      if (interval.dailyEffects.Count > 0)
-      {
-        foreach (var effect in interval.dailyEffects)
-        {
-          // Apply the effect, batching up the number of days since the last run.
-          // We count a half day as a full day here.
-          effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext), effectMultiplier, (int)((ticksSinceLastRun + (Calendar.ticksPerDay / 2)) / Calendar.ticksPerDay));
-        }
-      }
-      _lastEffectTick = Calendar.Ticks;
+      if (IsMaxed()) return int.MaxValue;
+      // Round up to the next tick.
+      return (rangeMax - value + _scaledChangePerTick - 1 ) / _scaledChangePerTick;
     }
+    else
+    {
+      if (IsMinned()) return int.MaxValue;
+      return (value - rangeMin - _scaledChangePerTick) / -_scaledChangePerTick;
+    }
+  }
+
+  private bool IsMaxed()
+  {
+    // True if the value is at the max value or the base value is at the max value (exclusive).
+    return value >= _scaledMaxValue - 1 ||  abilityValue.baseValue * scale + _scaleRemainder >= _scaledMaxValue - 1;
+  }
+
+  private bool IsMinned()
+  {
+    // True if the value is at the min value or the base value is at the min value.
+    return value <= _scaledMinValue || abilityValue.baseValue * scale + _scaleRemainder <= _scaledMinValue;
+  }
+
+  private void RunOngoingEffects(AttributeInterval interval, int ticks)
+  {
+    if (interval.ongoingEffects.Count > 0)
+    {
+      foreach (var effect in interval.ongoingEffects)
+      {
+        // Apply the effect, batching up the number of ticks since the last run.
+        effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext), effectMultiplier, ticks);
+      }
+    }
+    
   }
 
   private void OnAbilitiesChanged(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
@@ -389,6 +442,7 @@ public class Attribute : IAbilityCollection
 
   private int UpdateValue()
   {
+    // Note that Advance() should be called before this method is called.
     // Recalculate the value.
     value = abilityValue.GetValue(abilityContext) * scale + _scaleRemainder;
 
@@ -397,9 +451,10 @@ public class Attribute : IAbilityCollection
     {
       value = _scaledMinValue;
     }
-    else if (value > _scaledMaxValue)
+    else if (value >= _scaledMaxValue)
     {
-      value = _scaledMaxValue;
+      // The max value is exclusive, so we need to subtract 1.
+      value = _scaledMaxValue - 1;
     }
 
     // if value is still inside the current range, we don't need to update the range
@@ -419,9 +474,7 @@ public class Attribute : IAbilityCollection
       intervalIndex = newIntervalIndex;
       rangeMin = newInterval.lower * scale;
       rangeMax = newInterval.upper * scale;
-      // If the old interval had daily effects, get them up to date.
-      RunOngoingEffects(oldInterval);
-      // Run effects on the new interval, if we have a target and context.
+      // Run entry effects on the new interval, if we have a target and context.
       if (targetContext != null && abilityContext != null)
       {
         foreach (var effect in newInterval.entryEffects)
@@ -442,40 +495,52 @@ public class Attribute : IAbilityCollection
   // Set the base value of the attribute.
   public int SetValue(int newBaseValue)
   {
-    if (newBaseValue == abilityValue.baseValue) return value;
-
-    if (newBaseValue < _scaledMinValue)
+    lock (_lock)
     {
-      newBaseValue = _scaledMinValue;
-    }
-    else if (newBaseValue > _scaledMaxValue)
-    {
-      newBaseValue = _scaledMaxValue;
-    }
+      Advance();
+      if (newBaseValue == abilityValue.baseValue) return value;
 
-    abilityValue.baseValue = newBaseValue/scale;
-    _scaleRemainder = newBaseValue % scale;
+      if (newBaseValue < _scaledMinValue)
+      {
+        newBaseValue = _scaledMinValue;
+      }
+      else if (newBaseValue >= _scaledMaxValue)
+      {
+        newBaseValue = _scaledMaxValue - 1;
+      }
 
-    return UpdateValue();
+      abilityValue.baseValue = newBaseValue/scale;
+      _scaleRemainder = newBaseValue % scale;
+
+      return UpdateValue();
+    }
   }
 
   // Add a value to the attribute.
   public int AddValue(int addValue)
   {
-    return SetValue(abilityValue.baseValue*scale + _scaleRemainder + addValue);
+    lock (_lock)
+    {
+      return SetValue(abilityValue.baseValue*scale + _scaleRemainder + addValue);
+    }
   }
 
   public void Rescale(int newScale)
   {
-    if (newScale == scale) return;
-    if (scale <= 0) throw new ArgumentException("Attribute Scale must be positive.");
-    _scaleRemainder = _scaleRemainder * newScale / scale;
-    scale = newScale;
-    _scaledMaxValue = attributeType.maxValue * scale;
-    _scaledMinValue = attributeType.minValue * scale;
-    var currentInterval = attributeType.intervals.GetValueAtIndex(intervalIndex);
-    rangeMin = currentInterval.lower * scale;
-    rangeMax = currentInterval.upper * scale;
-    UpdateValue();
+    lock (_lock)
+    {
+      Advance();
+      if (newScale == scale) return;
+      if (scale <= 0) throw new ArgumentException("Attribute Scale must be positive.");
+      _scaleRemainder = _scaleRemainder * newScale / scale;
+      scale = newScale;
+      _scaledMaxValue = attributeType.maxValue * scale;
+      _scaledMinValue = attributeType.minValue * scale;
+      _scaledChangePerTick = attributeType.changePerTick * scale;
+      var currentInterval = attributeType.intervals.GetValueAtIndex(intervalIndex);
+      rangeMin = currentInterval.lower * scale;
+      rangeMax = currentInterval.upper * scale;
+      UpdateValue();
+    }
   }
 }

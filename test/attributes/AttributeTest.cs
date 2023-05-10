@@ -19,7 +19,7 @@ public class AttributeUnitTest
       AbilityType.LoadString(@"{ 'plus' : { 'levels': 3 } }");
     }
     AttributeType.Clear();
-    string json = @"{ 'strength' : { 'min': 0, 'max': 10, 'initial': {'val': 2, 'modifiers': {'plus_1': {'add': 3}, 'plus_2': { 'add': 3 } }}, 'intervals':
+    string json = @"{ 'strength' : { 'min': 0, 'max': 11, 'initial': {'val': 2, 'modifiers': {'plus_1': {'add': 3}, 'plus_2': { 'add': 3 } }}, 'intervals':
       [{'lower': 0, 'abilities': ['weak_1']},
        {'lower': 3},
        {'lower': 6, 'abilities': ['strong_1']},
@@ -32,7 +32,7 @@ public class AttributeUnitTest
     Assert.AreEqual(2, AttributeType.types.Count);
     // Check that the attribute types were loaded correctly.
     Assert.AreEqual(0, AttributeType.types["strength"].minValue);
-    Assert.AreEqual(10, AttributeType.types["strength"].maxValue);
+    Assert.AreEqual(11, AttributeType.types["strength"].maxValue);
     Assert.AreEqual(2, AttributeType.types["strength"].initialValue.baseValue);
     Assert.AreEqual(4, AttributeType.types["strength"].intervals.Count);
     Assert.AreEqual(0, AttributeType.types["strength"].intervals.GetValueAtIndex(0).lower);
@@ -42,7 +42,7 @@ public class AttributeUnitTest
     Assert.AreEqual(6, AttributeType.types["strength"].intervals.GetValueAtIndex(2).lower);
     Assert.AreEqual(9, AttributeType.types["strength"].intervals.GetValueAtIndex(2).upper);
     Assert.AreEqual(9, AttributeType.types["strength"].intervals.GetValueAtIndex(3).lower);
-    Assert.AreEqual(10, AttributeType.types["strength"].intervals.GetValueAtIndex(3).upper);
+    Assert.AreEqual(11, AttributeType.types["strength"].intervals.GetValueAtIndex(3).upper);
     Assert.AreEqual(2, AttributeType.types["strength"].intervals.GetValueAtIndex(0).Abilities.Count);
     Assert.AreEqual(0, AttributeType.types["strength"].intervals.GetValueAtIndex(1).Abilities.Count);
     Assert.AreEqual(2, AttributeType.types["strength"].intervals.GetValueAtIndex(2).Abilities.Count);

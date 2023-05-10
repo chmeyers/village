@@ -100,11 +100,6 @@ public class Calendar
   public static Season Season { get { return global_calendar.season; } }
   public static bool StartOfDay { get { return global_calendar.startOfDay; } }
 
-
-  
-  
-
-
   // Advance the calendar by the given number of ticks.
   public static void Advance(uint ticks)
   {
