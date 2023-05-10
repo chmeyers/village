@@ -67,6 +67,7 @@ public class AttributeSet : IAbilityCollection
     {
       foreach (var attribute in effectAttributes)
       {
+        // Only advance the attribute if it has ongoing effects or a change per tick.
         attribute.Advance();
       }
     }
@@ -78,7 +79,7 @@ public class AttributeSet : IAbilityCollection
     lock (_lock)
     {
       _scale = scale;
-      foreach (var attribute in effectAttributes)
+      foreach (var attribute in attributes.Values)
       {
         attribute.Rescale(scale);
       }
@@ -119,7 +120,7 @@ public class AttributeSet : IAbilityCollection
     {
       UpdateAbilities(attribute, attribute.Abilities, null, null);
     }
-    if (attributeType.HasOngoingEffects())
+    if (attributeType.HasOngoingEffects() || attributeType.changePerTick != 0)
     {
       effectAttributes.Add(attribute);
     }
