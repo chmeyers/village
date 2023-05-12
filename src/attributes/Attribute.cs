@@ -61,7 +61,7 @@ public class AttributeType
     {
       var min = (int)(long)attribute.Value["min"];
       var max = (int)(long)attribute.Value["max"];
-      AttributeValue init = AttributeValue.FromJson(attribute.Value["initial"]);
+      AbilityValue init = AbilityValue.FromJson(attribute.Value["initial"]);
       // Check that any abilities referenced by the initial value
       // are not in the referenced abilities set. This is to prevent
       // circular dependencies.
@@ -226,7 +226,7 @@ public class AttributeType
   // The name of the attribute.
   public string name { get; private set; }
   // The initial value of the attribute.
-  public AttributeValue initialValue { get; private set; }
+  public AbilityValue initialValue { get; private set; }
   // The minimum value of the attribute.
   public int minValue { get; private set; }
   // The maximum value of the attribute.
@@ -260,7 +260,7 @@ public class AttributeType
     return upper;
   }
 
-  public AttributeType(string name, AttributeValue initialValue, int minValue, int maxValue)
+  public AttributeType(string name, AbilityValue initialValue, int minValue, int maxValue)
   {
     this.name = name;
     this.initialValue = initialValue;
@@ -287,7 +287,7 @@ public class Attribute : IAbilityCollection
   // The current value of the attribute, including modifiers.
   public int value { get; private set; }
   // The real underlying value of the attribute is stored in this ability value.
-  private AttributeValue attributeValue;
+  private AbilityValue abilityValue;
   // Cached min of the range the attribute is currently in.
   public int rangeMin { get; private set; }
   // Cached max of the range the attribute is currently in.
@@ -308,7 +308,7 @@ public class Attribute : IAbilityCollection
   private object? target;
   // target Context for effects
   private IInventoryContext? targetContext;
-  // context for effects and attributeValues.
+  // context for effects and abilityValues.
   private IAbilityContext? abilityContext;
   // Set of Abilities that can trigger value updates.
   private HashSet<AbilityType> _modifierAbilities = new HashSet<AbilityType>();
@@ -316,7 +316,7 @@ public class Attribute : IAbilityCollection
   private long _lastEffectTick = 0;
 
   private object _lock = new object();
-
+  
 
   public event AbilitiesChanged? AbilitiesChanged;
 
@@ -324,9 +324,9 @@ public class Attribute : IAbilityCollection
   {
     this.attributeType = attributeType;
     this.value = attributeType.initialValue.GetValue(abilityContext);
-    this.attributeValue = new AttributeValue(attributeType.initialValue);
+    this.abilityValue = new AbilityValue(attributeType.initialValue);
     this._modifierAbilities = attributeType.initialValue.Abilities;
-
+    
     // Use a binary search to find the interval that the initial value is in.
     // We find the key of the interval that is just less than the initial value.
     // The interval that the initial value is in is the interval that starts at
@@ -362,8 +362,7 @@ public class Attribute : IAbilityCollection
 
   public void Advance()
   {
-    lock (_lock)
-    {
+    lock(_lock) {
       // Advance one interval at a time, to ensure that we don't miss entry effects,
       // and ongoing effects are accurately applied.
       int ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), _lastEffectTick - Calendar.Ticks);
@@ -393,7 +392,7 @@ public class Attribute : IAbilityCollection
     {
       if (IsMaxed()) return int.MaxValue;
       // Round up to the next tick.
-      return (rangeMax - value + _scaledChangePerTick - 1) / _scaledChangePerTick;
+      return (rangeMax - value + _scaledChangePerTick - 1 ) / _scaledChangePerTick;
     }
     else
     {
@@ -405,13 +404,13 @@ public class Attribute : IAbilityCollection
   private bool IsMaxed()
   {
     // True if the value is at the max value or the base value is at the max value (exclusive).
-    return value >= _scaledMaxValue - 1 || attributeValue.baseValue * scale + _scaleRemainder >= _scaledMaxValue - 1;
+    return value >= _scaledMaxValue - 1 ||  abilityValue.baseValue * scale + _scaleRemainder >= _scaledMaxValue - 1;
   }
 
   private bool IsMinned()
   {
     // True if the value is at the min value or the base value is at the min value.
-    return value <= _scaledMinValue || attributeValue.baseValue * scale + _scaleRemainder <= _scaledMinValue;
+    return value <= _scaledMinValue || abilityValue.baseValue * scale + _scaleRemainder <= _scaledMinValue;
   }
 
   private void RunOngoingEffects(AttributeInterval interval, int ticks)
@@ -424,7 +423,7 @@ public class Attribute : IAbilityCollection
         effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext), effectMultiplier, ticks);
       }
     }
-
+    
   }
 
   private void OnAbilitiesChanged(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
@@ -445,7 +444,7 @@ public class Attribute : IAbilityCollection
   {
     // Note that Advance() should be called before this method is called.
     // Recalculate the value.
-    value = attributeValue.GetValue(abilityContext) * scale + _scaleRemainder;
+    value = abilityValue.GetValue(abilityContext) * scale + _scaleRemainder;
 
     // Post-modifier value is also gated by the min/max.
     if (value < _scaledMinValue)
@@ -499,7 +498,7 @@ public class Attribute : IAbilityCollection
     lock (_lock)
     {
       Advance();
-      if (newBaseValue == attributeValue.baseValue) return value;
+      if (newBaseValue == abilityValue.baseValue) return value;
 
       if (newBaseValue < _scaledMinValue)
       {
@@ -510,7 +509,7 @@ public class Attribute : IAbilityCollection
         newBaseValue = _scaledMaxValue - 1;
       }
 
-      attributeValue.baseValue = newBaseValue / scale;
+      abilityValue.baseValue = newBaseValue/scale;
       _scaleRemainder = newBaseValue % scale;
 
       return UpdateValue();
@@ -522,7 +521,7 @@ public class Attribute : IAbilityCollection
   {
     lock (_lock)
     {
-      return SetValue(attributeValue.baseValue * scale + _scaleRemainder + addValue);
+      return SetValue(abilityValue.baseValue*scale + _scaleRemainder + addValue);
     }
   }
 

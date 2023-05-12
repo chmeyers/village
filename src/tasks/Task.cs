@@ -5,7 +5,6 @@
 
 using Newtonsoft.Json;
 using Village.Abilities;
-using Village.Attributes;
 using Village.Base;
 using Village.Effects;
 using Village.Items;
@@ -113,16 +112,16 @@ namespace Village.Tasks
         // If present, get the requirements setting from the Value
         List<string>? requirements = task.Value.ContainsKey("requirements") ? ((Newtonsoft.Json.Linq.JArray)task.Value["requirements"]).ToObject<List<string>>() : null;
         // If present, get the inputs setting from the Value
-        Dictionary<string, AttributeValue>? inputs = task.Value.ContainsKey("inputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["inputs"]).ToObject<Dictionary<string, AttributeValue>>() : null;
+        Dictionary<string, AbilityValue>? inputs = task.Value.ContainsKey("inputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["inputs"]).ToObject<Dictionary<string, AbilityValue>>() : null;
 
         // If present, get the outputs setting from the Value
-        Dictionary<string, AttributeValue>? outputs = task.Value.ContainsKey("outputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["outputs"]).ToObject<Dictionary<string, AttributeValue>>() : null;
+        Dictionary<string, AbilityValue>? outputs = task.Value.ContainsKey("outputs") ? ((Newtonsoft.Json.Linq.JObject)task.Value["outputs"]).ToObject<Dictionary<string, AbilityValue>>() : null;
         // If present, get the effects setting from the Value
         Dictionary<string, List<string>>? effects = task.Value.ContainsKey("effects") ? ((Newtonsoft.Json.Linq.JObject)task.Value["effects"]).ToObject<Dictionary<string, List<string>>>() : null;
         // If present get the supercedes list from the Value
         List<string>? supercedes = task.Value.ContainsKey("supercedes") ? ((Newtonsoft.Json.Linq.JArray)task.Value["supercedes"]).ToObject<List<string>>() : null;
         // Get the time setting from the Value, this setting is required.
-        AttributeValue time = AttributeValue.FromJson(task.Value["timeCost"]);
+        AbilityValue time = AbilityValue.FromJson(task.Value["timeCost"]);
         // Time values get a default min of 0, unless it's already set to something higher.
         if (time.min < 0)
         {
@@ -158,7 +157,7 @@ namespace Village.Tasks
     }
 
     // Constructor for a WorkTask.
-    public WorkTask(string task, List<string>? requirements, Dictionary<string, AttributeValue>? inputs, Dictionary<string, AttributeValue>? outputs, Dictionary<string, List<string>>? effects, List<string>? supercedes, AttributeValue timeCost, bool repeatable)
+    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, AbilityValue>? outputs, Dictionary<string, List<string>>? effects, List<string>? supercedes, AbilityValue timeCost, bool repeatable)
     {
       // Set the task name.
       this.task = task;
@@ -185,7 +184,7 @@ namespace Village.Tasks
       if (inputs != null)
       {
         this.inputs = inputs.ToDictionary(
-          (KeyValuePair<string, AttributeValue> input) =>
+          (KeyValuePair<string, AbilityValue> input) =>
           {
             ItemType? itemType = ItemType.Find(input.Key);
             if (itemType == null)
@@ -194,10 +193,10 @@ namespace Village.Tasks
             }
             return itemType;
           },
-          (KeyValuePair<string, AttributeValue> input) => input.Value
+          (KeyValuePair<string, AbilityValue> input) => input.Value
         ).ToList();
         // Reorder the inputs so that children appear before their ancestors.
-        this.inputs.Sort((KeyValuePair<ItemType, AttributeValue> a, KeyValuePair<ItemType, AttributeValue> b) =>
+        this.inputs.Sort((KeyValuePair<ItemType, AbilityValue> a, KeyValuePair<ItemType, AbilityValue> b) =>
         {
           return a.Key.IsDescendentOf(b.Key) ? 1 : -1;
         });
@@ -224,14 +223,14 @@ namespace Village.Tasks
       }
       else
       {
-        this.inputs = new List<KeyValuePair<ItemType, AttributeValue>>();
+        this.inputs = new List<KeyValuePair<ItemType, AbilityValue>>();
       }
       // Verify that the outputs are all valid ItemTypes,
       // and convert the strings to ItemTypes.
       if (outputs != null)
       {
         this.outputs = outputs.ToDictionary(
-          (KeyValuePair<string, AttributeValue> output) =>
+          (KeyValuePair<string, AbilityValue> output) =>
           {
             ItemType? itemType = ItemType.Find(output.Key);
             if (itemType == null)
@@ -240,12 +239,12 @@ namespace Village.Tasks
             }
             return itemType;
           },
-          (KeyValuePair<string, AttributeValue> output) => output.Value
+          (KeyValuePair<string, AbilityValue> output) => output.Value
         );
       }
       else
       {
-        this.outputs = new Dictionary<ItemType, AttributeValue>();
+        this.outputs = new Dictionary<ItemType, AbilityValue>();
       }
 
       // Verify that the effects are all valid Effects,
@@ -431,7 +430,7 @@ namespace Village.Tasks
     public bool IsResourceProcessingTask()
     {
       // Check that all the inputs are resources and there is one resource output.
-      return this.inputs.Count > 0 && this.inputs.All<KeyValuePair<ItemType,AttributeValue>>(pair => pair.Key.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
+      return this.inputs.Count > 0 && this.inputs.All<KeyValuePair<ItemType,AbilityValue>>(pair => pair.Key.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
     }
 
     // The name of the task.
@@ -440,9 +439,9 @@ namespace Village.Tasks
     public List<AbilityType> requirements;
     // The ItemType and quantities of inputs required to perform the task.
     // Ordered such that children types come before their ancestors.
-    public List<KeyValuePair<ItemType, AttributeValue>> inputs;
+    public List<KeyValuePair<ItemType, AbilityValue>> inputs;
     // The outputs produced by the task.
-    public Dictionary<ItemType, AttributeValue> outputs;
+    public Dictionary<ItemType, AbilityValue> outputs;
     // The side effects of the task, along with their targets.
     // Duplicate Effects are allowed with different targets.
     public Dictionary<Effect, List<EffectTarget>> effects;
@@ -450,7 +449,7 @@ namespace Village.Tasks
     // Measured in tenths of a day, so Persons can perform
     // 300 units worth of tasks per month/turn.
     // Zero cost tasks are free to perform.
-    public AttributeValue timeCost;
+    public AbilityValue timeCost;
     // Whether a task is repeatable in a single turn.
     public bool repeatable;
     // Set of targets for this task.

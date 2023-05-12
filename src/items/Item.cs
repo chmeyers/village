@@ -1,6 +1,5 @@
 using Newtonsoft.Json;
 using Village.Abilities;
-using Village.Attributes;
 
 namespace Village.Items;
 
@@ -140,10 +139,10 @@ public class ItemType
       }
 
       // Get the craft quality.
-      AttributeValue craftQuality = new AttributeValue(DEFAULT_QUALITY);
+      AbilityValue craftQuality = new AbilityValue(DEFAULT_QUALITY);
       if (itemData.ContainsKey("craftQuality")) {
-        // Load craft quality as an AttributeValue.
-        craftQuality = AttributeValue.FromJson((Newtonsoft.Json.Linq.JObject)itemData["craftQuality"]);
+        // Load craft quality as an AbilityValue.
+        craftQuality = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)itemData["craftQuality"]);
       }
       
 
@@ -173,7 +172,7 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AttributeValue? craftQuality, HashSet<AbilityType>? abilities)
+  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities)
   {
     itemType = name;
     itemGroup = group;
@@ -190,7 +189,7 @@ public class ItemType
     else {
       this.scrapItems = scrapItems;
     }
-    this.craftQuality = craftQuality ?? new AttributeValue(DEFAULT_QUALITY);
+    this.craftQuality = craftQuality ?? new AbilityValue(DEFAULT_QUALITY);
     // If abilities is null, set it to an empty set.
     if (abilities == null) {
       this.abilities = new HashSet<AbilityType>();
@@ -234,7 +233,7 @@ public class ItemType
   public readonly Dictionary<ItemType, int> scrapItems;
 
   // What Craft Quality this item has.
-  public readonly AttributeValue craftQuality;
+  public readonly AbilityValue craftQuality;
 
   // Set of abilities this item type provides.
   public readonly HashSet<AbilityType> abilities;

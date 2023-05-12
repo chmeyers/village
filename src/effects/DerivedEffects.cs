@@ -24,7 +24,7 @@ public class DegradeEffect : Effect
       throw new Exception("Degrade effect must have a config dictionary: " + effect);
     }
     // Get the degrade amount setting from the config
-    amount = AttributeValue.FromJson(data["amount"]);
+    amount = AbilityValue.FromJson(data["amount"]);
   }
 
   private void AddScraps(IInventoryContext target, Item item)
@@ -99,7 +99,7 @@ public class DegradeEffect : Effect
   }
 
   // The amount to degrade the item by.
-  public AttributeValue amount;
+  public AbilityValue amount;
 }
 
 // Increase a Person's skill level.
@@ -119,11 +119,11 @@ public class SkillEffect : Effect
     // Which Skill to increase.
     skill = (string)data["skill"];
     // How much to increase the skill by.
-    level = AttributeValue.FromJson(data["level"]);
+    level = AbilityValue.FromJson(data["level"]);
     // The maximum level the skill can be increased to.
     if (data.ContainsKey("amount"))
     {
-      amount = AttributeValue.FromJson(data["amount"]);
+      amount = AbilityValue.FromJson(data["amount"]);
     }
   }
 
@@ -154,7 +154,7 @@ public class SkillEffect : Effect
       if (person.GetLevel(_skill!) == trainingLevel)
       {
         var grant = Math.Min(trainingAmount, nextLevelXP);
-        if (!person.GrantXP(_skill!, grant))
+        if(!person.GrantXP(_skill!, grant))
         {
           // We can't grant any more XP, so we are done.
           break;
@@ -169,7 +169,7 @@ public class SkillEffect : Effect
           // We can't grant any more XP, so we are done.
           break;
         }
-        trainingAmount -= grant / 2;
+        trainingAmount -= grant/2;
       }
     }
   }
@@ -198,9 +198,9 @@ public class SkillEffect : Effect
   // The level of training, if the person is at this level, they get the specified
   // amount of XP, if they are below this level, they get double XP, if they are
   // above this level, they get no XP.
-  public AttributeValue level;
+  public AbilityValue level;
   // Amount to increase, defaults to 1.
-  public AttributeValue amount = new AttributeValue(1);
+  public AbilityValue amount = new AbilityValue(1);
 }
 
 // Construct a building component.
@@ -285,7 +285,7 @@ public class SkillTreeEffect : Effect
     // The name of the skill to propagate.
     skill = (string)data["skill"];
     // The amount to propagate the skill by.
-    amount = AttributeValue.FromJson(data["amount"]);
+    amount = AbilityValue.FromJson(data["amount"]);
     // Propagate the skill up the tree to the parent, defaults to false.
     if (data.ContainsKey("parent"))
     {
@@ -336,7 +336,7 @@ public class SkillTreeEffect : Effect
   // Skills are loaded after effects, so we can't get the Skill object during the initial load.
   private Skill? _skill;
   // The amount to propagate the skill by.
-  public AttributeValue amount;
+  public AbilityValue amount;
   // Whether to propagate the skill up the tree.
   public bool propagateUp = false;
 }
@@ -363,11 +363,11 @@ public class AttributePullerEffect : Effect
       {
         throw new Exception("AttributePuller effect " + effect + " has an invalid config entry: " + key);
       }
-
+      
       // The target value of the attribute.
-      var targetVal = AttributeValue.FromJson(attributePullerData["target"]);
+      var targetVal = AbilityValue.FromJson(attributePullerData["target"]);
       // The amount to pull the attribute by.
-      var amount = AttributeValue.FromJson(attributePullerData["amount"]);
+      var amount = AbilityValue.FromJson(attributePullerData["amount"]);
       _pullers.Add(new AttributePuller(key, targetVal, amount));
     }
   }
@@ -430,17 +430,17 @@ public class AttributePullerEffect : Effect
   class AttributePuller
   {
     // Constructor
-    public AttributePuller(string attribute, AttributeValue target, AttributeValue amount)
+    public AttributePuller(string attribute, AbilityValue target, AbilityValue amount)
     {
       this.attribute = attribute;
       this.target = target;
       this.amount = amount;
     }
-
+    
     public string attribute = "";
     public AttributeType? type;
-    public AttributeValue target;
-    public AttributeValue amount;
+    public AbilityValue target;
+    public AbilityValue amount;
   }
   // List of attributes to pull.
   private List<AttributePuller> _pullers = new List<AttributePuller>();

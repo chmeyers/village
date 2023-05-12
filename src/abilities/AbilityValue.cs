@@ -1,27 +1,26 @@
 
 using Newtonsoft.Json;
 using Newtonsoft.Json.Linq;
-using Village.Abilities;
 
-namespace Village.Attributes;
-
+namespace Village.Abilities;
 
 
 
-// An AttributeValue is a value that can be modified by the presence of abilities.
+
+// An AbilityValue is a value that can be modified by the presence of abilities.
 // The value is not concrete until the abilities are applied.
-[JsonConverter(typeof(AttributeValueConverter))]
-public class AttributeValue
+[JsonConverter(typeof(AbilityValueConverter))]
+public class AbilityValue
 {
-  // The base value of the AttributeValue.
+  // The base value of the AbilityValue.
   public int baseValue;
   // Minimum and maximum values.
   public int min = int.MinValue;
   public int max = int.MaxValue;
-  // The abilities that affect the AttributeValue.
+  // The abilities that affect the AbilityValue.
   private Dictionary<AbilityType, int> addAbilities = new Dictionary<AbilityType, int>();
   private Dictionary<AbilityType, float> multAbilities = new Dictionary<AbilityType, float>();
-  // Set of abilities that can affect the AttributeValue.
+  // Set of abilities that can affect the AbilityValue.
   public HashSet<AbilityType> Abilities
   {
     get
@@ -32,23 +31,23 @@ public class AttributeValue
       return abilities;
     }
   }
-  // The AttributeValue constructor.
-  public AttributeValue(int baseValue)
+  // The AbilityValue constructor.
+  public AbilityValue(int baseValue)
   {
     this.baseValue = baseValue;
   }
 
   // Copy constructor does a shallow copy, as the dictionaries are immutable.
-  public AttributeValue(AttributeValue attributeValue)
+  public AbilityValue(AbilityValue abilityValue)
   {
-    this.baseValue = attributeValue.baseValue;
-    this.min = attributeValue.min;
-    this.max = attributeValue.max;
-    this.addAbilities = attributeValue.addAbilities;
-    this.multAbilities = attributeValue.multAbilities;
+    this.baseValue = abilityValue.baseValue;
+    this.min = abilityValue.min;
+    this.max = abilityValue.max;
+    this.addAbilities = abilityValue.addAbilities;
+    this.multAbilities = abilityValue.multAbilities;
   }
-
-  public AttributeValue(Newtonsoft.Json.Linq.JToken? json)
+  
+  public AbilityValue(Newtonsoft.Json.Linq.JToken? json)
   {
     if (json == null)
     {
@@ -124,18 +123,18 @@ public class AttributeValue
       }
     }
   }
-  public static implicit operator AttributeValue(long x)
+  public static implicit operator AbilityValue(long x) 
   {
-    return new AttributeValue((int)x);
+    return new AbilityValue((int)x);
   }
 
-  public static implicit operator AttributeValue(Newtonsoft.Json.Linq.JToken x)
+  public static implicit operator AbilityValue(Newtonsoft.Json.Linq.JToken x)
   {
-    return new AttributeValue((int)x);
+    return new AbilityValue((int)x);
   }
 
-  // Read AttributeValue from JSON.
-  public static AttributeValue FromJson(object? input)
+  // Read AbilityValue from JSON.
+  public static AbilityValue FromJson(object? input)
   {
     if (input == null)
     {
@@ -145,17 +144,17 @@ public class AttributeValue
     // Otherwise parse the JSON as a dictionary.
     if (input is long)
     {
-      return new AttributeValue((int)(long)input);
+      return new AbilityValue((int)(long)input);
     }
     if (input is not Newtonsoft.Json.Linq.JToken)
     {
       throw new Exception("Failed to load ability value from type: " + input.GetType().Name);
     }
-
-    return new AttributeValue((Newtonsoft.Json.Linq.JToken)input);
+    
+    return new AbilityValue((Newtonsoft.Json.Linq.JToken)input);
   }
 
-  // Return the value of the AttributeValue.
+  // Return the value of the AbilityValue.
   public int GetValue(IAbilityContext? context)
   {
     if (context == null || context.Abilities.Count == 0 || (addAbilities.Count == 0 && multAbilities.Count == 0))
@@ -183,26 +182,26 @@ public class AttributeValue
     // and converted to an int.
     return Math.Clamp((int)value, min, max);
   }
-  // Return the base value of the AttributeValue.
+  // Return the base value of the AbilityValue.
   public int GetBaseValue()
   {
     return baseValue;
   }
 }
 
-public class AttributeValueConverter : JsonConverter<AttributeValue>
+public class AbilityValueConverter : JsonConverter<AbilityValue>
 {
-  public override AttributeValue ReadJson(JsonReader reader, Type objectType, AttributeValue? existingValue, bool hasExistingValue, JsonSerializer serializer)
+  public override AbilityValue ReadJson(JsonReader reader, Type objectType, AbilityValue? existingValue, bool hasExistingValue, JsonSerializer serializer)
   {
     var token = Newtonsoft.Json.Linq.JToken.ReadFrom(reader);
-    return AttributeValue.FromJson(token);
+    return AbilityValue.FromJson(token);
   }
 
   public override bool CanWrite
   {
     get { return false; }
   }
-  public override void WriteJson(JsonWriter writer, AttributeValue? value, JsonSerializer serializer)
+  public override void WriteJson(JsonWriter writer, AbilityValue? value, JsonSerializer serializer)
   {
     throw new NotImplementedException();
   }
