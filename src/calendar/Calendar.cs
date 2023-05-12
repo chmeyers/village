@@ -151,17 +151,15 @@ public class Calendar
     attributes.Add(attributeType);
   }
 
+  private const string calendarAttributeGroup = "calendar";
   // Go through all the attributes and add the calendar attributes.
   public static void AddCalendarAttributes()
   {
-    foreach (var attributeType in AttributeType.types.Values)
+    foreach (var attributeType in AttributeType.groups[calendarAttributeGroup])
     {
-      if (attributeType.calendar)
-      {
-        global_calendar.AddAttribute(attributeType);
-        // Set the value of the attribute to the current day of the year.
-        global_calendar.attributes.SetValue(attributeType, global_calendar.dayOfYear);
-      }
+      global_calendar.AddAttribute(attributeType);
+      // Set the value of the attribute to the current day of the year.
+      global_calendar.attributes.SetValue(attributeType, global_calendar.dayOfYear);
     }
   }
 

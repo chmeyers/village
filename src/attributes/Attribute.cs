@@ -34,6 +34,8 @@ public class AttributeType
   // Dictionary of attribute types.
   public static Dictionary<string, AttributeType> types { get; private set; } = new Dictionary<string, AttributeType>();
 
+  public static Dictionary<string, List<AttributeType>> groups { get; private set; } = new Dictionary<string, List<AttributeType>>();
+
   // Set of abilities that have been referenced by the attributes loaded so far.
   // This is used to check for circular dependencies.
   private static HashSet<AbilityType> _referencedAbilities = new HashSet<AbilityType>();
@@ -77,17 +79,13 @@ public class AttributeType
         throw new Exception("Possible circular dependency detected in attribute: " + attribute.Key);
       }
       AttributeType a = new AttributeType(attribute.Key, init, min, max);
-      // Check whether it's a calendar attribute.
-      if (attribute.Value.ContainsKey("calendar"))
+      // Read the attribute's group.
+      if (attribute.Value.ContainsKey("group"))
       {
-        a.calendar = (bool)attribute.Value["calendar"];
+        a.group = (string)attribute.Value["group"];
       }
       if (attribute.Value.ContainsKey("changePerTick"))
       {
-        if (a.calendar)
-        {
-          throw new Exception("Calendar attributes cannot have changePerTick: " + attribute.Key);
-        }
         a.changePerTick = (int)(long)attribute.Value["changePerTick"];
       }
       // Cast the intervals to a newtonsoft JArray and check for null.
@@ -206,6 +204,14 @@ public class AttributeType
         a.intervals.Add(lower, attributeInterval);
       }
       types.Add(attribute.Key, a);
+      if (a.group != null && a.group != "")
+      {
+        if (!groups.ContainsKey(a.group))
+        {
+          groups.Add(a.group, new List<AttributeType>());
+        }
+        groups[a.group].Add(a);
+      }
     }
   }
 
@@ -239,7 +245,7 @@ public class AttributeType
   // The maximum value of the attribute.
   public int maxValue { get; private set; }
   // Whether this is a calendar attribute.
-  public bool calendar { get; private set; } = false;
+  public string group { get; private set; } = "";
   // How much this attribute will change each tick.
   public int changePerTick { get; private set; } = 0;
   // Intervals at which abilities will be granted and effects will be triggered.
