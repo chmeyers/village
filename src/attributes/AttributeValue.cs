@@ -39,13 +39,13 @@ public class AttributeValue
   }
 
   // Copy constructor does a shallow copy, as the dictionaries are immutable.
-  public AttributeValue(AttributeValue abilityValue)
+  public AttributeValue(AttributeValue attributeValue)
   {
-    this.baseValue = abilityValue.baseValue;
-    this.min = abilityValue.min;
-    this.max = abilityValue.max;
-    this.addAbilities = abilityValue.addAbilities;
-    this.multAbilities = abilityValue.multAbilities;
+    this.baseValue = attributeValue.baseValue;
+    this.min = attributeValue.min;
+    this.max = attributeValue.max;
+    this.addAbilities = attributeValue.addAbilities;
+    this.multAbilities = attributeValue.multAbilities;
   }
 
   public AttributeValue(Newtonsoft.Json.Linq.JToken? json)
