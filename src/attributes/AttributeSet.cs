@@ -27,9 +27,13 @@ public class AttributeSet : IAbilityCollection
 
   // The target and context for any effects run.
   // Typically this will be the person the attributes belong to.
-  private object? target;
-  private IInventoryContext? targetContext;
-  private IAbilityContext? abilityContext;
+  private object? _target;
+  private IInventoryContext? _targetContext;
+  private IAbilityContext? _abilityContext;
+
+  // Other attribute sets that this attribute inherits from.
+  // Name lookups will include these sets.
+  private List<AttributeSet> _scopedSets = new List<AttributeSet>();
 
   private int _scale = 1;
   private int _effectMultiplier = 1;
@@ -37,17 +41,25 @@ public class AttributeSet : IAbilityCollection
   // Constructor for an AttributeSet.
   public AttributeSet(object? target, IInventoryContext? effectTarget, IAbilityContext? effectContext)
   {
-    this.target = target;
-    this.targetContext = effectTarget;
-    this.abilityContext = effectContext;
+    this._target = target;
+    this._targetContext = effectTarget;
+    this._abilityContext = effectContext;
   }
 
+  public void AddScopedSet(AttributeSet set)
+  {
+    lock (_lock)
+    {
+      _scopedSets.Add(set);
+    }
+  }
 
-  // Add an attribute to the set.
+  // Explicitly add an attribute to the set, overriding any scoped sets.
   public void Add(AttributeType attributeType)
   {
     lock (_lock)
     {
+      if (attributes.ContainsKey(attributeType)) return;
       AddNoLock(attributeType);
     }
   }
@@ -57,7 +69,7 @@ public class AttributeSet : IAbilityCollection
   {
     lock (_lock)
     {
-      return attributes.ContainsKey(attributeType);
+      return attributes.ContainsKey(attributeType) || _scopedSets.Any(set => set.Contains(attributeType));
     }
   }
 
@@ -108,9 +120,9 @@ public class AttributeSet : IAbilityCollection
   }
 
   // Add without the lock.
-  private void AddNoLock(AttributeType attributeType)
+  private Attribute AddNoLock(AttributeType attributeType)
   {
-    var attribute = new Attribute(attributeType, target, targetContext, abilityContext);
+    var attribute = new Attribute(attributeType, _target, _targetContext, _abilityContext);
     attribute.Rescale(_scale);
     attribute.effectMultiplier = _effectMultiplier;
     attributes.Add(attributeType, attribute);
@@ -124,6 +136,23 @@ public class AttributeSet : IAbilityCollection
     {
       effectAttributes.Add(attribute);
     }
+    return attribute;
+  }
+
+  private Attribute? _GetScopedAttribute(AttributeType attributeType)
+  {
+    if (attributes.ContainsKey(attributeType))
+    {
+      return attributes[attributeType];
+    }
+    foreach (var scopedSet in _scopedSets)
+    {
+      if (scopedSet.attributes.ContainsKey(attributeType))
+      {
+        return scopedSet.attributes[attributeType];
+      }
+    }
+    return null;
   }
 
   // Set the value of a specific attribute.
@@ -133,11 +162,12 @@ public class AttributeSet : IAbilityCollection
   {
     lock (_lock)
     {
-      if (!attributes.ContainsKey(attributeType))
+      Attribute? attribute = _GetScopedAttribute(attributeType);
+      if (attribute == null)
       {
-        AddNoLock(attributeType);
+        attribute = AddNoLock(attributeType);
       }
-      return attributes[attributeType].SetValue(value);
+      return attribute.SetValue(value);
     }
   }
 
@@ -148,11 +178,12 @@ public class AttributeSet : IAbilityCollection
   {
     lock (_lock)
     {
-      if (!attributes.ContainsKey(attributeType))
+      Attribute? attribute = _GetScopedAttribute(attributeType);
+      if (attribute == null)
       {
-        AddNoLock(attributeType);
+        attribute = AddNoLock(attributeType);
       }
-      return attributes[attributeType].AddValue(value);
+      return attribute.AddValue(value);
     }
   }
 
@@ -163,11 +194,26 @@ public class AttributeSet : IAbilityCollection
   {
     lock (_lock)
     {
-      if (!attributes.ContainsKey(attributeType))
+      Attribute? attribute = _GetScopedAttribute(attributeType);
+      if (attribute == null)
       {
-        return attributeType.initialValue.GetValue(abilityContext);
+        return attributeType.initialValue.GetValue(_abilityContext);
       }
-      return attributes[attributeType].value;
+      return attribute.value;
+    }
+  }
+
+  public int GetNamedValue(string name)
+  {
+    lock (_lock)
+    {
+      // Lookup the attribute type.
+      var attributeType = AttributeType.Find(name);
+      if (attributeType == null)
+      {
+        return 0;
+      }
+      return GetValue(attributeType);
     }
   }
 }

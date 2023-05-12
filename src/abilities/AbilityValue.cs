@@ -14,6 +14,8 @@ public class AbilityValue
 {
   // The base value of the AbilityValue.
   public int baseValue;
+  // The name if this is a named value type.
+  public string? namedValue;
   // Minimum and maximum values.
   public int min = int.MinValue;
   public int max = int.MaxValue;
@@ -67,7 +69,16 @@ public class AbilityValue
     // Get the base value.
     if (dict.ContainsKey("val"))
     {
-      this.baseValue = (int)(long)dict["val"];
+      // if val is a string, then this is a named value.
+      if (dict["val"] is string)
+      {
+        this.namedValue = (string)dict["val"];
+        this.baseValue = 0;
+      }
+      else
+      {
+        this.baseValue = (int)(long)dict["val"];
+      }
     }
     // Get the min and max values.
     if (dict.ContainsKey("min"))
@@ -154,14 +165,23 @@ public class AbilityValue
     return new AbilityValue((Newtonsoft.Json.Linq.JToken)input);
   }
 
-  // Return the value of the AbilityValue.
-  public int GetValue(IAbilityContext? context)
+  private int GetNamedValue(IAbilityContext? context)
   {
-    if (context == null || context.Abilities.Count == 0 || (addAbilities.Count == 0 && multAbilities.Count == 0))
+    if (namedValue == null || context == null)
     {
       return baseValue;
     }
-    double value = baseValue;
+    return context.GetNamedValue(namedValue);
+  }
+  // Return the value of the AbilityValue.
+  public int GetValue(IAbilityContext? context)
+  {
+    int namedValue = GetNamedValue(context);
+    if (context == null || context.Abilities.Count == 0 || (addAbilities.Count == 0 && multAbilities.Count == 0))
+    {
+      return namedValue;
+    }
+    double value = namedValue;
     // Modify the base value for any abilities that are present in the context.
     // First do all the additions, then do all the multiplications.
     foreach (var ability in addAbilities)

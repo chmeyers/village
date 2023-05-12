@@ -214,6 +214,7 @@ public interface IAbilityCollection : IAbilityProvider
 public interface IAbilityContext : IAbilityCollection
 {
   public void GrantAbility(AbilityType ability);
+  public int GetNamedValue(string name);
 }
 
 public class ConcreteAbilityContext: IAbilityContext
@@ -235,5 +236,9 @@ public class ConcreteAbilityContext: IAbilityContext
   {
     _abilities.Add(ability);
   }
-  
+
+  public int GetNamedValue(string name)
+  {
+    return 0;
+  }
 }

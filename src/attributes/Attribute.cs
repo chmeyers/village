@@ -62,6 +62,13 @@ public class AttributeType
       var min = (int)(long)attribute.Value["min"];
       var max = (int)(long)attribute.Value["max"];
       AbilityValue init = AbilityValue.FromJson(attribute.Value["initial"]);
+      // Check that the initial value is NOT a named value.
+      // Names generally refer to other attributes, and we don't
+      // want to allow that currently.
+      if (init.namedValue != null)
+      {
+        throw new Exception("Attribute value cannot be a named value: " + attribute.Key);
+      }
       // Check that any abilities referenced by the initial value
       // are not in the referenced abilities set. This is to prevent
       // circular dependencies.

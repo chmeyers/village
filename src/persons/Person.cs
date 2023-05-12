@@ -311,6 +311,11 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     }
   }
 
+  public int GetNamedValue(string name)
+  {
+    return attributes.GetNamedValue(name);
+  }
+
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
     lock (_cacheLock)

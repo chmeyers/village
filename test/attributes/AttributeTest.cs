@@ -1,6 +1,7 @@
 using Microsoft.VisualStudio.TestTools.UnitTesting;
 using Village.Abilities;
 using Village.Attributes;
+using Village.Items;
 using Village.Persons;
 using Attribute = Village.Attributes.Attribute;
 
@@ -9,6 +10,28 @@ namespace VillageTest;
 [TestClass]
 public class AttributeUnitTest
 {
+  public class ScopedAttributeSets : IAbilityContext
+  {
+    public AttributeSet set = new AttributeSet(null, null, null);
+
+    public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders => throw new NotImplementedException();
+
+    public HashSet<AbilityType> _abilities = new HashSet<AbilityType>();
+
+    public HashSet<AbilityType> Abilities => _abilities;
+
+    public event AbilitiesChanged? AbilitiesChanged;
+
+    public int GetNamedValue(string name)
+    {
+      return set.GetNamedValue(name);
+    }
+
+    public void GrantAbility(AbilityType ability)
+    {
+      throw new NotImplementedException();
+    }
+  }
   [TestMethod]
   public void TestLoadAttributeTypes()
   {
@@ -128,6 +151,21 @@ public class AttributeUnitTest
     a.Rescale(1);
     // Check that the strength value is now 145/20 = 7.
     Assert.AreEqual(7, a.value);
+
+    // Create an AbilityValue with a named value.
+    AbilityValue av = new AbilityValue(0);
+    av.namedValue = "strength";
+    // Check that the value is 7.
+    Assert.AreEqual(7, av.GetValue(person));
+
+    // Try it with a scoped set.
+    ScopedAttributeSets sas = new ScopedAttributeSets();
+    sas.set.AddScopedSet(person.attributes);
+    Assert.AreEqual(7, av.GetValue(sas));
+    // Explicitly override the attribute in sas.
+    sas.set.Add(AttributeType.Find("strength")!);
+    Assert.AreEqual(2, av.GetValue(sas));
+
 
   }
 
