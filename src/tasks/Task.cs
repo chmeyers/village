@@ -376,7 +376,7 @@ namespace Village.Tasks
       List<KeyValuePair<ItemType, int>> inputs = new List<KeyValuePair<ItemType, int>>();
       foreach (var input in this.inputs)
       {
-        inputs.Add(new KeyValuePair<ItemType, int>(input.Key, input.Value.GetValue(context)));
+        inputs.Add(new KeyValuePair<ItemType, int>(input.Key, (int)input.Value.GetValue(context)));
       }
       return inputs;
     }
@@ -386,7 +386,7 @@ namespace Village.Tasks
       Dictionary<ItemType, int> outputs = new Dictionary<ItemType, int>();
       foreach (var output in this.outputs)
       {
-        outputs.Add(output.Key, output.Value.GetValue(context));
+        outputs.Add(output.Key, (int)output.Value.GetValue(context));
       }
       return outputs;
     }
@@ -395,7 +395,7 @@ namespace Village.Tasks
       Dictionary<Item, int> outputs = new Dictionary<Item, int>();
       foreach (var output in this.outputs)
       {
-        outputs.Add(new Item(output.Key, context), output.Value.GetValue(context));
+        outputs.Add(new Item(output.Key, context), (int)output.Value.GetValue(context));
       }
       return outputs;
     }

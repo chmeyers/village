@@ -241,20 +241,20 @@ public class AttributeType
   // The initial value of the attribute.
   public AbilityValue initialValue { get; private set; }
   // The minimum value of the attribute.
-  public int minValue { get; private set; }
+  public double minValue { get; private set; }
   // The maximum value of the attribute.
-  public int maxValue { get; private set; }
+  public double maxValue { get; private set; }
   // Whether this is a calendar attribute.
   public string group { get; private set; } = "";
   // How much this attribute will change each tick.
-  public int changePerTick { get; private set; } = 0;
+  public double changePerTick { get; private set; } = 0;
   // Intervals at which abilities will be granted and effects will be triggered.
   // The key is the lower limit of the interval, inclusive. The upper limit is
   // the key of the next interval, exclusive. The last interval will include
   // the maxvalue of the attribute.
   public SortedList<int, AttributeInterval> intervals { get; private set; } = new SortedList<int, AttributeInterval>();
 
-  public int FindIntervalIndex(int value)
+  public int FindIntervalIndex(double value)
   {
     int lower = 0;
     int upper = intervals.Keys.Count - 1;
@@ -273,7 +273,7 @@ public class AttributeType
     return upper;
   }
 
-  public AttributeType(string name, AbilityValue initialValue, int minValue, int maxValue)
+  public AttributeType(string name, AbilityValue initialValue, double minValue, double maxValue)
   {
     this.name = name;
     this.initialValue = initialValue;
@@ -298,21 +298,20 @@ public class AttributeType
 public class Attribute : IAbilityCollection
 {
   // The current value of the attribute, including modifiers.
-  public int value { get; private set; }
+  public double value { get; private set; }
   // The real underlying value of the attribute is stored in this ability value.
   private AbilityValue abilityValue;
   // Cached min of the range the attribute is currently in.
-  public int rangeMin { get; private set; }
+  public double rangeMin { get; private set; }
   // Cached max of the range the attribute is currently in.
-  public int rangeMax { get; private set; }
+  public double rangeMax { get; private set; }
   // Scale all the ranges in the attribute by this amount.
-  public int scale { get; private set; } = 1;
+  public double scale { get; private set; } = 1;
   // Multiplier for effects.
-  public int effectMultiplier = 1;
-  private int _scaleRemainder = 0;
-  private int _scaledMaxValue = 0;
-  private int _scaledMinValue = 0;
-  private int _scaledChangePerTick = 0;
+  public double effectMultiplier = 1;
+  private double _scaledMaxValue = 0;
+  private double _scaledMinValue = 0;
+  private double _scaledChangePerTick = 0;
   // Cached index of the interval the attribute is currently in.
   private int intervalIndex;
   // The attribute type.
@@ -405,25 +404,25 @@ public class Attribute : IAbilityCollection
     {
       if (IsMaxed()) return int.MaxValue;
       // Round up to the next tick.
-      return (rangeMax - value + _scaledChangePerTick - 1 ) / _scaledChangePerTick;
+      return (int)Math.Ceiling((rangeMax - value ) / _scaledChangePerTick);
     }
     else
     {
       if (IsMinned()) return int.MaxValue;
-      return (value - rangeMin - _scaledChangePerTick) / -_scaledChangePerTick;
+      return (int)Math.Floor((value - rangeMin) / -_scaledChangePerTick) + 1;
     }
   }
 
   private bool IsMaxed()
   {
     // True if the value is at the max value or the base value is at the max value (exclusive).
-    return value >= _scaledMaxValue - 1 ||  abilityValue.baseValue * scale + _scaleRemainder >= _scaledMaxValue - 1;
+    return value >= _scaledMaxValue - 1 ||  abilityValue.baseValue * scale >= _scaledMaxValue - 1;
   }
 
   private bool IsMinned()
   {
     // True if the value is at the min value or the base value is at the min value.
-    return value <= _scaledMinValue || abilityValue.baseValue * scale + _scaleRemainder <= _scaledMinValue;
+    return value <= _scaledMinValue || abilityValue.baseValue * scale <= _scaledMinValue;
   }
 
   private void RunOngoingEffects(AttributeInterval interval, int ticks)
@@ -453,11 +452,11 @@ public class Attribute : IAbilityCollection
     }
   }
 
-  private int UpdateValue()
+  private double UpdateValue()
   {
     // Note that Advance() should be called before this method is called.
     // Recalculate the value.
-    value = abilityValue.GetValue(abilityContext) * scale + _scaleRemainder;
+    value = abilityValue.GetValue(abilityContext) * scale;
 
     // Post-modifier value is also gated by the min/max.
     if (value < _scaledMinValue)
@@ -506,7 +505,7 @@ public class Attribute : IAbilityCollection
     return value;
   }
   // Set the base value of the attribute.
-  public int SetValue(int newBaseValue)
+  public double SetValue(double newBaseValue)
   {
     lock (_lock)
     {
@@ -523,29 +522,27 @@ public class Attribute : IAbilityCollection
       }
 
       abilityValue.baseValue = newBaseValue/scale;
-      _scaleRemainder = newBaseValue % scale;
 
       return UpdateValue();
     }
   }
 
   // Add a value to the attribute.
-  public int AddValue(int addValue)
+  public double AddValue(double addValue)
   {
     lock (_lock)
     {
-      return SetValue(abilityValue.baseValue*scale + _scaleRemainder + addValue);
+      return SetValue(abilityValue.baseValue*scale + addValue);
     }
   }
 
-  public void Rescale(int newScale)
+  public void Rescale(double newScale)
   {
     lock (_lock)
     {
       Advance();
       if (newScale == scale) return;
       if (scale <= 0) throw new ArgumentException("Attribute Scale must be positive.");
-      _scaleRemainder = _scaleRemainder * newScale / scale;
       scale = newScale;
       _scaledMaxValue = attributeType.maxValue * scale;
       _scaledMinValue = attributeType.minValue * scale;

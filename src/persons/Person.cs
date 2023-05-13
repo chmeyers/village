@@ -113,22 +113,22 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     }
   }
 
-  public int SetAttribute(AttributeType attributeType, int value)
+  public double SetAttribute(AttributeType attributeType, double value)
   {
     return attributes.SetValue(attributeType, value);
   }
 
-  public int GetAttributeValue(AttributeType attributeType)
+  public double GetAttributeValue(AttributeType attributeType)
   {
     return attributes.GetValue(attributeType);
   }
 
-  public int AddAttribute(AttributeType attributeType, int value)
+  public double AddAttribute(AttributeType attributeType, double value)
   {
     return attributes.AddValue(attributeType, value);
   }
 
-  public int AddAttribute(AttributeType attributeType)
+  public double AddAttribute(AttributeType attributeType)
   {
     attributes.Add(attributeType);
     return attributes.GetValue(attributeType);
@@ -311,7 +311,7 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     }
   }
 
-  public int GetNamedValue(string name)
+  public double GetNamedValue(string name)
   {
     return attributes.GetNamedValue(name);
   }

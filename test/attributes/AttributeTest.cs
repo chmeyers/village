@@ -22,7 +22,7 @@ public class AttributeUnitTest
 
     public event AbilitiesChanged? AbilitiesChanged;
 
-    public int GetNamedValue(string name)
+    public double GetNamedValue(string name)
     {
       return set.GetNamedValue(name);
     }
@@ -149,19 +149,19 @@ public class AttributeUnitTest
 
     // Rescale it back.
     a.Rescale(1);
-    // Check that the strength value is now 145/20 = 7.
-    Assert.AreEqual(7, a.value);
+    // Check that the strength value is now 145/20 = 7.25.
+    Assert.AreEqual(7.25, a.value);
 
     // Create an AbilityValue with a named value.
     AbilityValue av = new AbilityValue(0);
     av.namedValue = "strength";
-    // Check that the value is 7.
-    Assert.AreEqual(7, av.GetValue(person));
+    // Check that the value is 7.25
+    Assert.AreEqual(7.25, av.GetValue(person));
 
     // Try it with a scoped set.
     ScopedAttributeSets sas = new ScopedAttributeSets();
     sas.set.AddScopedSet(person.attributes);
-    Assert.AreEqual(7, av.GetValue(sas));
+    Assert.AreEqual(7.25, av.GetValue(sas));
     // Explicitly override the attribute in sas.
     sas.set.Add(AttributeType.Find("strength")!);
     Assert.AreEqual(2, av.GetValue(sas));

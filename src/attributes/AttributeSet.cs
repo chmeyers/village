@@ -158,7 +158,7 @@ public class AttributeSet : IAbilityCollection
   // Set the value of a specific attribute.
   // This will add the attribute if it doesn't exist.
   // Returns the new value of the attribute.
-  public int SetValue(AttributeType attributeType, int value)
+  public double SetValue(AttributeType attributeType, double value)
   {
     lock (_lock)
     {
@@ -174,7 +174,7 @@ public class AttributeSet : IAbilityCollection
   // Add to the value of a specific attribute.
   // This will add the attribute if it doesn't exist.
   // Returns the new value of the attribute.
-  public int AddValue(AttributeType attributeType, int value)
+  public double AddValue(AttributeType attributeType, double value)
   {
     lock (_lock)
     {
@@ -190,7 +190,7 @@ public class AttributeSet : IAbilityCollection
   // Get the value of a specific attribute.
   // This will not add the attribute if it doesn't exist,
   // but will return the initial value for the attribute type.
-  public int GetValue(AttributeType attributeType)
+  public double GetValue(AttributeType attributeType)
   {
     lock (_lock)
     {
@@ -203,7 +203,7 @@ public class AttributeSet : IAbilityCollection
     }
   }
 
-  public int GetNamedValue(string name)
+  public double GetNamedValue(string name)
   {
     lock (_lock)
     {

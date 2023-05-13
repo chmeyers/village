@@ -37,7 +37,7 @@ public class RunningTask
     this.task = task;
     this.owner = owner;
     this.startTime = startTime;
-    this.ticksRemaining = task.timeCost.GetValue(owner);
+    this.ticksRemaining = (int)task.timeCost.GetValue(owner);
     this.endTime = startTime + ticksRemaining;
     this.inputs = inputs;
     this.target = inventory;

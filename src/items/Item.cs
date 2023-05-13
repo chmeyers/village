@@ -286,7 +286,7 @@ public class Item : IComparable<Item>, IAbilityProvider
   public Item(ItemType type)
   {
     itemType = type;
-    originalQuality = type.craftQuality.GetBaseValue();
+    originalQuality = (int)type.craftQuality.GetBaseValue();
     quality = originalQuality;
     timeUntilSpoilage = (int)type.spoilTime;
     if (timeUntilSpoilage == 0) {
@@ -298,7 +298,7 @@ public class Item : IComparable<Item>, IAbilityProvider
   public Item(ItemType type, IAbilityContext crafter)
   {
     itemType = type;
-    originalQuality = type.craftQuality.GetValue(crafter);
+    originalQuality = (int)type.craftQuality.GetValue(crafter);
     quality = originalQuality;
     timeUntilSpoilage = (int)type.spoilTime;
     if (timeUntilSpoilage == 0)

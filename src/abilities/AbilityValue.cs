@@ -1,6 +1,5 @@
 
 using Newtonsoft.Json;
-using Newtonsoft.Json.Linq;
 
 namespace Village.Abilities;
 
@@ -13,15 +12,15 @@ namespace Village.Abilities;
 public class AbilityValue
 {
   // The base value of the AbilityValue.
-  public int baseValue;
+  public double baseValue;
   // The name if this is a named value type.
   public string? namedValue;
   // Minimum and maximum values.
-  public int min = int.MinValue;
-  public int max = int.MaxValue;
+  public double min = double.MinValue;
+  public double max = double.MaxValue;
   // The abilities that affect the AbilityValue.
-  private Dictionary<AbilityType, int> addAbilities = new Dictionary<AbilityType, int>();
-  private Dictionary<AbilityType, float> multAbilities = new Dictionary<AbilityType, float>();
+  private Dictionary<AbilityType, double> addAbilities = new Dictionary<AbilityType, double>();
+  private Dictionary<AbilityType, double> multAbilities = new Dictionary<AbilityType, double>();
   // Set of abilities that can affect the AbilityValue.
   public HashSet<AbilityType> Abilities
   {
@@ -34,7 +33,7 @@ public class AbilityValue
     }
   }
   // The AbilityValue constructor.
-  public AbilityValue(int baseValue)
+  public AbilityValue(double baseValue)
   {
     this.baseValue = baseValue;
   }
@@ -58,7 +57,12 @@ public class AbilityValue
     }
     if (json.Type == Newtonsoft.Json.Linq.JTokenType.Integer)
     {
-      this.baseValue = ((int)(long)json);
+      this.baseValue = (long)json;
+      return;
+    }
+    if (json.Type == Newtonsoft.Json.Linq.JTokenType.Float)
+    {
+      this.baseValue = (double)json;
       return;
     }
     var dict = json.ToObject<Dictionary<string, object>>();
@@ -75,19 +79,37 @@ public class AbilityValue
         this.namedValue = (string)dict["val"];
         this.baseValue = 0;
       }
-      else
+      else if (dict["val"] is double)
       {
-        this.baseValue = (int)(long)dict["val"];
+        this.baseValue = (double)dict["val"];
+      }
+      else if (dict["val"] is long)
+      {
+        this.baseValue = (long)dict["val"];
       }
     }
     // Get the min and max values.
     if (dict.ContainsKey("min"))
     {
-      this.min = (int)(long)dict["min"];
+      if (dict["min"] is double)
+      {
+        this.min = (double)dict["min"];
+      }
+      else if (dict["min"] is long)
+      {
+        this.min = (long)dict["min"];
+      }
     }
     if (dict.ContainsKey("max"))
     {
-      this.max = (int)(long)dict["max"];
+      if (dict["max"] is double)
+      {
+        this.max = (double)dict["max"];
+      }
+      else if (dict["max"] is long)
+      {
+        this.max = (long)dict["max"];
+      }
     }
     baseValue = Math.Clamp(baseValue, min, max);
     // Get the abilities.
@@ -115,7 +137,15 @@ public class AbilityValue
         }
         if (abilityModifier.ContainsKey("add"))
         {
-          this.addAbilities.Add(abilityType, (int)(long)abilityModifier["add"]);
+          // Add might be either a long or a double.
+          if (abilityModifier["add"] is long)
+          {
+            this.addAbilities.Add(abilityType, (double)(long)abilityModifier["add"]);
+          }
+          else
+          {
+            this.addAbilities.Add(abilityType, (double)(double)abilityModifier["add"]);
+          }
         }
 
         if (abilityModifier.ContainsKey("mult"))
@@ -134,14 +164,14 @@ public class AbilityValue
       }
     }
   }
-  public static implicit operator AbilityValue(long x) 
+  public static implicit operator AbilityValue(double x) 
   {
-    return new AbilityValue((int)x);
+    return new AbilityValue((double)x);
   }
 
   public static implicit operator AbilityValue(Newtonsoft.Json.Linq.JToken x)
   {
-    return new AbilityValue((int)x);
+    return new AbilityValue((double)x);
   }
 
   // Read AbilityValue from JSON.
@@ -155,7 +185,11 @@ public class AbilityValue
     // Otherwise parse the JSON as a dictionary.
     if (input is long)
     {
-      return new AbilityValue((int)(long)input);
+      return new AbilityValue((long)input);
+    }
+    if (input is double)
+    {
+      return new AbilityValue((double)input);
     }
     if (input is not Newtonsoft.Json.Linq.JToken)
     {
@@ -165,7 +199,7 @@ public class AbilityValue
     return new AbilityValue((Newtonsoft.Json.Linq.JToken)input);
   }
 
-  private int GetNamedValue(IAbilityContext? context)
+  private double GetNamedValue(IAbilityContext? context)
   {
     if (namedValue == null || context == null)
     {
@@ -174,9 +208,9 @@ public class AbilityValue
     return context.GetNamedValue(namedValue);
   }
   // Return the value of the AbilityValue.
-  public int GetValue(IAbilityContext? context)
+  public double GetValue(IAbilityContext? context)
   {
-    int namedValue = GetNamedValue(context);
+    double namedValue = GetNamedValue(context);
     if (context == null || context.Abilities.Count == 0 || (addAbilities.Count == 0 && multAbilities.Count == 0))
     {
       return namedValue;
@@ -200,10 +234,10 @@ public class AbilityValue
     }
     // The return value is gated on the min and max values
     // and converted to an int.
-    return Math.Clamp((int)value, min, max);
+    return Math.Clamp(value, min, max);
   }
   // Return the base value of the AbilityValue.
-  public int GetBaseValue()
+  public double GetBaseValue()
   {
     return baseValue;
   }
