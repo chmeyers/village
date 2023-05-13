@@ -181,9 +181,9 @@ public class AttributeType
           }
         }
 
-        if (intervalData.ContainsKey("daily_effects"))
+        if (intervalData.ContainsKey("ongoing_effects"))
         {
-          var effects = ((Newtonsoft.Json.Linq.JArray)intervalData["daily_effects"]).ToObject<List<string>>();
+          var effects = ((Newtonsoft.Json.Linq.JArray)intervalData["ongoing_effects"]).ToObject<List<string>>();
           foreach (var effect in effects!)
           {
             Effect? effectType = Effect.Find(effect);
