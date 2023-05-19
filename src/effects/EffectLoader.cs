@@ -49,6 +49,10 @@ public class EffectLoader : Effect
           // Create the effect.
           newEffect = new AttributePullerEffect(name, effectTarget, effectType, config);
           break;
+        case EffectType.AttributeTransfer:
+          // Create the effect.
+          newEffect = new AttributeTransferEffect(name, effectTarget, effectType, config);
+          break;
         default:
           throw new Exception("Unknown effect type: " + effectType);
       }

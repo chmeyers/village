@@ -20,7 +20,10 @@ public class EffectUnitTest
     AbilityType.LoadString(json);
     // Load a strength attribute type.
     AttributeType.Clear();
-    json = @"{ 'strength' : { 'min': 0, 'max': 11, 'initial': 8, 'intervals': [{'lower': 6, 'abilities': ['cutting_3']}, {'lower': 10, 'abilities': ['cutting_4']}] } }";
+    json = @"{ 'strength' : { 'min': 0, 'max': 11, 'initial': 8, 'intervals': [{'lower': 6, 'abilities': ['cutting_3']}, {'lower': 10, 'abilities': ['cutting_4']}] },
+     'bin1' : {'min':0, 'max': 2000, 'initial': 500, 'intervals': [] },
+     'bin2' : {'min':0, 'max': 2000, 'initial': 500, 'intervals': [] },
+     }";
     // Load the attribute types.
     AttributeType.LoadString(json);
     // Load a swords skill.
@@ -35,6 +38,10 @@ public class EffectUnitTest
   'skill_swords_2' : { 'target' : 'Person', 'effectType' : 'Skill', 'config' : {'skill': 'swords', 'amount': {'val' : 2, 'modifiers': {'cutting_1' : {'add' : 1, 'mult': 2.0}, 'cutting_2' : {'add' : 3, 'mult': 5.0}}}, 'level': 5} },
   'pull_strength_10' : { 'target' : 'Person', 'effectType' : 'AttributePuller', 'config' : {'strength':{ 'amount': 1, 'target': 10}} },
   'pull_strength_5' : { 'target' : 'Person', 'effectType' : 'AttributePuller', 'config' : {'strength':{ 'amount': 1, 'target': 5}} },
+  'transfer1' : { 'target' : 'Person', 'effectType' : 'AttributeTransfer', 'config' : { 'bin1' : { 'amount': 100, 'dest': 'bin2' } } },
+  'transfer2' : { 'target' : 'Person', 'effectType' : 'AttributeTransfer', 'config' : { 'bin1' : { 'amount': 200, 'dest': 'bin2', 'multiplier': 2 } } },
+  'transfer3' : { 'target' : 'Person', 'effectType' : 'AttributeTransfer', 'config' : { 'bin1' : { 'amount': 200, 'dest': 'bin2', 'sourceMin': 400, 'destMax': 600 } } },
+  'transfer4' : { 'target' : 'Person', 'effectType' : 'AttributeTransfer', 'config' : { 'bin1' : { 'amount': -200, 'dest': 'bin2', 'sourceMin': 400, 'destMax': 600, 'retainOverflow': true, 'multiplier': 2 } } },
 }";
     // Create person.
     Person person = new Person("bob", "Bob");
@@ -42,7 +49,7 @@ public class EffectUnitTest
     EffectLoader.LoadString(json);
     EffectLoader.Initialize();
     // Check that the effects were loaded.
-    Assert.AreEqual(5, Effect.effects.Count);
+    Assert.AreEqual(9, Effect.effects.Count);
     // Check that the effects were loaded correctly.
     Assert.AreEqual(EffectType.Degrade, Effect.effects["degrade_1"].effectType);
     Assert.AreEqual(EffectTargetType.Item, Effect.effects["degrade_1"].target);
@@ -148,6 +155,60 @@ public class EffectUnitTest
     // Strength should be 10.
     Assert.AreEqual(10, person.GetAttributeValue(strength));
     
+    // Test AttributeTransfer Effects.
+    Assert.AreEqual(EffectType.AttributeTransfer, Effect.effects["transfer1"].effectType);
+    Assert.AreEqual(EffectTargetType.Person, Effect.effects["transfer1"].target);
+    // Check that it's a AttributeTransferEffect class.
+    Assert.IsInstanceOfType(Effect.effects["transfer1"], typeof(AttributeTransferEffect));
+    AttributeTransferEffect transfer1 = (AttributeTransferEffect)Effect.effects["transfer1"];
+    // Transfer 100 from bin1 to bin2.
+    transfer1.ApplySync(target);
+    // bin1 should be 400.
+    Assert.AreEqual(400, person.GetAttributeValue(AttributeType.Find("bin1")!));
+    // bin2 should be 600.
+    Assert.AreEqual(600, person.GetAttributeValue(AttributeType.Find("bin2")!));
+    // Transfer 200 from bin1 to bin2.
+    AttributeTransferEffect transfer2 = (AttributeTransferEffect)Effect.effects["transfer2"];
+    transfer2.ApplySync(target);
+    // bin1 should be 200.
+    Assert.AreEqual(200, person.GetAttributeValue(AttributeType.Find("bin1")!));
+    // bin2 should be 1000.
+    Assert.AreEqual(1000, person.GetAttributeValue(AttributeType.Find("bin2")!));
+    // Try to transfer 200 from bin1 to bin2 with min and max set.
+    AttributeTransferEffect transfer3 = (AttributeTransferEffect)Effect.effects["transfer3"];
+    transfer3.ApplySync(target);
+    // Neither should have changed.
+    Assert.AreEqual(200, person.GetAttributeValue(AttributeType.Find("bin1")!));
+    Assert.AreEqual(1000, person.GetAttributeValue(AttributeType.Find("bin2")!));
+
+    // Reset them both back to 450 and try again.
+    person.SetAttribute(AttributeType.Find("bin1")!, 450);
+    person.SetAttribute(AttributeType.Find("bin2")!, 450);
+    transfer3.ApplySync(target);
+    // bin1 should have hit the min at 400.
+    Assert.AreEqual(400, person.GetAttributeValue(AttributeType.Find("bin1")!));
+    // bin2 should have gotten 50 from bin1
+    Assert.AreEqual(500, person.GetAttributeValue(AttributeType.Find("bin2")!));
+
+    // Reset them both back to 550 and try again.
+    person.SetAttribute(AttributeType.Find("bin1")!, 550);
+    person.SetAttribute(AttributeType.Find("bin2")!, 550);
+    transfer3.ApplySync(target);
+    // bin1 should have hit the min at 400.
+    Assert.AreEqual(400, person.GetAttributeValue(AttributeType.Find("bin1")!));
+    // bin2 should have gotten 50 from bin1, the overflow was discarded.
+    Assert.AreEqual(600, person.GetAttributeValue(AttributeType.Find("bin2")!));
+
+    person.SetAttribute(AttributeType.Find("bin1")!, 300);
+    person.SetAttribute(AttributeType.Find("bin2")!, 700);
+    AttributeTransferEffect transfer4 = (AttributeTransferEffect)Effect.effects["transfer4"];
+    transfer4.ApplySync(target);
+    // bin2 should have hit the max at 600.
+    Assert.AreEqual(600, person.GetAttributeValue(AttributeType.Find("bin2")!));
+    // bin1 should have only given 50 to bin2, the overflow was retained.
+    Assert.AreEqual(350, person.GetAttributeValue(AttributeType.Find("bin1")!));
+    
+
   }
 
 }

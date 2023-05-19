@@ -22,6 +22,10 @@ public enum EffectTargetType
   Building,
   // The Environment, i.e. how common resources are in the world.
   Environment,
+  // A Field, any effects targetting attributes should be able to support this.
+  Field,
+  // A Crop, any effects targetting Fields should also be able to support this.
+  Crop,
 }
 
 // The type of effect. Each effect type will require a subclass of Effect.
@@ -37,6 +41,8 @@ public enum EffectType
   SkillTree,
   // Pulls an attribute towards a target value.
   AttributePuller,
+  // Transfer a value from one attribute to another.
+  AttributeTransfer,
 }
 
 public class EffectTarget
@@ -71,6 +77,8 @@ public class EffectTarget
         }
         break;
       case EffectTargetType.Person:
+      case EffectTargetType.Field:
+      case EffectTargetType.Crop:
         if (target != "" && !IsTargetString(target))
         {
           throw new Exception("Invalid target for " + effectTargetType + ": " + target);
