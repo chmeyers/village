@@ -154,7 +154,7 @@ public class SkillEffect : Effect
       if (person.GetLevel(_skill!) == trainingLevel)
       {
         var grant = Math.Min(trainingAmount, nextLevelXP);
-        if(!person.GrantXP(_skill!, grant))
+        if (!person.GrantXP(_skill!, grant))
         {
           // We can't grant any more XP, so we are done.
           break;
@@ -169,7 +169,7 @@ public class SkillEffect : Effect
           // We can't grant any more XP, so we are done.
           break;
         }
-        trainingAmount -= grant/2;
+        trainingAmount -= grant / 2;
       }
     }
   }
@@ -363,7 +363,7 @@ public class AttributePullerEffect : Effect
       {
         throw new Exception("AttributePuller effect " + effect + " has an invalid config entry: " + key);
       }
-      
+
       // The target value of the attribute.
       var targetVal = AbilityValue.FromJson(attributePullerData["target"]);
       // The amount to pull the attribute by.
@@ -437,7 +437,7 @@ public class AttributePullerEffect : Effect
       this.target = target;
       this.amount = amount;
     }
-    
+
     public string attribute = "";
     public AttributeType? type;
     public AbilityValue target;
@@ -494,7 +494,7 @@ public class AttributeTransferEffect : Effect
       {
         retainOverflow = (bool)attributeTransferData["retainOverflow"];
       }
-      
+
       _transferers.Add(new AttributeTransfer(key, sourceMin, amount, destinationAttribute, destMax, multiplier, retainOverflow));
     }
   }
@@ -544,7 +544,8 @@ public class AttributeTransferEffect : Effect
         if (currentDestValue + destReceiveAmount > max)
         {
           double allowedRecieveAmount = Math.Max(max - currentDestValue, 0);
-          if (transferer.retainOverflow) {
+          if (transferer.retainOverflow)
+          {
             // Reduce the amount taken from the source by the ratio of the
             // allowed amount to the desired amount.
             transferAmount *= allowedRecieveAmount / destReceiveAmount;
@@ -577,7 +578,8 @@ public class AttributeTransferEffect : Effect
         if (currentDestValue + destRemoveAmount < max)
         {
           double allowedRemoveAmount = Math.Min(max - currentDestValue, 0);
-          if (transferer.retainOverflow) {
+          if (transferer.retainOverflow)
+          {
             // Reduce the amount taken from the source by the ratio of the
             // allowed amount to the desired amount.
             transferAmount *= allowedRemoveAmount / destRemoveAmount;
@@ -652,33 +654,33 @@ public class AttributeTransferEffect : Effect
     public AbilityValue? destMax;
     public AbilityValue multiplier = 1;
     public bool retainOverflow = false;
-    
+
   }
   // List of attributes to pull.
   private List<AttributeTransfer> _transferers = new List<AttributeTransfer>();
 }
 
-public class AttributeIncreaserEffect : Effect
+public class AttributeAdderEffect : Effect
 {
-  public AttributeIncreaserEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  public AttributeAdderEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
     // Target must be a person, Crop, or Field.
     if (target != EffectTargetType.Person && target != EffectTargetType.Crop && target != EffectTargetType.Field)
     {
-      throw new Exception("AttributeIncreaser effect must target a person, crop, or field: " + effect);
+      throw new Exception("AttributeAdder effect must target a person, crop, or field: " + effect);
     }
     if (data == null)
     {
-      throw new Exception("AttributeIncreaser effect must have a config dictionary: " + effect);
+      throw new Exception("AttributeAdder effect must have a config dictionary: " + effect);
     }
     // All the keys in the data dictionary are the attributes to pull.
-    // The value is the the AttributeIncreaser info.
+    // The value is the the AttributeAdder info.
     foreach (var key in data.Keys)
     {
       var attributePullerData = ((Newtonsoft.Json.Linq.JToken)data[key]).ToObject<Dictionary<string, object>>();
       if (attributePullerData == null)
       {
-        throw new Exception("AttributeIncreaser effect " + effect + " has an invalid config entry: " + key);
+        throw new Exception("AttributeAdder effect " + effect + " has an invalid config entry: " + key);
       }
 
       // The target value of the attribute.
@@ -689,7 +691,7 @@ public class AttributeIncreaserEffect : Effect
       }
       // The amount to increase the attribute by.
       var amount = AbilityValue.FromJson(attributePullerData["amount"]);
-      _increasers.Add(new AttributeIncreaser(key, targetVal, amount));
+      _adders.Add(new AttributeAdder(key, targetVal, amount));
     }
   }
 
@@ -705,24 +707,42 @@ public class AttributeIncreaserEffect : Effect
       return;
     }
 
-    foreach (var increaser in _increasers)
+    foreach (var adder in _adders)
     {
-      double amount = increaser.amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
+      double amount = adder.amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
       if (amount == 0) continue;
-      double target = increaser.target.GetValue(chosenEffectTarget.runningContext);
+      double target = adder.target.GetValue(chosenEffectTarget.runningContext);
       // Get the attribute from the person.
-      double currentValue = attributes.GetAttributeValue(increaser.type!);
-      // If we are already greater than the target, then we don't need to do anything.
-      if (currentValue >= target) continue;
-      // If the current value is within amount of the target, then set it to the target.
-      if (currentValue + amount >= target)
-      {
-        attributes.SetAttribute(increaser.type!, target);
+      double currentValue = attributes.GetAttributeValue(adder.type!);
+      // Positive Amounts add up to the target, negative amounts subtract down to the target.
+      if (amount > 0) {
+        // If we are already greater than the target, then we don't need to do anything.
+        if (currentValue >= target) continue;
+        // If the current value is within amount of the target, then set it to the target.
+        if (currentValue + amount >= target)
+        {
+          attributes.SetAttribute(adder.type!, target);
+        }
+        // Otherwise, increase the attribute by amount.
+        else
+        {
+          attributes.SetAttribute(adder.type!, currentValue + amount);
+        }
       }
-      // Otherwise, increase the attribute by amount.
       else
       {
-        attributes.SetAttribute(increaser.type!, currentValue + amount);
+        // If we are already less than the target, then we don't need to do anything.
+        if (currentValue <= target) continue;
+        // If the current value is within amount of the target, then set it to the target.
+        if (currentValue + amount <= target)
+        {
+          attributes.SetAttribute(adder.type!, target);
+        }
+        // Otherwise, decrease the attribute by amount.
+        else
+        {
+          attributes.SetAttribute(adder.type!, currentValue + amount);
+        }
       }
 
     }
@@ -731,13 +751,13 @@ public class AttributeIncreaserEffect : Effect
   // Initialize should resolve the attribute names to the actual attribute type.
   public override void Initialize()
   {
-    foreach (var increaser in _increasers)
+    foreach (var adder in _adders)
     {
-      increaser.type = AttributeType.Find(increaser.attribute);
+      adder.type = AttributeType.Find(adder.attribute);
       // Make sure the attribute exists.
-      if (increaser.type == null)
+      if (adder.type == null)
       {
-        throw new Exception("Attribute does not exist: " + increaser.attribute + " in attribute puller effect " + effect);
+        throw new Exception("Attribute does not exist: " + adder.attribute + " in attribute puller effect " + effect);
       }
     }
   }
@@ -747,10 +767,10 @@ public class AttributeIncreaserEffect : Effect
     return true;
   }
 
-  class AttributeIncreaser
+  class AttributeAdder
   {
     // Constructor
-    public AttributeIncreaser(string attribute, AbilityValue target, AbilityValue amount)
+    public AttributeAdder(string attribute, AbilityValue target, AbilityValue amount)
     {
       this.attribute = attribute;
       this.target = target;
@@ -763,113 +783,5 @@ public class AttributeIncreaserEffect : Effect
     public AbilityValue amount;
   }
   // List of attributes to pull.
-  private List<AttributeIncreaser> _increasers = new List<AttributeIncreaser>();
-}
-
-public class AttributeDecreaserEffect : Effect
-{
-  public AttributeDecreaserEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
-  {
-    // Target must be a person, Crop, or Field.
-    if (target != EffectTargetType.Person && target != EffectTargetType.Crop && target != EffectTargetType.Field)
-    {
-      throw new Exception("AttributeDecreaser effect must target a person, crop, or field: " + effect);
-    }
-    if (data == null)
-    {
-      throw new Exception("AttributeDecreaser effect must have a config dictionary: " + effect);
-    }
-    // All the keys in the data dictionary are the attributes to pull.
-    // The value is the the AttributeDecreaser info.
-    foreach (var key in data.Keys)
-    {
-      var attributePullerData = ((Newtonsoft.Json.Linq.JToken)data[key]).ToObject<Dictionary<string, object>>();
-      if (attributePullerData == null)
-      {
-        throw new Exception("AttributeDecreaser effect " + effect + " has an invalid config entry: " + key);
-      }
-
-      // The target value of the attribute.
-      AbilityValue targetVal = Double.MinValue;
-      if (attributePullerData.ContainsKey("target"))
-      {
-        targetVal = AbilityValue.FromJson(attributePullerData["target"]);
-      }
-      // The amount to increase the attribute by.
-      var amount = AbilityValue.FromJson(attributePullerData["amount"]);
-      _decreasers.Add(new AttributeDecreaser(key, targetVal, amount));
-    }
-  }
-
-  // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
-  {
-    // Get the person from the chosen target.
-    IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
-    // Make sure attribute context is not null.
-    if (attributes == null)
-    {
-      // We ignore this effect if the person is null.
-      return;
-    }
-
-    foreach (var decreaser in _decreasers)
-    {
-      double amount = decreaser.amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
-      if (amount == 0) continue;
-      double target = decreaser.target.GetValue(chosenEffectTarget.runningContext);
-      // Get the attribute from the person.
-      double currentValue = attributes.GetAttributeValue(decreaser.type!);
-      // If we are already less than the target, then we don't need to do anything.
-      if (currentValue <= target) continue;
-      // If the current value is within amount of the target, then set it to the target.
-      if (currentValue - amount <= target)
-      {
-        attributes.SetAttribute(decreaser.type!, target);
-      }
-      // Otherwise, decrease the attribute by amount.
-      else
-      {
-        attributes.SetAttribute(decreaser.type!, currentValue - amount);
-      }
-
-    }
-  }
-
-  // Initialize should resolve the attribute names to the actual attribute type.
-  public override void Initialize()
-  {
-    foreach (var decreaser in _decreasers)
-    {
-      decreaser.type = AttributeType.Find(decreaser.attribute);
-      // Make sure the attribute exists.
-      if (decreaser.type == null)
-      {
-        throw new Exception("Attribute does not exist: " + decreaser.attribute + " in attribute puller effect " + effect);
-      }
-    }
-  }
-
-  public override bool SupportsBatching()
-  {
-    return true;
-  }
-
-  class AttributeDecreaser
-  {
-    // Constructor
-    public AttributeDecreaser(string attribute, AbilityValue target, AbilityValue amount)
-    {
-      this.attribute = attribute;
-      this.target = target;
-      this.amount = amount;
-    }
-
-    public string attribute = "";
-    public AttributeType? type;
-    public AbilityValue target;
-    public AbilityValue amount;
-  }
-  // List of attributes to pull.
-  private List<AttributeDecreaser> _decreasers = new List<AttributeDecreaser>();
+  private List<AttributeAdder> _adders = new List<AttributeAdder>();
 }

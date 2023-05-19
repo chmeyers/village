@@ -43,10 +43,8 @@ public enum EffectType
   AttributePuller,
   // Transfer a value from one attribute to another.
   AttributeTransfer,
-  // Increase a value for an attribute
-  AttributeIncreaser,
-  // Decrease a value for an attribute
-  AttributeDecreaser,
+  // Add a value to an attribute
+  AttributeAdder,
 }
 
 public class EffectTarget
@@ -187,7 +185,7 @@ public class Effect
 
   // Initialize is called after all effects and other types have been loaded.
   // This is used to resolve any references between effects.
-  public virtual void Initialize() {}
+  public virtual void Initialize() { }
 
   public Effect(string effect, EffectTargetType target, EffectType effectType)
   {

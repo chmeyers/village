@@ -52,8 +52,8 @@ public class FieldUnitTest
 'low_water_usage' : { 'target': 'Crop', 'effectType': 'AttributePuller', 'config': { 'crop_health' : { 'target':0, 'amount': { 'val': 1, 'modifiers': { 'high_surface_moisture': { 'mult': 0},'high_deep_moisture': { 'mult': 0} } } },'deep_moisture' : { 'target':0, 'amount': { 'val': 0, 'modifiers': { 'low_surface_moisture': { 'add': 0.05} } } }, 'surface_moisture' : { 'target':0, 'amount': { 'val': 0.05, 'modifiers': { 'low_surface_moisture': { 'mult': 0} } } }, } },
 'high_water_usage' : { 'target': 'Crop', 'effectType': 'AttributePuller', 'config': { 'crop_health' : { 'target':0, 'amount': { 'val': 1, 'modifiers': { 'high_surface_moisture': { 'mult': 0},'high_deep_moisture': { 'mult': 0} } } },'deep_moisture' : { 'target':0, 'amount': { 'val': 0, 'modifiers': { 'low_surface_moisture': { 'add': 0.2} } } }, 'surface_moisture' : { 'target':0, 'amount': { 'val': 0.2, 'modifiers': { 'low_surface_moisture': { 'mult': 0} } } }, } },
 'low_npk_usage' : { 'target': 'Crop', 'effectType': 'AttributePuller', 'config': { 'crop_health' : { 'target':0, 'amount': { 'val': 0, 'modifiers': { 'low_nitrogen': { 'add': 0.1},'low_potassium': { 'add': 0.1},'low_phosphorus': { 'add': 0.1} } } },'crop_yield' : { 'target':0, 'amount': { 'val': 0, 'modifiers': { 'low_nitrogen': { 'add': 1},'low_potassium': { 'add': 1},'low_phosphorus': { 'add': 1} } } }, 'nitrogen' : { 'target':0, 'amount': 0.05}, 'potassium' : { 'target':0, 'amount': 0.05}, 'phosphorus' : { 'target':0, 'amount': 0.05} } },
-'high_npk_usage' : { 'target': 'Crop', 'effectType': 'AttributePuller', 'config': { 'crop_health' : { 'target':0, 'amount': { 'val': 0, 'modifiers': { 'low_nitrogen': { 'add': 0.1},'low_potassium': { 'add': 0.1},'low_phosphorus': { 'add': 0.1} } } },'crop_yield' : { 'target':0, 'amount': { 'val': 0, 'modifiers': { 'low_nitrogen': { 'add': 3},'low_potassium': { 'add': 3},'low_phosphorus': { 'add': 3} } } }, 'nitrogen' : { 'target':0, 'amount': 0.1}, 'potassium' : { 'target':0, 'amount': 0.1}, 'phosphorus' : { 'target':0, 'amount': 0.1} } },
-'increase_yield' : { 'target': 'Crop', 'effectType': 'AttributeIncreaser', 'config': { 'crop_yield' : { 'amount': { 'val': 1, 'modifiers': { 'low_nitrogen': { 'add': -0.4},'low_potassium': { 'add': -0.1},'low_phosphorus': { 'add': -0.1},'low_deep_moisture': { 'add': -0.4} } } } } },
+'high_npk_usage' : { 'target': 'Crop', 'effectType': 'AttributeAdder', 'config': { 'crop_health' : { 'target':0, 'amount': { 'val': 0, 'modifiers': { 'low_nitrogen': { 'add': -0.1},'low_potassium': { 'add': -0.1},'low_phosphorus': { 'add': -0.1} } } },'crop_yield' : { 'target':0, 'amount': { 'val': 0, 'modifiers': { 'low_nitrogen': { 'add': -3},'low_potassium': { 'add': -3},'low_phosphorus': { 'add': -3} } } }, 'nitrogen' : { 'target':0, 'amount': -0.1}, 'potassium' : { 'target':0, 'amount': -0.1}, 'phosphorus' : { 'target':0, 'amount': -0.1} } },
+'increase_yield' : { 'target': 'Crop', 'effectType': 'AttributeAdder', 'config': { 'crop_yield' : { 'amount': { 'val': 1, 'modifiers': { 'low_nitrogen': { 'add': -0.4},'low_potassium': { 'add': -0.1},'low_phosphorus': { 'add': -0.1},'low_deep_moisture': { 'add': -0.4} } } } } },
       }";
       EffectLoader.LoadString(json);
     }
@@ -157,12 +157,6 @@ public class FieldUnitTest
     // Advance the Field to the current tick.
     field.Advance();
 
-    // Print all the field attributes
-    foreach (var attribute in field.state.attributes)
-    {
-      Console.WriteLine($"{attribute.Key.name}: {attribute.Value.value}");
-    }
-
     // crop_wheat_growing should be at day 7.
     Assert.AreEqual(70, field.crops[wheat].state.attributes[crop_wheat_growing].value);
     Assert.AreEqual(926, field.crops[wheat].state.attributes[crop_health].value);
@@ -182,12 +176,6 @@ public class FieldUnitTest
     Assert.AreEqual(716, field.crops[wheat].state.attributes[crop_health].value);
     // crop_yield should have increased by 10 each tick
     Assert.AreEqual(2100, field.crops[wheat].state.attributes[crop_yield].value);
-
-    // Print all the field attributes
-    foreach (var attribute in field.state.attributes)
-    {
-      Console.WriteLine($"{attribute.Key.name}: {attribute.Value.value}");
-    }
     
 
     // Advance the game calendar to tick 910, at most 70 ticks at a time.
@@ -200,16 +188,6 @@ public class FieldUnitTest
       field.state.SetValue(surface_moisture, 100);
       // Remove weeds.
       field.state.SetValue(weeds, 0);
-      // Print all the field attributes
-      foreach (var attribute in field.state.attributes)
-      {
-        Console.WriteLine($"{attribute.Key.name}: {attribute.Value.value}");
-      }
-      foreach (var attribute in field.crops[wheat].state.attributes)
-      {
-        Console.WriteLine($"{attribute.Key.name}: {attribute.Value.value}");
-      }
-      Console.WriteLine();
     }
 
 
