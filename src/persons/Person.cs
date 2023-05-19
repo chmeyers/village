@@ -15,7 +15,7 @@ using Village.Tasks;
 namespace Village.Persons;
 
 
-public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseholdContext
+public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseholdContext, IAttributeContext
 {
   // Registry of all the persons, keyed on what household they are in.
   public static Dictionary<Household, HashSet<Person>> global_persons = new Dictionary<Household, HashSet<Person>>();

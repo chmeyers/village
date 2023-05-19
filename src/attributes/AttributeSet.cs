@@ -3,8 +3,19 @@ using Village.Items;
 
 namespace Village.Attributes;
 
+public interface IAttributeContext
+{
+  public double SetAttribute(AttributeType attributeType, double value);
+
+  public double GetAttributeValue(AttributeType attributeType);
+
+  public double AddAttribute(AttributeType attributeType, double value);
+
+  public double AddAttribute(AttributeType attributeType);
+}
+
 // An AttributeSet contains the set of attributes for a person.
-public class AttributeSet : IAbilityCollection
+public class AttributeSet : IAbilityCollection, IAttributeContext
 {
   // The attributes.
   public Dictionary<AttributeType, Attribute> attributes { get; private set; } = new Dictionary<AttributeType, Attribute>();
@@ -215,5 +226,27 @@ public class AttributeSet : IAbilityCollection
       }
       return GetValue(attributeType);
     }
+  }
+
+  // IAttributeContext implementation
+  public double SetAttribute(AttributeType attributeType, double value)
+  {
+    return SetValue(attributeType, value);
+  }
+
+  public double GetAttributeValue(AttributeType attributeType)
+  {
+    return GetValue(attributeType);
+  }
+
+  public double AddAttribute(AttributeType attributeType, double value)
+  {
+    return AddValue(attributeType, value);
+  }
+
+  public double AddAttribute(AttributeType attributeType)
+  {
+    Add(attributeType);
+    return GetValue(attributeType);
   }
 }

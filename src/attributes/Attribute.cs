@@ -86,7 +86,15 @@ public class AttributeType
       }
       if (attribute.Value.ContainsKey("changePerTick"))
       {
-        a.changePerTick = (int)(long)attribute.Value["changePerTick"];
+        // Check for double or long.
+        if (attribute.Value["changePerTick"].GetType() == typeof(double))
+        {
+          a.changePerTick = (double)attribute.Value["changePerTick"];
+        }
+        else if (attribute.Value["changePerTick"].GetType() == typeof(long))
+        {
+          a.changePerTick = (long)attribute.Value["changePerTick"];
+        }
       }
       // Cast the intervals to a newtonsoft JArray and check for null.
       var intervalArray = (Newtonsoft.Json.Linq.JArray)attribute.Value["intervals"];
@@ -343,7 +351,7 @@ public class Attribute : IAbilityCollection
     // We find the key of the interval that is just less than the initial value.
     // The interval that the initial value is in is the interval that starts at
     // the key we found.
-    this.intervalIndex = attributeType.FindIntervalIndex(this.value);
+    this.intervalIndex = attributeType.FindIntervalIndex(this.value / scale);
     var interval = attributeType.intervals.GetValueAtIndex(this.intervalIndex);
     this.rangeMin = interval.lower;
     this.rangeMax = interval.upper;
@@ -358,6 +366,7 @@ public class Attribute : IAbilityCollection
     this._lastEffectTick = Calendar.Ticks;
     _scaledMaxValue = attributeType.maxValue * scale;
     _scaledMinValue = attributeType.minValue * scale;
+    _scaledChangePerTick = attributeType.changePerTick * scale;
   }
 
   public HashSet<AbilityType> Abilities
@@ -377,14 +386,14 @@ public class Attribute : IAbilityCollection
     lock(_lock) {
       // Advance one interval at a time, to ensure that we don't miss entry effects,
       // and ongoing effects are accurately applied.
-      int ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), _lastEffectTick - Calendar.Ticks);
+      int ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), Calendar.Ticks - _lastEffectTick);
       while (ticksForCurrentInterval > 0)
       {
         RunOngoingEffects(attributeType.intervals.GetValueAtIndex(intervalIndex), ticksForCurrentInterval);
         // Update the value by the change per tick.
         AdvanceChangePerTick(ticksForCurrentInterval);
         _lastEffectTick += ticksForCurrentInterval;
-        ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), _lastEffectTick - Calendar.Ticks);
+        ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), Calendar.Ticks - _lastEffectTick);
       }
     }
   }
@@ -394,7 +403,7 @@ public class Attribute : IAbilityCollection
     if (ticks == 0 || _scaledChangePerTick == 0) return;
     if (_scaledChangePerTick < 0 && IsMinned()) return;
     if (_scaledChangePerTick > 0 && IsMaxed()) return;
-    AddValue(_scaledChangePerTick * ticks);
+    _AddValueInternal(_scaledChangePerTick * ticks);
   }
 
   private int TicksToNextInterval()
@@ -476,7 +485,7 @@ public class Attribute : IAbilityCollection
     // We find the key of the interval that is just less than the new value.
     // The interval that the new value is in is the interval that starts at
     // the key we found.
-    int newIntervalIndex = attributeType.FindIntervalIndex(value);
+    int newIntervalIndex = attributeType.FindIntervalIndex(value / scale);
     if (newIntervalIndex != intervalIndex)
     {
       // Check whether the new intervals' abilities are different from
@@ -504,27 +513,38 @@ public class Attribute : IAbilityCollection
 
     return value;
   }
+
+  private double _SetValueInternal(double newBaseValue)
+  {
+    if (newBaseValue == abilityValue.baseValue) return value;
+
+    if (newBaseValue < _scaledMinValue)
+    {
+      newBaseValue = _scaledMinValue;
+    }
+    else if (newBaseValue >= _scaledMaxValue)
+    {
+      newBaseValue = _scaledMaxValue - 1;
+    }
+
+    abilityValue.baseValue = newBaseValue / scale;
+
+    return UpdateValue();
+  }
+
   // Set the base value of the attribute.
   public double SetValue(double newBaseValue)
   {
     lock (_lock)
     {
       Advance();
-      if (newBaseValue == abilityValue.baseValue) return value;
-
-      if (newBaseValue < _scaledMinValue)
-      {
-        newBaseValue = _scaledMinValue;
-      }
-      else if (newBaseValue >= _scaledMaxValue)
-      {
-        newBaseValue = _scaledMaxValue - 1;
-      }
-
-      abilityValue.baseValue = newBaseValue/scale;
-
-      return UpdateValue();
+      return _SetValueInternal(newBaseValue);
     }
+  }
+
+  private double _AddValueInternal(double addValue)
+  {
+    return _SetValueInternal(abilityValue.baseValue * scale + addValue);
   }
 
   // Add a value to the attribute.
