@@ -43,6 +43,10 @@ public enum EffectType
   AttributePuller,
   // Transfer a value from one attribute to another.
   AttributeTransfer,
+  // Increase a value for an attribute
+  AttributeIncreaser,
+  // Decrease a value for an attribute
+  AttributeDecreaser,
 }
 
 public class EffectTarget

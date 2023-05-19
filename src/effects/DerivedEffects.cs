@@ -657,3 +657,219 @@ public class AttributeTransferEffect : Effect
   // List of attributes to pull.
   private List<AttributeTransfer> _transferers = new List<AttributeTransfer>();
 }
+
+public class AttributeIncreaserEffect : Effect
+{
+  public AttributeIncreaserEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a person, Crop, or Field.
+    if (target != EffectTargetType.Person && target != EffectTargetType.Crop && target != EffectTargetType.Field)
+    {
+      throw new Exception("AttributeIncreaser effect must target a person, crop, or field: " + effect);
+    }
+    if (data == null)
+    {
+      throw new Exception("AttributeIncreaser effect must have a config dictionary: " + effect);
+    }
+    // All the keys in the data dictionary are the attributes to pull.
+    // The value is the the AttributeIncreaser info.
+    foreach (var key in data.Keys)
+    {
+      var attributePullerData = ((Newtonsoft.Json.Linq.JToken)data[key]).ToObject<Dictionary<string, object>>();
+      if (attributePullerData == null)
+      {
+        throw new Exception("AttributeIncreaser effect " + effect + " has an invalid config entry: " + key);
+      }
+
+      // The target value of the attribute.
+      AbilityValue targetVal = Double.MaxValue;
+      if (attributePullerData.ContainsKey("target"))
+      {
+        targetVal = AbilityValue.FromJson(attributePullerData["target"]);
+      }
+      // The amount to increase the attribute by.
+      var amount = AbilityValue.FromJson(attributePullerData["amount"]);
+      _increasers.Add(new AttributeIncreaser(key, targetVal, amount));
+    }
+  }
+
+  // Apply the effect to the target.
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // Get the person from the chosen target.
+    IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
+    // Make sure attribute context is not null.
+    if (attributes == null)
+    {
+      // We ignore this effect if the person is null.
+      return;
+    }
+
+    foreach (var increaser in _increasers)
+    {
+      double amount = increaser.amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
+      if (amount == 0) continue;
+      double target = increaser.target.GetValue(chosenEffectTarget.runningContext);
+      // Get the attribute from the person.
+      double currentValue = attributes.GetAttributeValue(increaser.type!);
+      // If we are already greater than the target, then we don't need to do anything.
+      if (currentValue >= target) continue;
+      // If the current value is within amount of the target, then set it to the target.
+      if (currentValue + amount >= target)
+      {
+        attributes.SetAttribute(increaser.type!, target);
+      }
+      // Otherwise, increase the attribute by amount.
+      else
+      {
+        attributes.SetAttribute(increaser.type!, currentValue + amount);
+      }
+
+    }
+  }
+
+  // Initialize should resolve the attribute names to the actual attribute type.
+  public override void Initialize()
+  {
+    foreach (var increaser in _increasers)
+    {
+      increaser.type = AttributeType.Find(increaser.attribute);
+      // Make sure the attribute exists.
+      if (increaser.type == null)
+      {
+        throw new Exception("Attribute does not exist: " + increaser.attribute + " in attribute puller effect " + effect);
+      }
+    }
+  }
+
+  public override bool SupportsBatching()
+  {
+    return true;
+  }
+
+  class AttributeIncreaser
+  {
+    // Constructor
+    public AttributeIncreaser(string attribute, AbilityValue target, AbilityValue amount)
+    {
+      this.attribute = attribute;
+      this.target = target;
+      this.amount = amount;
+    }
+
+    public string attribute = "";
+    public AttributeType? type;
+    public AbilityValue target;
+    public AbilityValue amount;
+  }
+  // List of attributes to pull.
+  private List<AttributeIncreaser> _increasers = new List<AttributeIncreaser>();
+}
+
+public class AttributeDecreaserEffect : Effect
+{
+  public AttributeDecreaserEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a person, Crop, or Field.
+    if (target != EffectTargetType.Person && target != EffectTargetType.Crop && target != EffectTargetType.Field)
+    {
+      throw new Exception("AttributeDecreaser effect must target a person, crop, or field: " + effect);
+    }
+    if (data == null)
+    {
+      throw new Exception("AttributeDecreaser effect must have a config dictionary: " + effect);
+    }
+    // All the keys in the data dictionary are the attributes to pull.
+    // The value is the the AttributeDecreaser info.
+    foreach (var key in data.Keys)
+    {
+      var attributePullerData = ((Newtonsoft.Json.Linq.JToken)data[key]).ToObject<Dictionary<string, object>>();
+      if (attributePullerData == null)
+      {
+        throw new Exception("AttributeDecreaser effect " + effect + " has an invalid config entry: " + key);
+      }
+
+      // The target value of the attribute.
+      AbilityValue targetVal = Double.MinValue;
+      if (attributePullerData.ContainsKey("target"))
+      {
+        targetVal = AbilityValue.FromJson(attributePullerData["target"]);
+      }
+      // The amount to increase the attribute by.
+      var amount = AbilityValue.FromJson(attributePullerData["amount"]);
+      _decreasers.Add(new AttributeDecreaser(key, targetVal, amount));
+    }
+  }
+
+  // Apply the effect to the target.
+  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // Get the person from the chosen target.
+    IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
+    // Make sure attribute context is not null.
+    if (attributes == null)
+    {
+      // We ignore this effect if the person is null.
+      return;
+    }
+
+    foreach (var decreaser in _decreasers)
+    {
+      double amount = decreaser.amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
+      if (amount == 0) continue;
+      double target = decreaser.target.GetValue(chosenEffectTarget.runningContext);
+      // Get the attribute from the person.
+      double currentValue = attributes.GetAttributeValue(decreaser.type!);
+      // If we are already less than the target, then we don't need to do anything.
+      if (currentValue <= target) continue;
+      // If the current value is within amount of the target, then set it to the target.
+      if (currentValue - amount <= target)
+      {
+        attributes.SetAttribute(decreaser.type!, target);
+      }
+      // Otherwise, decrease the attribute by amount.
+      else
+      {
+        attributes.SetAttribute(decreaser.type!, currentValue - amount);
+      }
+
+    }
+  }
+
+  // Initialize should resolve the attribute names to the actual attribute type.
+  public override void Initialize()
+  {
+    foreach (var decreaser in _decreasers)
+    {
+      decreaser.type = AttributeType.Find(decreaser.attribute);
+      // Make sure the attribute exists.
+      if (decreaser.type == null)
+      {
+        throw new Exception("Attribute does not exist: " + decreaser.attribute + " in attribute puller effect " + effect);
+      }
+    }
+  }
+
+  public override bool SupportsBatching()
+  {
+    return true;
+  }
+
+  class AttributeDecreaser
+  {
+    // Constructor
+    public AttributeDecreaser(string attribute, AbilityValue target, AbilityValue amount)
+    {
+      this.attribute = attribute;
+      this.target = target;
+      this.amount = amount;
+    }
+
+    public string attribute = "";
+    public AttributeType? type;
+    public AbilityValue target;
+    public AbilityValue amount;
+  }
+  // List of attributes to pull.
+  private List<AttributeDecreaser> _decreasers = new List<AttributeDecreaser>();
+}

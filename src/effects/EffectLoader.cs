@@ -53,6 +53,14 @@ public class EffectLoader : Effect
           // Create the effect.
           newEffect = new AttributeTransferEffect(name, effectTarget, effectType, config);
           break;
+        case EffectType.AttributeIncreaser:
+          // Create the effect.
+          newEffect = new AttributeIncreaserEffect(name, effectTarget, effectType, config);
+          break;
+        case EffectType.AttributeDecreaser:
+          // Create the effect.
+          newEffect = new AttributeDecreaserEffect(name, effectTarget, effectType, config);
+          break;
         default:
           throw new Exception("Unknown effect type: " + effectType);
       }
