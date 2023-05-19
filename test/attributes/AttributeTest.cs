@@ -20,7 +20,8 @@ public class AttributeUnitTest
 
     public HashSet<AbilityType> Abilities => _abilities;
 
-    public event AbilitiesChanged? AbilitiesChanged;
+    // Not Currently Used.
+    public event AbilitiesChanged? AbilitiesChanged { add { } remove { } }
 
     public double GetNamedValue(string name)
     {
