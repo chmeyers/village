@@ -208,7 +208,7 @@ public class Building : IAbilityCollection
   // The components that have been completed.
   public HashSet<BuildingComponent> completedComponents { get; private set; } = new HashSet<BuildingComponent>();
 
-  public event AbilitiesChanged? AbilitiesChanged;
+  public virtual event AbilitiesChanged? AbilitiesChanged;
 
   // Add a component to the building.
   // Returns true if the component was added, false if the component was already added.
@@ -256,24 +256,28 @@ public class Building : IAbilityCollection
   // The abilities that the building provides.
   // During construction, the building provides the abilities of the current phase.
   // Once the building is complete, the building provides all the abilities of the building type.
-  public HashSet<AbilityType> Abilities { get; private set; } = new HashSet<AbilityType>();
+  protected Dictionary<AbilityType, HashSet<IAbilityProvider>> _abilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>();
 
-  public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders { get; private set; } = new Dictionary<AbilityType, HashSet<IAbilityProvider>>();
+  public virtual Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders { get { return _abilityProviders; } }
+
+  protected HashSet<AbilityType> _abilities = new HashSet<AbilityType>();
+
+  public virtual HashSet<AbilityType> Abilities { get { return _abilities; } }
 
   private void ChangeBuildingAbilities()
   {
     // Save a copy of the existing abilities and ability providers.
-    var oldAbilities = new HashSet<AbilityType>(Abilities);
-    var oldAbilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>(AbilityProviders);
-    Abilities.Clear();
-    AbilityProviders.Clear();
+    var oldAbilities = new HashSet<AbilityType>(_abilities);
+    var oldAbilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>(_abilityProviders);
+    _abilities.Clear();
+    _abilityProviders.Clear();
     if (completed)
     {
       Abilities.UnionWith(buildingType.abilities);
       // The AbilityProvider for all the abilities is the building itself.
       foreach (var ability in Abilities)
       {
-        AbilityProviders[ability] = new HashSet<IAbilityProvider>() { this };
+        _abilityProviders[ability] = new HashSet<IAbilityProvider>() { this };
       }
     }
     else
@@ -285,10 +289,10 @@ public class Building : IAbilityCollection
       // The AbilityProvider for all the abilities is the building itself.
       foreach (var ability in Abilities)
       {
-        AbilityProviders[ability] = new HashSet<IAbilityProvider>() { this };
+        _abilityProviders[ability] = new HashSet<IAbilityProvider>() { this };
       }
     }
     // Notify that the abilities have changed.
-    AbilitiesChanged?.Invoke(this, Abilities.Except(oldAbilities), this, oldAbilities.Except(Abilities));
+    AbilitiesChanged?.Invoke(this, Abilities.Except(oldAbilities), this, oldAbilities.Except(_abilities));
   }
 }

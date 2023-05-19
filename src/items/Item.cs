@@ -1,5 +1,6 @@
 using Newtonsoft.Json;
 using Village.Abilities;
+using Village.Attributes;
 
 namespace Village.Items;
 
@@ -144,10 +145,20 @@ public class ItemType
         // Load craft quality as an AbilityValue.
         craftQuality = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)itemData["craftQuality"]);
       }
+
+      // Get the Crop Attribute.
+      AttributeType? cropAttribute = null;
+      if (itemData.ContainsKey("crop_attribute")) {
+        cropAttribute = AttributeType.Find((string)itemData["crop_attribute"]);
+        // Check that the crop attribute exists in the AttributeType dictionary.
+        if (cropAttribute == null) {
+          throw new Exception("Crop attribute not found: " + itemData["crop_attribute"] + " for item type: " + name);
+        }
+      }
       
 
       // Create the item type.
-      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet);
+      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet, cropAttribute);
       // Add the item type to the dictionary.
       _itemTypes.Add(name, itemType);
     }
@@ -172,7 +183,7 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities)
+  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities, AttributeType? cropAttribute)
   {
     itemType = name;
     itemGroup = group;
@@ -197,6 +208,7 @@ public class ItemType
     else {
       this.abilities = abilities;
     }
+    this.cropAttribute = cropAttribute;
     // Add this item type to the parent's child types.
     foreach (var parent in parentTypes) {
       parent.childTypes.Add(this);
@@ -237,6 +249,9 @@ public class ItemType
 
   // Set of abilities this item type provides.
   public readonly HashSet<AbilityType> abilities;
+
+  // The crop attribute for this item type, or null if it is not a crop.
+  public readonly AttributeType? cropAttribute;
 
   public override bool Equals(object? obj)
   {

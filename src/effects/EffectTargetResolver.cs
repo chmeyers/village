@@ -1,4 +1,5 @@
 using Village.Abilities;
+using Village.Buildings;
 using Village.Items;
 using Village.Persons;
 
@@ -32,6 +33,14 @@ public class EffectTargetResolver
           throw new NotImplementedException("Invalid effect target context for person target: " + targetContext);
         }
         return new ChosenEffectTarget(effectTarget.effectTargetType, person, targetContext, runningContext);
+      case EffectTargetType.Field:
+      case EffectTargetType.Crop:
+        if (effectTarget.target != "")
+        {
+          // Everything else not yet supported.
+          throw new NotImplementedException("Invalid effect target context for field/crop target: " + targetContext);
+        }
+        return new ChosenEffectTarget(effectTarget.effectTargetType, runningContext, targetContext, runningContext);
       case EffectTargetType.Item:
         // Resolve the item from the person's inventory.
         // Pick an item that gives the ability specified by the effect target.
