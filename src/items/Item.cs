@@ -148,17 +148,39 @@ public class ItemType
 
       // Get the Crop Attribute.
       AttributeType? cropAttribute = null;
-      if (itemData.ContainsKey("crop_attribute")) {
-        cropAttribute = AttributeType.Find((string)itemData["crop_attribute"]);
+      if (itemData.ContainsKey("cropAttribute")) {
+        cropAttribute = AttributeType.Find((string)itemData["cropAttribute"]);
         // Check that the crop attribute exists in the AttributeType dictionary.
         if (cropAttribute == null) {
-          throw new Exception("Crop attribute not found: " + itemData["crop_attribute"] + " for item type: " + name);
+          throw new Exception("Crop attribute not found: " + itemData["cropAttribute"] + " for item type: " + name);
+        }
+      }
+
+      // Read the harvest Items.
+      Dictionary<string, double> harvestItems = new Dictionary<string, double>();
+      if (itemData.ContainsKey("harvestItems")) {
+        // Check that the harvest items are a dictionary.
+        if (!(itemData["harvestItems"] is Newtonsoft.Json.Linq.JObject)) {
+          throw new Exception("Harvest items must be a dictionary for item type: " + name);
+        }
+        var dict = ((Newtonsoft.Json.Linq.JObject)itemData["harvestItems"]).ToObject<Dictionary<string, object>>();
+        if (dict == null) {
+          throw new Exception("Harvest items must not be null for item type: " + name);
+        }
+        foreach (var harvestItem in dict!) {
+          // Allow the value to be a double or a long.
+          if (harvestItem.Value is double) {
+            harvestItems.Add(harvestItem.Key, (double)harvestItem.Value);
+          }
+          else if (harvestItem.Value is long) {
+            harvestItems.Add(harvestItem.Key, (double)(long)harvestItem.Value);
+          }
         }
       }
       
 
       // Create the item type.
-      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet, cropAttribute);
+      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet, cropAttribute, harvestItems);
       // Add the item type to the dictionary.
       _itemTypes.Add(name, itemType);
     }
@@ -183,7 +205,7 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities, AttributeType? cropAttribute)
+  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities, AttributeType? cropAttribute, Dictionary<string, double>? harvestItems = null)
   {
     itemType = name;
     itemGroup = group;
@@ -209,6 +231,24 @@ public class ItemType
       this.abilities = abilities;
     }
     this.cropAttribute = cropAttribute;
+    // If harvest items is null, set it to an empty dictionary.
+    this.harvestItems = new Dictionary<ItemType, double>();
+    if (harvestItems != null) {
+      // Look up the keys in the item type dictionary.
+      // If the key is not found, throw an error, unless the key is for this item type.
+      // in which case we point to ourselves.
+      foreach (var harvestItem in harvestItems) {
+        if (harvestItem.Key == itemType) {
+          this.harvestItems.Add(this, harvestItem.Value);
+        }
+        else {
+          if (!_itemTypes.ContainsKey(harvestItem.Key)) {
+            throw new Exception("Harvest item type not found: " + harvestItem.Key + " for item type: " + name);
+          }
+          this.harvestItems.Add(_itemTypes[harvestItem.Key]!, harvestItem.Value);
+        }
+      }
+    }
     // Add this item type to the parent's child types.
     foreach (var parent in parentTypes) {
       parent.childTypes.Add(this);
@@ -252,6 +292,10 @@ public class ItemType
 
   // The crop attribute for this item type, or null if it is not a crop.
   public readonly AttributeType? cropAttribute;
+
+  // What items and quantities this item will turn into when harvested.
+  // The quantity is a multiplier for the crop yield attribute.
+  public readonly Dictionary<ItemType, double> harvestItems = new Dictionary<ItemType, double>();
 
   public override bool Equals(object? obj)
   {

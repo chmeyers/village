@@ -84,7 +84,7 @@ public class FieldUnitTest
     {
       ItemType.Clear();
       string json = @"{
-  'wheat': { 'group': 'FOOD', 'crop_attribute': 'crop_wheat_growing' }
+  'wheat': { 'group': 'FOOD', 'cropAttribute': 'crop_wheat_growing', 'harvestItems': { 'wheat': 1} }
 }";
       // Load the item types.
       ItemType.LoadString(json);
