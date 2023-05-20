@@ -46,8 +46,8 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
   // Name lookups will include these sets.
   private List<AttributeSet> _scopedSets = new List<AttributeSet>();
 
-  private int _scale = 1;
-  private int _effectMultiplier = 1;
+  private double _scale = 1;
+  private double _effectMultiplier = 1;
 
   // Constructor for an AttributeSet.
   public AttributeSet(object? target, IInventoryContext? effectTarget, IAbilityContext? effectContext)
@@ -96,7 +96,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     }
   }
 
-  public void Rescale(int scale)
+  public void Rescale(double scale)
   {
     if (scale <= 0) throw new ArgumentException("Attribute Scale must be positive.");
     lock (_lock)
@@ -109,7 +109,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     }
   }
 
-  public void SetEffectMultiplier(int value)
+  public void SetEffectMultiplier(double value)
   {
     lock (_lock)
     {

@@ -45,7 +45,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
   }
 
-  public bool Plant(ItemType itemType, int quantity)
+  public bool Plant(ItemType itemType, double quantity)
   {
     lock(_lock)
     {
@@ -67,10 +67,25 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
   }
 
+  public bool Harvest(ItemType itemType, double quantity)
+  {
+    lock(_lock)
+    {
+      if (!crops.ContainsKey(itemType) || crops[itemType].quantity < quantity)
+      {
+        // Can't harvest what isn't planted.
+        return false;
+      }
+      crops[itemType].quantity -= quantity;
+      _cropCount -= quantity;
+      return true;
+    }
+  }
+
   public class CropInfo : IAbilityContext, IAttributeContext, IHouseholdContext
   {
     private const string cropAttributeGroup = "crop";
-    public CropInfo(ItemType itemType, int quantity, Field parent)
+    public CropInfo(ItemType itemType, double quantity, Field parent)
     {
       this.itemType = itemType;
       this._quantity = quantity;
@@ -100,8 +115,8 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 
     public ItemType itemType;
     // Whenver the quantity changes we need to rescale the AttributeSet.
-    private int _quantity;
-    public int quantity {
+    private double _quantity;
+    public double quantity {
       get {
         return _quantity;
       }
@@ -160,7 +175,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   public Dictionary<ItemType, CropInfo> crops = new Dictionary<ItemType, CropInfo>();
 
   // The current number of crops in the field.
-  private int _cropCount = 0;
+  private double _cropCount = 0;
 
   // The size of the field
   // In tenths of an acre, i.e. 4 rods by 4 rods.
