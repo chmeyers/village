@@ -45,6 +45,10 @@ public enum EffectType
   AttributeTransfer,
   // Add a value to an attribute
   AttributeAdder,
+  // Plant a crop in a field.
+  PlantCrop,
+  // Harvest a crop from a field.
+  HarvestCrop,
 }
 
 public class EffectTarget
