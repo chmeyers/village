@@ -105,6 +105,11 @@ public class GameLoop
   {
     // Advance the calendar.
     Calendar.Advance();
+    // Advance the weather once a week.
+    if (Calendar.StartOfWeek)
+    {
+      WeatherAttributes.AdvanceWeather();
+    }
     // Advance the households.
     foreach (var household in Household.global_households)
     {

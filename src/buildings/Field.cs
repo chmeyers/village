@@ -1,5 +1,6 @@
 using Village.Abilities;
 using Village.Attributes;
+using Village.Base;
 using Village.Households;
 using Village.Items;
 
@@ -29,6 +30,8 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     {
       state.Add(attributeType);
     }
+    // Add the weather as a scoped set.
+    state.AddScopedSet(WeatherAttributes.GetWeather());
   }
 
   // Advance the current state of the field to the current tick.

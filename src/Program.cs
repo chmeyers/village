@@ -30,6 +30,7 @@ namespace Village
       EffectLoader.LoadFile("config/effects/skilltree.jsonc");
       // Load the attributes.
       AttributeType.LoadFile("config/attributes/attributes.jsonc");
+      AttributeType.LoadFile("config/attributes/weather.jsonc");
       Calendar.AddCalendarAttributes();
       // Load the tasks.
       WorkTask.LoadFile("config/tasks/gathering.jsonc");
@@ -48,6 +49,8 @@ namespace Village
       ConfigPriceList.LoadDefault("config/items/pricelist.jsonc");
       // Do the Effect Initialization after everything else is loaded.
       EffectLoader.Initialize();
+      // Init the weather.
+      WeatherAttributes.Init();
     }
 
     public static void PrintInventory(Inventory inventory)
