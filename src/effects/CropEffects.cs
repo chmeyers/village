@@ -28,7 +28,7 @@ public class PlantCropEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
     // Get the field from the chosen target.
     Field field = (Field)chosenEffectTarget.target!;
@@ -44,6 +44,11 @@ public class PlantCropEffect : Effect
       // This effect should never be called without a valid target field.
       throw new Exception("Unable to plant crop in plant crop effect: " + effect);
     }
+  }
+
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // Nothing to do here.
   }
 
   public override bool IsOptional()
@@ -83,8 +88,13 @@ public class HarvestCropEffect : Effect
     yieldAttributeTypeName = (string)data.GetValueOrDefault("yieldAttributeType", defaultYieldAttributeType);
   }
 
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // TODO(chmeyers): Verify that the field has a crop to harvest here.
+  }
+
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
     // Get the field from the chosen target.
     Field field = (Field)chosenEffectTarget.target!;

@@ -13,6 +13,39 @@ namespace Village.Tasks;
 // them to the person, the village, or the environment.
 public class TaskRunner
 {
+  // Choose a target for the given effect target.
+  // This will return a ChosenEffectTarget if the target is valid, or null otherwise.
+  // This will throw an exception if the target is invalid.
+  public static ChosenEffectTarget? ChooseEffectTarget(EffectTarget effectTarget, RunningTask runningTask, Effect effect)
+  {
+    ChosenEffectTarget? chosenTarget = null;
+    if (EffectTarget.IsTargetString(effectTarget.target))
+    {
+      // Match the target string to a chosen target.
+      if (runningTask.chosenTargets == null || !runningTask.chosenTargets.ContainsKey(effectTarget.target))
+      {
+        throw new Exception("Invalid target string: " + effectTarget.target + " for effect: " + effect + " in task: " + runningTask.task);
+      }
+      chosenTarget = runningTask.chosenTargets[effectTarget.target];
+    }
+    else
+    {
+      // The target isn't a target string, so resolve it.
+      IInventoryContext target = runningTask.target;
+      chosenTarget = EffectTargetResolver.ResolveEffectTarget(effect, effectTarget, target, runningTask.owner);
+    }
+    if (chosenTarget == null)
+    {
+      // If the effect is optional, skip it, otherwise throw.
+      if (!effect.IsOptional())
+      {
+        throw new Exception("Invalid effect target: " + effectTarget + " for effect: " + effect + " in task: " + runningTask.task);
+      }
+      return null;
+    }
+    return chosenTarget;
+  }
+
   // Start a task for a person, with the given list of Chosen Targets
   // If the task can be performed, returns a RunningTask and removes the
   // inputs from the target inventory. Otherwise, returns null.
@@ -38,7 +71,22 @@ public class TaskRunner
       {
         return null;
       }
-      return new RunningTask(task, person, inputs, target, chosenTargets, Calendar.Ticks);
+      var runningTask = new RunningTask(task, person, inputs, target, chosenTargets, Calendar.Ticks);
+      // Start the effects.
+      // For each effect, resolve the target and apply the effect.
+      foreach (var effect in task.effects)
+      {
+        // Effects are run once for each target in the list.
+        foreach (var effectTarget in effect.Value)
+        {
+          ChosenEffectTarget? chosenTarget = ChooseEffectTarget(effectTarget, runningTask, effect.Key);
+          // continue if it's null, since it's optional. We'd have thrown an exception otherwise.
+          if (chosenTarget == null) continue;
+          // Apply the effect to the chosen target.
+          effect.Key.Start(chosenTarget);
+        }
+      }
+      return runningTask;
     }
     return null;
   }
@@ -61,40 +109,11 @@ public class TaskRunner
       // Effects are run once for each target in the list.
       foreach (var effectTarget in effect.Value)
       {
-        ChosenEffectTarget? chosenTarget = null;
-        if (EffectTarget.IsTargetString(effectTarget.target))
-        {
-          // Match the target string to a chosen target.
-          if (runningTask.chosenTargets == null || !runningTask.chosenTargets.ContainsKey(effectTarget.target))
-          {
-            throw new Exception("Invalid target string: " + effectTarget.target + " for effect: " + effect.Key + " in task: " + runningTask.task);
-          }
-          chosenTarget = runningTask.chosenTargets[effectTarget.target];
-        }
-        else
-        {
-          // The target isn't a target string, so resolve it.
-          IInventoryContext target = runningTask.target;
-          chosenTarget = EffectTargetResolver.ResolveEffectTarget(effect.Key, effectTarget, target, runningTask.owner);
-        }
-        if (chosenTarget == null)
-        {
-          // If the effect is optional, skip it, otherwise throw.
-          if (!effect.Key.IsOptional())
-          {
-            throw new Exception("Invalid effect target: " + effectTarget + " for effect: " + effect.Key + " in task: " + runningTask.task);
-          }
-          continue;
-        }
+        ChosenEffectTarget? chosenTarget = ChooseEffectTarget(effectTarget, runningTask, effect.Key);
+        // continue if it's null, since it's optional. We would have thrown an exception otherwise.
+        if (chosenTarget == null) continue;
         // Apply the effect to the chosen target.
-        if (forceSync)
-        {
-          effect.Key.ApplySync(chosenTarget, runningTask.effectMultiplier);
-        }
-        else
-        {
-          effect.Key.Apply(chosenTarget, runningTask.effectMultiplier);
-        }
+        effect.Key.Finish(chosenTarget);
       }
     }
   }
@@ -164,7 +183,7 @@ public class TaskRunner
   // Have the person perform a task, with the given list of Chosen Targets
   // Immediately finishes the task, ignoring the time cost.
   // Returns true if the task was performed, false otherwise.
-  public static bool PerformTask(Person person, IInventoryContext target, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets, bool forceSync = false)
+  public static bool PerformTask(Person person, IInventoryContext target, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
   {
     var runningTask = StartTask(person, target, task, chosenTargets);
     if (runningTask == null)
@@ -172,7 +191,7 @@ public class TaskRunner
       return false;
     }
 
-    FinishTask(runningTask, forceSync);
+    FinishTask(runningTask);
 
     return true;
   }

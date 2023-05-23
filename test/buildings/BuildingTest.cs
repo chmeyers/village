@@ -79,18 +79,14 @@ public class BuildingUnitTest
     Assert.AreEqual(0, building.completedComponents.Count());
 
     // Create a person to run tasks.
-    Person person = new Person("bob", "Bob");
+    Person person = new Person("bob", "Bob", household, Village.Base.Role.HeadOfHousehold);
     // Run task_1, which should build component_1.
     WorkTask? task1 = WorkTask.Find("task_1");
     Assert.IsNotNull(task1);
     Dictionary<string, ChosenEffectTarget> targets = new Dictionary<string, ChosenEffectTarget>();
     // The target is the building.
     targets.Add("@1", new ChosenEffectTarget(EffectTargetType.Building, building, household, person));
-    // The person can't perform the task because they don't have the ability.
-    Assert.IsFalse(TaskRunner.PerformTask(person, person, task1, targets, true));
-    // The person can perform the task if they have the ability.
-    person.GrantAbility("construction_phase_phase_1");
-    Assert.IsTrue(TaskRunner.PerformTask(person, person, task1, targets, true));
+    Assert.IsTrue(TaskRunner.PerformTask(person, person, task1, targets));
     // The building should now have component_1.
     Assert.AreEqual(1, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_1"));
@@ -101,7 +97,7 @@ public class BuildingUnitTest
     WorkTask? task2 = WorkTask.Find("task_2");
     Assert.IsNotNull(task2);
     // The person can perform the task since they have the ability.
-    Assert.IsTrue(TaskRunner.PerformTask(person, person, task2, targets, true));
+    Assert.IsTrue(TaskRunner.PerformTask(person, person, task2, targets));
     // The building should now have component_2.
     Assert.AreEqual(2, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_2"));
@@ -117,7 +113,7 @@ public class BuildingUnitTest
     Assert.IsNotNull(task4);
     // Create a person in the household, they should have the ability.
     Person person2 = new Person("bob", "Bob", household, Village.Base.Role.HeadOfHousehold);
-    Assert.IsTrue(TaskRunner.PerformTask(person2, person2, task4, targets, true));
+    Assert.IsTrue(TaskRunner.PerformTask(person2, person2, task4, targets));
     // The building should now have component_4.
     Assert.AreEqual(3, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_4"));
@@ -130,7 +126,7 @@ public class BuildingUnitTest
     // Run task_3, which should build component_3.
     WorkTask? task3 = WorkTask.Find("task_3");
     Assert.IsNotNull(task3);
-    Assert.IsTrue(TaskRunner.PerformTask(person2, person2, task3, targets, true));
+    Assert.IsTrue(TaskRunner.PerformTask(person2, person2, task3, targets));
     // The building should now have component_3.
     Assert.AreEqual(4, building.completedComponents.Count());
     Assert.IsTrue(building.completedComponents.Contains("component_3"));

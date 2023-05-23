@@ -18,8 +18,6 @@ public class RunningTask
   public long endTime;
   // The number of ticks remaining until the task is complete.
   public int ticksRemaining;
-  // Multiplier to apply to effects.
-  public int effectMultiplier = 1;
 
   // The inventory that the task is running against.
   public IInventoryContext target { get; private set; }
@@ -32,7 +30,7 @@ public class RunningTask
   public Dictionary<Item, int> inputs { get; private set; }
 
   // Constructor.
-  public RunningTask(WorkTask task, IAbilityContext owner, Dictionary<Item, int> inputs, IInventoryContext inventory, Dictionary<string, ChosenEffectTarget>? chosenTargets, long startTime, int effectMultiplier = 1)
+  public RunningTask(WorkTask task, IAbilityContext owner, Dictionary<Item, int> inputs, IInventoryContext inventory, Dictionary<string, ChosenEffectTarget>? chosenTargets, long startTime)
   {
     this.task = task;
     this.owner = owner;
@@ -42,6 +40,5 @@ public class RunningTask
     this.inputs = inputs;
     this.target = inventory;
     this.chosenTargets = chosenTargets;
-    this.effectMultiplier = effectMultiplier;
   }
 }

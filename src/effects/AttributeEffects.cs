@@ -41,7 +41,7 @@ public class AttributePullerEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
     // Get the person from the chosen target.
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
@@ -75,6 +75,11 @@ public class AttributePullerEffect : Effect
       }
 
     }
+  }
+
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // Nothing to do here.
   }
 
   // Initialize should resolve the attribute names to the actual attribute type.
@@ -168,7 +173,7 @@ public class AttributeTransferEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
     // Get the person from the chosen target.
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
@@ -260,6 +265,11 @@ public class AttributeTransferEffect : Effect
       }
 
     }
+  }
+
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // Nothing to do here.
   }
 
   // Initialize should resolve the attribute names to the actual attribute type.
@@ -364,7 +374,7 @@ public class AttributeAdderEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
     // Get the person from the chosen target.
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
@@ -415,6 +425,11 @@ public class AttributeAdderEffect : Effect
       }
 
     }
+  }
+
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // Nothing to do here.
   }
 
   // Initialize should resolve the attribute names to the actual attribute type.

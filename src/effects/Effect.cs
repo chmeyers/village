@@ -182,9 +182,52 @@ public class Effect
     }
   }
 
-  public virtual void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  // Start the effect.
+  public virtual void Start(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
-    throw new Exception("Effect.ApplySync not implemented for " + effectType);
+    var runningHousehold = chosenEffectTarget.runningContext as IHouseholdContext;
+    var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
+    if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))
+    {
+      StartSync(chosenEffectTarget, multiplier, timeBatch);
+    }
+    // Everything else is applied asynchronously.
+    else
+    {
+      Task.Run(() => StartSync(chosenEffectTarget, multiplier, timeBatch));
+    }
+  }
+
+  // Finish the effect.
+  public virtual void Finish(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    var runningHousehold = chosenEffectTarget.runningContext as IHouseholdContext;
+    var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
+    if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))
+    {
+      FinishSync(chosenEffectTarget, multiplier, timeBatch);
+    }
+    // Everything else is applied asynchronously.
+    else
+    {
+      Task.Run(() => FinishSync(chosenEffectTarget, multiplier, timeBatch));
+    }
+  }
+
+  public void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    StartSync(chosenEffectTarget, multiplier, timeBatch);
+    FinishSync(chosenEffectTarget, multiplier, timeBatch);
+  }
+
+  public virtual void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    throw new Exception("Effect.StartSync not implemented for " + effectType);
+  }
+
+  public virtual void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    throw new Exception("Effect.FinishSync not implemented for " + effectType);
   }
 
   // Initialize is called after all effects and other types have been loaded.

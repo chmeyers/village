@@ -35,8 +35,14 @@ public class DegradeEffect : Effect
       target.inventory.AddItem(newItem, scrapItem.Value);
     }
   }
+
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // Nothing to do here.
+  }
+
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
     // Get the item from the chosen target.
     Item item = (Item)chosenEffectTarget.target!;
@@ -128,7 +134,7 @@ public class SkillEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
     // Get the person from the chosen target.
     ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
@@ -173,6 +179,10 @@ public class SkillEffect : Effect
       }
     }
   }
+
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1) {
+    // Nothing to do here.
+   }
 
   // Initialize should resolve the skill name to the actual skill object.
   public override void Initialize()
@@ -227,8 +237,14 @@ public class BuildingComponentEffect : Effect
     }
   }
 
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // TODO(chmeyers): Verify that the building component is valid and no other task
+    // is currently constructing it.
+  }
+
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
     // Get the building from the chosen target.
     Building building = (Building)chosenEffectTarget.target!;
@@ -294,7 +310,7 @@ public class SkillTreeEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
     // Get the person from the chosen target.
     Person person = (Person)chosenEffectTarget.target!;
@@ -317,6 +333,11 @@ public class SkillTreeEffect : Effect
       // Increase the skill of the target.
       person.GrantXP(relative, (int)amount.GetValue(chosenEffectTarget.runningContext));
     }
+  }
+
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  {
+    // Nothing to do here.
   }
 
   // Initialize should resolve the skill name to the actual skill object.
