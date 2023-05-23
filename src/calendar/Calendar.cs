@@ -88,6 +88,9 @@ public class Calendar
   // Whether this tick is the start of a new day.
   private bool startOfDay { get { return _ticks % ticksPerDay == 0; } }
 
+  // Whether this tick is the start of a new 5-day week.
+  private bool startOfWeek { get { return _ticks % (ticksPerDay * 5) == 0; } }
+
   // Static versions of the above properties using the global calendar.
   public static long Ticks { get { return global_calendar.ticks; } }
   public static long Days { get { return global_calendar.days; } }
@@ -99,6 +102,7 @@ public class Calendar
   public static int DayOfYear { get { return global_calendar.dayOfYear; } }
   public static Season Season { get { return global_calendar.season; } }
   public static bool StartOfDay { get { return global_calendar.startOfDay; } }
+  public static bool StartOfWeek { get { return global_calendar.startOfWeek; } }
 
   // Advance the calendar by the given number of ticks.
   public static void Advance(uint ticks)

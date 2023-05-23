@@ -55,6 +55,11 @@ public class GameLoop
   // Advance a household by one tick.
   public void AdvanceHousehold(Household household)
   {
+    // Once a week, advance the household's buildings, including fields.
+    if (Calendar.StartOfWeek)
+    {
+      household.AdvanceBuildings();
+    }
     // Advance the people.
     foreach (var person in Person.global_persons[household])
     {

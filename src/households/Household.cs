@@ -65,6 +65,15 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     }
   }
 
+  public void AdvanceBuildings()
+  {
+    foreach (var building in buildings)
+    {
+      // Currently only fields need to be advanced.
+      ((Field)building)?.Advance();
+    }
+  }
+
 
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
