@@ -38,7 +38,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     {
       state.Advance();
       // Advance each crop.
-      foreach (var crop in crops.Values)
+      foreach (var crop in _crops.Values)
       {
         crop.Advance();
       }
@@ -54,13 +54,13 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
         // Too many to plant.
         return false;
       }
-      if (!crops.ContainsKey(itemType))
+      if (!_crops.ContainsKey(itemType))
       {
-        crops[itemType] = new CropInfo(itemType, quantity, this);
+        _crops[itemType] = new CropInfo(itemType, quantity, this);
       }
       else
       {
-        crops[itemType].quantity += quantity;
+        _crops[itemType].quantity += quantity;
       }
       _cropCount += quantity;
       return true;
@@ -71,14 +71,38 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   {
     lock(_lock)
     {
-      if (!crops.ContainsKey(itemType) || crops[itemType].quantity < quantity)
+      if (!_crops.ContainsKey(itemType) || _crops[itemType].quantity < quantity)
       {
         // Can't harvest what isn't planted.
         return false;
       }
-      crops[itemType].quantity -= quantity;
+      _crops[itemType].quantity -= quantity;
       _cropCount -= quantity;
       return true;
+    }
+  }
+
+  public double Count(ItemType itemType)
+  {
+    lock (_lock)
+    {
+      if (!_crops.ContainsKey(itemType))
+      {
+        return 0;
+      }
+      return _crops[itemType].quantity;
+    }
+  }
+
+  public double GetValue(ItemType itemType, AttributeType attributeType)
+  {
+    lock (_lock)
+    {
+      if (!_crops.ContainsKey(itemType))
+      {
+        return state.GetValue(attributeType);
+      }
+      return _crops[itemType].state.GetValue(attributeType);
     }
   }
 
@@ -172,7 +196,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
   }
 
-  public Dictionary<ItemType, CropInfo> crops = new Dictionary<ItemType, CropInfo>();
+  private Dictionary<ItemType, CropInfo> _crops = new Dictionary<ItemType, CropInfo>();
 
   // The current number of crops in the field.
   private double _cropCount = 0;

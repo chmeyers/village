@@ -185,6 +185,7 @@ public class Effect
   // Start the effect.
   public virtual void Start(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
   {
+    // TODO(chmeyers): Should Start always be synchronous?
     var runningHousehold = chosenEffectTarget.runningContext as IHouseholdContext;
     var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
     if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))

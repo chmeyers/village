@@ -107,8 +107,6 @@ public class FieldUnitTest
 
     // Check that all the Attributes got created in the Field's attibute set.
     Assert.AreEqual(9, field.state.attributes.Count);
-    // Check that the crop's attributes got created.
-    Assert.AreEqual(3, field.crops[wheat].state.attributes.Count);
 
     // Advance the game calendar by 1 tick.
     Calendar.Advance();
@@ -117,13 +115,13 @@ public class FieldUnitTest
 
     // crop_wheat_growing should have increased by 0.1*10.
     AttributeType crop_wheat_growing = AttributeType.Find("crop_wheat_growing")!;
-    Assert.AreEqual(1, field.crops[wheat].state.attributes[crop_wheat_growing].value);
+    Assert.AreEqual(1, field.GetValue(wheat, crop_wheat_growing));
     // crop_health should have decreased 5 due to weeds
     AttributeType crop_health = AttributeType.Find("crop_health")!;
-    Assert.AreEqual(994, field.crops[wheat].state.attributes[crop_health].value);
+    Assert.AreEqual(994, field.GetValue(wheat, crop_health));
     // crop_yield should have stayed the same.
     AttributeType crop_yield = AttributeType.Find("crop_yield")!;
-    Assert.AreEqual(0, field.crops[wheat].state.attributes[crop_yield].value);
+    Assert.AreEqual(0, field.GetValue(wheat, crop_yield));
     // The Field's surface_moisture should have decreased by 5
     AttributeType surface_moisture = AttributeType.Find("surface_moisture")!;
     Assert.AreEqual(94, field.state.attributes[surface_moisture].value);
@@ -141,11 +139,11 @@ public class FieldUnitTest
     field.Advance();
 
     // crop_wheat_growing should have increased by 0.1*10.
-    Assert.AreEqual(2, field.crops[wheat].state.attributes[crop_wheat_growing].value);
+    Assert.AreEqual(2, field.GetValue(wheat, crop_wheat_growing));
     // crop_health should have stayed the same.
-    Assert.AreEqual(994, field.crops[wheat].state.attributes[crop_health].value);
+    Assert.AreEqual(994, field.GetValue(wheat, crop_health));
     // crop_yield should have stayed the same.
-    Assert.AreEqual(0, field.crops[wheat].state.attributes[crop_yield].value);
+    Assert.AreEqual(0, field.GetValue(wheat, crop_yield));
     // The Field's surface_moisture should have decreased by 0.1*10.
     Assert.AreEqual(88, field.state.attributes[surface_moisture].value);
     Assert.AreEqual(1000, field.state.attributes[deep_moisture].value);
@@ -158,8 +156,8 @@ public class FieldUnitTest
     field.Advance();
 
     // crop_wheat_growing should be at day 7.
-    Assert.AreEqual(70, field.crops[wheat].state.attributes[crop_wheat_growing].value);
-    Assert.AreEqual(926, field.crops[wheat].state.attributes[crop_health].value);
+    Assert.AreEqual(70, field.GetValue(wheat, crop_wheat_growing));
+    Assert.AreEqual(926, field.GetValue(wheat, crop_health));
 
     // Advance the game calendar to tick 280
     for (int i = 0; i < 3; i++)
@@ -172,10 +170,10 @@ public class FieldUnitTest
     }
 
     // crop_wheat_growing should be at day 28.
-    Assert.AreEqual(280, field.crops[wheat].state.attributes[crop_wheat_growing].value);
-    Assert.AreEqual(716, field.crops[wheat].state.attributes[crop_health].value);
+    Assert.AreEqual(280, field.GetValue(wheat, crop_wheat_growing));
+    Assert.AreEqual(716, field.GetValue(wheat, crop_health));
     // crop_yield should have increased by 10 each tick
-    Assert.AreEqual(2100, field.crops[wheat].state.attributes[crop_yield].value);
+    Assert.AreEqual(2100, field.GetValue(wheat, crop_yield));
     
 
     // Advance the game calendar to tick 910, at most 70 ticks at a time.
@@ -192,9 +190,9 @@ public class FieldUnitTest
 
 
     // crop_wheat_growing should be at day 91.
-    Assert.AreEqual(910, field.crops[wheat].state.attributes[crop_wheat_growing].value);
-    Assert.AreEqual(716, field.crops[wheat].state.attributes[crop_health].value);
-    Assert.AreEqual(8400, field.crops[wheat].state.attributes[crop_yield].value);
+    Assert.AreEqual(910, field.GetValue(wheat, crop_wheat_growing));
+    Assert.AreEqual(716, field.GetValue(wheat, crop_health));
+    Assert.AreEqual(8400, field.GetValue(wheat, crop_yield));
 
     // Advance the game calendar to tick 1050
     for (int i = 0; i < 2; i++)
@@ -205,9 +203,9 @@ public class FieldUnitTest
     }
 
     // crop_wheat_growing should be at day 105.
-    Assert.AreEqual(1050, field.crops[wheat].state.attributes[crop_wheat_growing].value);
-    Assert.AreEqual(716, field.crops[wheat].state.attributes[crop_health].value);
-    Assert.AreEqual(8800, field.crops[wheat].state.attributes[crop_yield].value);
+    Assert.AreEqual(1050, field.GetValue(wheat, crop_wheat_growing));
+    Assert.AreEqual(716, field.GetValue(wheat, crop_health));
+    Assert.AreEqual(8800, field.GetValue(wheat, crop_yield));
 
     // Advance the game calendar to tick 1400
     for (int i = 0; i < 4; i++)
@@ -218,11 +216,11 @@ public class FieldUnitTest
     }
 
     // crop_wheat_growing should have capped out at day 115
-    Assert.AreEqual(1149, field.crops[wheat].state.attributes[crop_wheat_growing].value);
+    Assert.AreEqual(1149, field.GetValue(wheat, crop_wheat_growing));
     // crop_health should be at zero.
-    Assert.AreEqual(0, field.crops[wheat].state.attributes[crop_health].value);
+    Assert.AreEqual(0, field.GetValue(wheat, crop_health));
     // crop_yield should be at 0.
-    Assert.AreEqual(0, field.crops[wheat].state.attributes[crop_yield].value);
+    Assert.AreEqual(0, field.GetValue(wheat, crop_yield));
 
 
 

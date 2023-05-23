@@ -106,15 +106,24 @@ public class HarvestCropEffect : Effect
     }
     // Determine the yield.
     double yield = 0;
-    yield = field.state.GetAttributeValue(yieldAttributeType!);
-    // TODO(chmeyers): Figure out the correct quantity to harvest, and deal with partial harvests.
-    if (!field.Harvest(crop, multiplier))
+    yield = field.GetValue(crop, yieldAttributeType!);
+    double harvestAmount = multiplier;
+    if (field.Count(crop) < harvestAmount)
+    {
+      harvestAmount = field.Count(crop);
+    }
+    if (harvestAmount <= 0)
+    {
+      // Nothing to harvest.
+      return;
+    }
+    if (!field.Harvest(crop, harvestAmount))
     {
       // This effect should never be called without a valid target field.
       throw new Exception("Unable to harvest crop in harvest crop effect: " + effect);
     }
     // Actual yield is the difference between the yield before and after the harvest.
-    yield -= field.state.GetAttributeValue(yieldAttributeType!);
+    yield -= field.GetValue(crop, yieldAttributeType!);
 
     // Add the yield of each item in the itemtype's harvestItems to the inventory.
     foreach (var harvestItem in crop.harvestItems)
