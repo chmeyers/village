@@ -122,12 +122,12 @@ public class FieldUnitTest
     // crop_yield should have stayed the same.
     AttributeType crop_yield = AttributeType.Find("crop_yield")!;
     Assert.AreEqual(0, field.GetValue(wheat, crop_yield));
-    // The Field's surface_moisture should have decreased by 5
+    // The Field's surface_moisture should have decreased by 5 and rain should have added 1.
     AttributeType surface_moisture = AttributeType.Find("surface_moisture")!;
-    Assert.AreEqual(94, field.state.attributes[surface_moisture].value);
-    // The Field's deep_moisture shouldn't've decreased.
+    Assert.AreEqual(96, field.state.attributes[surface_moisture].value);
+    // The Field's deep_moisture should increase.
     AttributeType deep_moisture = AttributeType.Find("deep_moisture")!;
-    Assert.AreEqual(1000, field.state.attributes[deep_moisture].value);
+    Assert.AreEqual(1005, field.state.attributes[deep_moisture].value);
 
     // Decrease the Field's weeds to 0.
     AttributeType weeds = AttributeType.Find("weeds")!;
@@ -144,9 +144,9 @@ public class FieldUnitTest
     Assert.AreEqual(994, field.GetValue(wheat, crop_health));
     // crop_yield should have stayed the same.
     Assert.AreEqual(0, field.GetValue(wheat, crop_yield));
-    // The Field's surface_moisture should have decreased by 0.1*10.
-    Assert.AreEqual(88, field.state.attributes[surface_moisture].value);
-    Assert.AreEqual(1000, field.state.attributes[deep_moisture].value);
+    // The Field's surface_moisture should have decreased
+    Assert.AreEqual(92, field.state.attributes[surface_moisture].value);
+    Assert.AreEqual(1010, field.state.attributes[deep_moisture].value);
 
     // Make it rain.
     field.state.SetValue(surface_moisture, 100);

@@ -41,7 +41,7 @@ public class AttributePullerEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the person from the chosen target.
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
@@ -54,9 +54,9 @@ public class AttributePullerEffect : Effect
 
     foreach (var puller in _pullers)
     {
-      double amount = puller.amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
+      double amount = puller.amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize;
       if (amount == 0) continue;
-      double target = puller.target.GetValue(chosenEffectTarget.runningContext);
+      double target = puller.target.GetValue(chosenEffectTarget.runningContext) * scaler;
       // Get the attribute from the person.
       double currentValue = attributes.GetAttributeValue(puller.type!);
       // If the current value is within amount of the target, then set it to the target.
@@ -77,7 +77,7 @@ public class AttributePullerEffect : Effect
     }
   }
 
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Nothing to do here.
   }
@@ -173,7 +173,7 @@ public class AttributeTransferEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the person from the chosen target.
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
@@ -186,10 +186,10 @@ public class AttributeTransferEffect : Effect
 
     foreach (var transferer in _transferers)
     {
-      double amount = transferer.amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
+      double amount = transferer.amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize;
       if (amount == 0) continue;
-      double min = transferer.sourceMin!.GetValue(chosenEffectTarget.runningContext);
-      double max = transferer.destMax!.GetValue(chosenEffectTarget.runningContext);
+      double min = transferer.sourceMin!.GetValue(chosenEffectTarget.runningContext) * scaler;
+      double max = transferer.destMax!.GetValue(chosenEffectTarget.runningContext) * scaler;
       // Get the attribute from the person.
       double currentValue = attributes.GetAttributeValue(transferer.type!);
       double currentDestValue = attributes.GetAttributeValue(transferer.destType!);
@@ -267,7 +267,7 @@ public class AttributeTransferEffect : Effect
     }
   }
 
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Nothing to do here.
   }
@@ -374,7 +374,7 @@ public class AttributeAdderEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the person from the chosen target.
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
@@ -387,9 +387,9 @@ public class AttributeAdderEffect : Effect
 
     foreach (var adder in _adders)
     {
-      double amount = adder.amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch;
+      double amount = adder.amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize;
       if (amount == 0) continue;
-      double target = adder.target.GetValue(chosenEffectTarget.runningContext);
+      double target = adder.target.GetValue(chosenEffectTarget.runningContext) * scaler;
       // Get the attribute from the person.
       double currentValue = attributes.GetAttributeValue(adder.type!);
       // Positive Amounts add up to the target, negative amounts subtract down to the target.
@@ -427,7 +427,7 @@ public class AttributeAdderEffect : Effect
     }
   }
 
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Nothing to do here.
   }

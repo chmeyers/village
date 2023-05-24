@@ -28,7 +28,7 @@ public class PlantCropEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the field from the chosen target.
     Field field = (Field)chosenEffectTarget.target!;
@@ -38,7 +38,7 @@ public class PlantCropEffect : Effect
       // This effect should never be called without a valid target field.
       throw new Exception("Field is null in plant crop effect: " + effect);
     }
-    if (!field.Plant(crop, multiplier))
+    if (!field.Plant(crop, scaler))
     {
       // TODO(chmeyers): Make sure the field has room for the crop before running the task.
       // This effect should never be called without a valid target field.
@@ -46,7 +46,7 @@ public class PlantCropEffect : Effect
     }
   }
 
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Nothing to do here.
   }
@@ -88,13 +88,13 @@ public class HarvestCropEffect : Effect
     yieldAttributeTypeName = (string)data.GetValueOrDefault("yieldAttributeType", defaultYieldAttributeType);
   }
 
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // TODO(chmeyers): Verify that the field has a crop to harvest here.
   }
 
   // Apply the effect to the target.
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the field from the chosen target.
     Field field = (Field)chosenEffectTarget.target!;
@@ -107,7 +107,7 @@ public class HarvestCropEffect : Effect
     // Determine the yield.
     double yield = 0;
     yield = field.GetValue(crop, yieldAttributeType!);
-    double harvestAmount = multiplier;
+    double harvestAmount = scaler;
     if (field.Count(crop) < harvestAmount)
     {
       harvestAmount = field.Count(crop);

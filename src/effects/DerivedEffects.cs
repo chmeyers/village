@@ -36,13 +36,13 @@ public class DegradeEffect : Effect
     }
   }
 
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Nothing to do here.
   }
 
   // Apply the effect to the target.
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the item from the chosen target.
     Item item = (Item)chosenEffectTarget.target!;
@@ -56,7 +56,7 @@ public class DegradeEffect : Effect
     // Batching is equivalent to degrading the item for the specified amount of time.
     // Note that we don't overflow the degradation onto a second item,
     // so batching is not exactly equivalent.
-    int degradeAmount = (int)(amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch);
+    int degradeAmount = (int)(amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize);
 
     // Check if person has more than one of the item.
     if (targetInventory.inventory[item] > Inventory.DEFAULT_QUANTITY)
@@ -134,7 +134,7 @@ public class SkillEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the person from the chosen target.
     ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
@@ -152,7 +152,7 @@ public class SkillEffect : Effect
     // If the person is currently at level, they get one XP, if less they get two,
     // if more they get nothing.
     int trainingLevel = (int)level.GetValue(chosenEffectTarget.runningContext);
-    int trainingAmount = (int)(amount.GetValue(chosenEffectTarget.runningContext) * multiplier * timeBatch);
+    int trainingAmount = (int)(amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize);
     while (trainingAmount > 0 && person.GetLevel(_skill!) <= trainingLevel)
     {
       // Grant the max of trainingAmount or the amount needed to get to the next level.
@@ -180,7 +180,7 @@ public class SkillEffect : Effect
     }
   }
 
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1) {
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1) {
     // Nothing to do here.
    }
 
@@ -237,14 +237,14 @@ public class BuildingComponentEffect : Effect
     }
   }
 
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // TODO(chmeyers): Verify that the building component is valid and no other task
     // is currently constructing it.
   }
 
   // Apply the effect to the target.
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the building from the chosen target.
     Building building = (Building)chosenEffectTarget.target!;
@@ -310,7 +310,7 @@ public class SkillTreeEffect : Effect
   }
 
   // Apply the effect to the target.
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the person from the chosen target.
     Person person = (Person)chosenEffectTarget.target!;
@@ -335,7 +335,7 @@ public class SkillTreeEffect : Effect
     }
   }
 
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Nothing to do here.
   }

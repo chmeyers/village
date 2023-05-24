@@ -165,7 +165,7 @@ public class Effect
   }
 
   // Apply the effect to the chosen target, using the given person as context.
-  public void Apply(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public void Apply(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Effects where the runningContext is the same as targetContext or they are
     // in the same household are applied synchronously.
@@ -173,60 +173,60 @@ public class Effect
     var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
     if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))
     {
-      ApplySync(chosenEffectTarget, multiplier, timeBatch);
+      ApplySync(chosenEffectTarget, scaler, batchSize);
     }
     // Everything else is applied asynchronously.
     else
     {
-      Task.Run(() => ApplySync(chosenEffectTarget, multiplier, timeBatch));
+      Task.Run(() => ApplySync(chosenEffectTarget, scaler, batchSize));
     }
   }
 
   // Start the effect.
-  public virtual void Start(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public virtual void Start(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // TODO(chmeyers): Should Start always be synchronous?
     var runningHousehold = chosenEffectTarget.runningContext as IHouseholdContext;
     var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
     if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))
     {
-      StartSync(chosenEffectTarget, multiplier, timeBatch);
+      StartSync(chosenEffectTarget, scaler, batchSize);
     }
     // Everything else is applied asynchronously.
     else
     {
-      Task.Run(() => StartSync(chosenEffectTarget, multiplier, timeBatch));
+      Task.Run(() => StartSync(chosenEffectTarget, scaler, batchSize));
     }
   }
 
   // Finish the effect.
-  public virtual void Finish(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public virtual void Finish(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     var runningHousehold = chosenEffectTarget.runningContext as IHouseholdContext;
     var targetHousehold = chosenEffectTarget.targetContext as IHouseholdContext;
     if ((chosenEffectTarget.runningContext == chosenEffectTarget.targetContext) || (runningHousehold != null && targetHousehold != null && runningHousehold.household == targetHousehold.household))
     {
-      FinishSync(chosenEffectTarget, multiplier, timeBatch);
+      FinishSync(chosenEffectTarget, scaler, batchSize);
     }
     // Everything else is applied asynchronously.
     else
     {
-      Task.Run(() => FinishSync(chosenEffectTarget, multiplier, timeBatch));
+      Task.Run(() => FinishSync(chosenEffectTarget, scaler, batchSize));
     }
   }
 
-  public void ApplySync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public void ApplySync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
-    StartSync(chosenEffectTarget, multiplier, timeBatch);
-    FinishSync(chosenEffectTarget, multiplier, timeBatch);
+    StartSync(chosenEffectTarget, scaler, batchSize);
+    FinishSync(chosenEffectTarget, scaler, batchSize);
   }
 
-  public virtual void StartSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public virtual void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     throw new Exception("Effect.StartSync not implemented for " + effectType);
   }
 
-  public virtual void FinishSync(ChosenEffectTarget chosenEffectTarget, double multiplier = 1, int timeBatch = 1)
+  public virtual void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     throw new Exception("Effect.FinishSync not implemented for " + effectType);
   }
