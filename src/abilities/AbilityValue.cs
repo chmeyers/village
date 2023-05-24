@@ -21,6 +21,8 @@ public class AbilityValue
   // The abilities that affect the AbilityValue.
   private Dictionary<AbilityType, double> addAbilities = new Dictionary<AbilityType, double>();
   private Dictionary<AbilityType, double> multAbilities = new Dictionary<AbilityType, double>();
+  private double namedAdd = 0;
+  private double namedMult = 1;
   // Set of abilities that can affect the AbilityValue.
   public HashSet<AbilityType> Abilities
   {
@@ -79,39 +81,33 @@ public class AbilityValue
         this.namedValue = (string)dict["val"];
         this.baseValue = 0;
       }
-      else if (dict["val"] is double)
+      else
       {
-        this.baseValue = (double)dict["val"];
-      }
-      else if (dict["val"] is long)
-      {
-        this.baseValue = (long)dict["val"];
+        this.baseValue = AbilityValueConverter.GetDouble(dict, "val");
       }
     }
     // Get the min and max values.
     if (dict.ContainsKey("min"))
     {
-      if (dict["min"] is double)
-      {
-        this.min = (double)dict["min"];
-      }
-      else if (dict["min"] is long)
-      {
-        this.min = (long)dict["min"];
-      }
+      this.min = AbilityValueConverter.GetDouble(dict, "min");
     }
     if (dict.ContainsKey("max"))
     {
-      if (dict["max"] is double)
-      {
-        this.max = (double)dict["max"];
-      }
-      else if (dict["max"] is long)
-      {
-        this.max = (long)dict["max"];
-      }
+      this.max = AbilityValueConverter.GetDouble(dict, "max");
     }
     baseValue = Math.Clamp(baseValue, min, max);
+    if (namedValue != null)
+    {
+      // Named values are allowed to have a general add and mult.
+      if (dict.ContainsKey("add"))
+      {
+        this.namedAdd = AbilityValueConverter.GetDouble(dict, "add");
+      }
+      if (dict.ContainsKey("mult"))
+      {
+        this.namedMult = AbilityValueConverter.GetDouble(dict, "mult");
+      }
+    }
     // Get the abilities.
     Newtonsoft.Json.Linq.JObject? abilities = (Newtonsoft.Json.Linq.JObject?)json["modifiers"];
     if (abilities != null)
@@ -138,27 +134,13 @@ public class AbilityValue
         if (abilityModifier.ContainsKey("add"))
         {
           // Add might be either a long or a double.
-          if (abilityModifier["add"] is long)
-          {
-            this.addAbilities.Add(abilityType, (double)(long)abilityModifier["add"]);
-          }
-          else
-          {
-            this.addAbilities.Add(abilityType, (double)(double)abilityModifier["add"]);
-          }
+          this.addAbilities.Add(abilityType, AbilityValueConverter.GetDouble(dict, "add"));
         }
 
         if (abilityModifier.ContainsKey("mult"))
         {
           // Multiplier might be either a long or a double.
-          if (abilityModifier["mult"] is long)
-          {
-            this.multAbilities.Add(abilityType, (float)(long)abilityModifier["mult"]);
-          }
-          else
-          {
-            this.multAbilities.Add(abilityType, (float)(double)abilityModifier["mult"]);
-          }
+          this.multAbilities.Add(abilityType, AbilityValueConverter.GetDouble(dict, "mult"));
         }
 
       }
@@ -205,7 +187,7 @@ public class AbilityValue
     {
       return baseValue;
     }
-    return context.GetNamedValue(namedValue);
+    return (context.GetNamedValue(namedValue) + namedAdd) * namedMult;
   }
   // Return the value of the AbilityValue.
   public double GetValue(IAbilityContext? context)
@@ -258,5 +240,26 @@ public class AbilityValueConverter : JsonConverter<AbilityValue>
   public override void WriteJson(JsonWriter writer, AbilityValue? value, JsonSerializer serializer)
   {
     throw new NotImplementedException();
+  }
+
+  public static double GetDouble(Dictionary<string, object>? dict, string name)
+  {
+    if (dict == null)
+    {
+      throw new Exception("Failed to find " + name + " in ability value");
+    }
+    if (!dict.ContainsKey(name))
+    {
+      throw new Exception("Failed to find " + name + " in ability value");
+    }
+    if (dict[name] is double)
+    {
+      return (double)dict[name];
+    }
+    if (dict[name] is long)
+    {
+      return (long)dict[name];
+    }
+    throw new Exception("Failed to find " + name + " in ability value");
   }
 }
