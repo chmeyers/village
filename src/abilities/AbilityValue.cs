@@ -134,13 +134,13 @@ public class AbilityValue
         if (abilityModifier.ContainsKey("add"))
         {
           // Add might be either a long or a double.
-          this.addAbilities.Add(abilityType, AbilityValueConverter.GetDouble(dict, "add"));
+          this.addAbilities.Add(abilityType, AbilityValueConverter.GetDouble(abilityModifier, "add"));
         }
 
         if (abilityModifier.ContainsKey("mult"))
         {
           // Multiplier might be either a long or a double.
-          this.multAbilities.Add(abilityType, AbilityValueConverter.GetDouble(dict, "mult"));
+          this.multAbilities.Add(abilityType, AbilityValueConverter.GetDouble(abilityModifier, "mult"));
         }
 
       }
