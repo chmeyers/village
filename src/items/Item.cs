@@ -30,6 +30,95 @@ public enum ItemGroup
   HOUSEHOLD,
 }
 
+public class CropSettings
+{
+  // Settings describing how the crop grows. We give realistic defaults here,
+  // but these should be overridden by the crop type.
+
+  // The crop attribute for this item type
+  public AttributeType? cropAttribute;
+  public double minSoilQuality = 2.0;
+  // Temps are in degrees F.
+  public double minPlantingTemp = 40.0;
+  public double frostTolerance = 32.0;
+  public double heatTolerance = 85.0;
+  // Drought Tolerance - 0 == very poor, 1 == very good.
+  public double droughtTolerance = 0.5;
+  // Development stage days should probably coorespond to intervals in
+  // the crop's attribute, but don't have to.
+  public int initDays = 20;
+  public int devDays = 30;
+  public int midDays = 35;
+  public int lateDays = 15;
+  public int totalDays = 100;
+  // Crop water use constants.
+  // Water use is at kcInit for the initial days, rises to kcMid over devDays,
+  // stays at kcMid for midDays, then drops to kcEnd over lateDays.
+  // All values are multipliers of the ET (evapotranspiration) rate.
+  public double kcInit = 0.3;
+  public double kcMid = 1.05;
+  public double kcEnd = 0.5;
+  public double currentKC(int day)
+  {
+    if (day < initDays)
+    {
+      return kcInit;
+    }
+    if (day < initDays + devDays)
+    {
+      return kcInit + (kcMid - kcInit) * (day - initDays) / devDays;
+    }
+    if (day < initDays + devDays + midDays)
+    {
+      return kcMid;
+    }
+    if (day < initDays + devDays + midDays + lateDays)
+    {
+      return kcMid + (kcEnd - kcMid) * (day - initDays - devDays - midDays) / lateDays;
+    }
+    return kcEnd;
+  }
+  public double perTickYieldGrowth = 0.5;
+  public double currentYieldGrowth(int day)
+  {
+    // TODO(chmeyers): This should be a non-linear function of the crop development stage.
+    return perTickYieldGrowth;
+  }
+  // Recommended planting months in temperate climates.
+  // Month zero is the beginning of spring.
+  public List<int> temperatePlantingMonths = new List<int> { 1, 2 };
+  // Target yield per acre in pounds.
+  public double targetYield = 1000.0;
+  // Seed needed per acre in pounds.
+  public double seedPerAcre = 150.0;
+  // Does this crop have harvestable straw?
+  public bool hasHarvestableStraw = false;
+  // Pounds of straw per pound of crop yield.
+  public double strawPerYield = 0.0;
+  // Nitrogen used per pound of crop yield.
+  public double nitrogenPerYield = 1.0;
+  // Phosphorus used per pound of crop yield.
+  public double phosphorusPerYield = 0.05;
+  // Potassium used per pound of crop yield.
+  public double potassiumPerYield = 0.5;
+  // Nitrogen per pound of straw.
+  public double nitrogenPerStraw = 0.0;
+  // Phosphorus per pound of straw.
+  public double phosphorusPerStraw = 0.0;
+  // Potassium per pound of straw.
+  public double potassiumPerStraw = 0.0;
+  // Total nitrogen.
+  public double totalNitrogen => nitrogenPerYield + nitrogenPerStraw * strawPerYield;
+  // Total phosphorus.
+  public double totalPhosphorus => phosphorusPerYield + phosphorusPerStraw * strawPerYield;
+  // Total potassium.
+  public double totalPotassium => potassiumPerYield + potassiumPerStraw * strawPerYield;
+  // Is this crop nitrogen fixing?
+  // For nitrogen fixing crops, we will assume that a percentage of the nitrogen
+  // used by the crop is fixed from the air. It doesn't actually go back into the
+  // soil unless the crop is plowed under.
+  public bool nitrogenFixing = false;
+}
 
 // A ItemType describes a general item and stores information
 // related to all items of that type.
@@ -55,7 +144,8 @@ public class ItemType
   // Find a ItemType by name.
   public static ItemType? Find(string name)
   {
-    if (_itemTypes.ContainsKey(name)) {
+    if (_itemTypes.ContainsKey(name))
+    {
       return _itemTypes[name];
     }
     return null;
@@ -65,7 +155,8 @@ public class ItemType
   public static void Load(Dictionary<string, Dictionary<string, object>> data)
   {
     // Iterate over the item types.
-    foreach (var item in data) {
+    foreach (var item in data)
+    {
       // Get the item type name.
       string name = item.Key;
       // Get the item type data.
@@ -74,18 +165,23 @@ public class ItemType
       ItemGroup group = (ItemGroup)Enum.Parse(typeof(ItemGroup), (string)itemData["group"]);
       // Get the item type parents.
       List<ItemType> parents = new List<ItemType>();
-      if (itemData.ContainsKey("parents")) {
+      if (itemData.ContainsKey("parents"))
+      {
         // Check that the parents is an array.
-        if (!(itemData["parents"] is Newtonsoft.Json.Linq.JArray)) {
+        if (!(itemData["parents"] is Newtonsoft.Json.Linq.JArray))
+        {
           throw new Exception("Parents must be an array for item type: " + name);
         }
         List<string>? parentList = ((Newtonsoft.Json.Linq.JArray)itemData["parents"]).ToObject<List<string>>();
-        if (parentList == null) {
+        if (parentList == null)
+        {
           throw new Exception("Parents must not be null for item type: " + name);
         }
         // Check that each parent in the list exists in the ItemType dictionary.
-        foreach (var parent in parentList!) {
-          if (!_itemTypes.ContainsKey(parent)) {
+        foreach (var parent in parentList!)
+        {
+          if (!_itemTypes.ContainsKey(parent))
+          {
             throw new Exception("Parent item type not found: " + parent + " for item type: " + name);
           }
           parents.Add(_itemTypes[parent]!);
@@ -97,21 +193,26 @@ public class ItemType
       double lossRate = (double)itemData.GetValueOrDefault("lossRate", 0.0);
       // Get the item type flammability or default to false.
       bool flammable = (bool)itemData.GetValueOrDefault("flammable", false);
-      
+
       // Get the item type scrap items.
       Dictionary<ItemType, int> scrapItems = new Dictionary<ItemType, int>();
-      if (itemData.ContainsKey("scrapItems")) {
+      if (itemData.ContainsKey("scrapItems"))
+      {
         // Check that the scrap items are a dictionary.
-        if (!(itemData["scrapItems"] is Newtonsoft.Json.Linq.JObject)) {
+        if (!(itemData["scrapItems"] is Newtonsoft.Json.Linq.JObject))
+        {
           throw new Exception("Scrap items must be a dictionary for item type: " + name);
         }
         var dict = ((Newtonsoft.Json.Linq.JObject)itemData["scrapItems"]).ToObject<Dictionary<string, object>>();
-        if (dict == null) {
+        if (dict == null)
+        {
           throw new Exception("Scrap items must not be null for item type: " + name);
         }
-        foreach (var scrapItem in dict!) {
+        foreach (var scrapItem in dict!)
+        {
           // If the scrap item isn't already in the dictionary, throw an error.
-          if (!_itemTypes.ContainsKey(scrapItem.Key)) {
+          if (!_itemTypes.ContainsKey(scrapItem.Key))
+          {
             throw new Exception("Scrap item type not found: " + scrapItem.Key + " for item type: " + name);
           }
           scrapItems.Add(Find(scrapItem.Key)!, (int)(long)scrapItem.Value);
@@ -119,18 +220,23 @@ public class ItemType
       }
       // Get the list of ability strings from the ability json field.
       HashSet<AbilityType> abilitySet = new HashSet<AbilityType>();
-      if (itemData.ContainsKey("abilities")) {
+      if (itemData.ContainsKey("abilities"))
+      {
         // Check that the abilities are a list.
-        if (!(itemData["abilities"] is Newtonsoft.Json.Linq.JArray)) {
+        if (!(itemData["abilities"] is Newtonsoft.Json.Linq.JArray))
+        {
           throw new Exception("Abilities must be a list for item type: " + name);
         }
         List<string>? abilities = ((Newtonsoft.Json.Linq.JArray)itemData["abilities"]).ToObject<List<string>>();
-        if (abilities == null) {
+        if (abilities == null)
+        {
           throw new Exception("Abilities must not be null for item type: " + name);
         }
         // Check that each ability in the list exists in the AbilityType dictionary.
-        foreach (var ability in abilities!) {
-          if (!AbilityType.abilityTypes.ContainsKey(ability)) {
+        foreach (var ability in abilities!)
+        {
+          if (!AbilityType.abilityTypes.ContainsKey(ability))
+          {
             throw new Exception("Ability not found: " + ability + " for item type: " + name);
           }
           abilitySet.Add(AbilityType.abilityTypes[ability]!);
@@ -141,43 +247,52 @@ public class ItemType
 
       // Get the craft quality.
       AbilityValue craftQuality = new AbilityValue(DEFAULT_QUALITY);
-      if (itemData.ContainsKey("craftQuality")) {
+      if (itemData.ContainsKey("craftQuality"))
+      {
         // Load craft quality as an AbilityValue.
         craftQuality = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)itemData["craftQuality"]);
       }
 
       // Get the Crop Attribute.
       AttributeType? cropAttribute = null;
-      if (itemData.ContainsKey("cropAttribute")) {
+      if (itemData.ContainsKey("cropAttribute"))
+      {
         cropAttribute = AttributeType.Find((string)itemData["cropAttribute"]);
         // Check that the crop attribute exists in the AttributeType dictionary.
-        if (cropAttribute == null) {
+        if (cropAttribute == null)
+        {
           throw new Exception("Crop attribute not found: " + itemData["cropAttribute"] + " for item type: " + name);
         }
       }
 
       // Read the harvest Items.
       Dictionary<string, double> harvestItems = new Dictionary<string, double>();
-      if (itemData.ContainsKey("harvestItems")) {
+      if (itemData.ContainsKey("harvestItems"))
+      {
         // Check that the harvest items are a dictionary.
-        if (!(itemData["harvestItems"] is Newtonsoft.Json.Linq.JObject)) {
+        if (!(itemData["harvestItems"] is Newtonsoft.Json.Linq.JObject))
+        {
           throw new Exception("Harvest items must be a dictionary for item type: " + name);
         }
         var dict = ((Newtonsoft.Json.Linq.JObject)itemData["harvestItems"]).ToObject<Dictionary<string, object>>();
-        if (dict == null) {
+        if (dict == null)
+        {
           throw new Exception("Harvest items must not be null for item type: " + name);
         }
-        foreach (var harvestItem in dict!) {
+        foreach (var harvestItem in dict!)
+        {
           // Allow the value to be a double or a long.
-          if (harvestItem.Value is double) {
+          if (harvestItem.Value is double)
+          {
             harvestItems.Add(harvestItem.Key, (double)harvestItem.Value);
           }
-          else if (harvestItem.Value is long) {
+          else if (harvestItem.Value is long)
+          {
             harvestItems.Add(harvestItem.Key, (double)(long)harvestItem.Value);
           }
         }
       }
-      
+
 
       // Create the item type.
       ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet, cropAttribute, harvestItems);
@@ -190,7 +305,8 @@ public class ItemType
   {
     // Parse the JSON string into a dictionary of item type names and data.
     Dictionary<string, Dictionary<string, object>>? data = JsonConvert.DeserializeObject<Dictionary<string, Dictionary<string, object>>>(json);
-    if (data == null) {
+    if (data == null)
+    {
       throw new Exception("Failed to load item types from string");
     }
     Load(data);
@@ -209,40 +325,54 @@ public class ItemType
   {
     itemType = name;
     itemGroup = group;
-    if (parents != null) {
+    if (parents != null)
+    {
       parentTypes = parents;
     }
     this.spoilTime = spoilTime;
     this.lossRate = lossRate;
     this.flammable = flammable;
     // If scrap items is null, set it to an empty dictionary.
-    if (scrapItems == null) {
+    if (scrapItems == null)
+    {
       this.scrapItems = new Dictionary<ItemType, int>();
     }
-    else {
+    else
+    {
       this.scrapItems = scrapItems;
     }
     this.craftQuality = craftQuality ?? new AbilityValue(DEFAULT_QUALITY);
     // If abilities is null, set it to an empty set.
-    if (abilities == null) {
+    if (abilities == null)
+    {
       this.abilities = new HashSet<AbilityType>();
     }
-    else {
+    else
+    {
       this.abilities = abilities;
     }
-    this.cropAttribute = cropAttribute;
+    if (cropAttribute != null)
+    {
+      this.cropSettings = new CropSettings();
+      this.cropSettings.cropAttribute = cropAttribute;
+    }
     // If harvest items is null, set it to an empty dictionary.
     this.harvestItems = new Dictionary<ItemType, double>();
-    if (harvestItems != null) {
+    if (harvestItems != null)
+    {
       // Look up the keys in the item type dictionary.
       // If the key is not found, throw an error, unless the key is for this item type.
       // in which case we point to ourselves.
-      foreach (var harvestItem in harvestItems) {
-        if (harvestItem.Key == itemType) {
+      foreach (var harvestItem in harvestItems)
+      {
+        if (harvestItem.Key == itemType)
+        {
           this.harvestItems.Add(this, harvestItem.Value);
         }
-        else {
-          if (!_itemTypes.ContainsKey(harvestItem.Key)) {
+        else
+        {
+          if (!_itemTypes.ContainsKey(harvestItem.Key))
+          {
             throw new Exception("Harvest item type not found: " + harvestItem.Key + " for item type: " + name);
           }
           this.harvestItems.Add(_itemTypes[harvestItem.Key]!, harvestItem.Value);
@@ -250,7 +380,8 @@ public class ItemType
       }
     }
     // Add this item type to the parent's child types.
-    foreach (var parent in parentTypes) {
+    foreach (var parent in parentTypes)
+    {
       parent.childTypes.Add(this);
     }
   }
@@ -266,7 +397,7 @@ public class ItemType
   public readonly List<ItemType> parentTypes = new List<ItemType>();
 
   // The child types of this item type, or null if this is a leaf type.
-  public List<ItemType> childTypes { get; private set;} = new List<ItemType>();
+  public List<ItemType> childTypes { get; private set; } = new List<ItemType>();
 
   // The time it takes an item of this type to spoil in hundredths of a turn, or zero if it never spoils.
   public readonly int spoilTime;
@@ -290,17 +421,31 @@ public class ItemType
   // Set of abilities this item type provides.
   public readonly HashSet<AbilityType> abilities;
 
-  // The crop attribute for this item type, or null if it is not a crop.
-  public readonly AttributeType? cropAttribute;
-
   // What items and quantities this item will turn into when harvested.
   // The quantity is a multiplier for the crop yield attribute.
   public readonly Dictionary<ItemType, double> harvestItems = new Dictionary<ItemType, double>();
 
+  // The crop settings for this item type, or null if it is not a crop.
+  public CropSettings? cropSettings = null;
+
+  // Unit weight of this item type in pounds.
+  // For aggregate items, the size of the unit may have a specific meaning.
+  // For example, all food items are measured such that one unit is enough
+  // to feed an average adult for one meal.
+  // Weight will affect the cost of shipping.
+  public double weight = 0.5;
+
+  // How difficult is the item to ship, beyond what it's weight would indicate.
+  // A high bulk value can indicate that the item is fragile or difficult to pack,
+  // and force it to not be shipped.
+  // For example, unfired pottery is difficult to ship.
+  public double bulk = 1.0;
+
   public override bool Equals(object? obj)
   {
     // Check equality of the itemType only.
-    if (obj is ItemType other) {
+    if (obj is ItemType other)
+    {
       return itemType == other.itemType;
     }
     return false;
@@ -314,11 +459,14 @@ public class ItemType
   public bool IsDescendentOf(ItemType key)
   {
     // Check if this item type is a descendent of the given item type.
-    foreach (var parent in parentTypes) {
-      if (parent == key) {
+    foreach (var parent in parentTypes)
+    {
+      if (parent == key)
+      {
         return true;
       }
-      if (parent.IsDescendentOf(key)) {
+      if (parent.IsDescendentOf(key))
+      {
         return true;
       }
     }
@@ -329,7 +477,8 @@ public class ItemType
   {
     // Get all descendents of this item type.
     HashSet<ItemType> descendents = new HashSet<ItemType>();
-    foreach (var child in childTypes) {
+    foreach (var child in childTypes)
+    {
       descendents.Add(child);
       descendents.UnionWith(child.GetAllDescendants());
     }
@@ -348,7 +497,8 @@ public class Item : IComparable<Item>, IAbilityProvider
     originalQuality = (int)type.craftQuality.GetBaseValue();
     quality = originalQuality;
     timeUntilSpoilage = (int)type.spoilTime;
-    if (timeUntilSpoilage == 0) {
+    if (timeUntilSpoilage == 0)
+    {
       timeUntilSpoilage = int.MaxValue;
     }
     uniqueName = null;
@@ -397,7 +547,8 @@ public class Item : IComparable<Item>, IAbilityProvider
   // Equals function compares the items by value.
   public override bool Equals(object? obj)
   {
-    if (obj is Item other) {
+    if (obj is Item other)
+    {
       return itemType == other.itemType &&
              uniqueName == other.uniqueName &&
              originalQuality == other.originalQuality &&
@@ -419,41 +570,51 @@ public class Item : IComparable<Item>, IAbilityProvider
   public int CompareTo(Item? other)
   {
     // If either item is null, sort the other one first.
-    if (this == null) {
-      if (other == null) {
+    if (this == null)
+    {
+      if (other == null)
+      {
         return 0;
       }
       return 1;
     }
-    if (other == null) {
+    if (other == null)
+    {
       return -1;
     }
     // Sort by time until spoilage.
     int timeCompare = this.timeUntilSpoilage.CompareTo(other.timeUntilSpoilage);
-    if (timeCompare != 0) {
+    if (timeCompare != 0)
+    {
       return timeCompare;
     }
     // Sort by quality.
     int qualityCompare = this.quality.CompareTo(other.quality);
-    if (qualityCompare != 0) {
+    if (qualityCompare != 0)
+    {
       return qualityCompare;
     }
     // Sort by original quality.
     int originalQualityCompare = this.originalQuality.CompareTo(other.originalQuality);
-    if (originalQualityCompare != 0) {
+    if (originalQualityCompare != 0)
+    {
       return originalQualityCompare;
     }
     // Sort by unique name, nulls sort first.
     int uniqueNameCompare = 0;
-    if (this.uniqueName != null) {
-      if (other.uniqueName != null) {
+    if (this.uniqueName != null)
+    {
+      if (other.uniqueName != null)
+      {
         uniqueNameCompare = this.uniqueName.CompareTo(other.uniqueName);
       }
-      else {
+      else
+      {
         uniqueNameCompare = 1;
       }
     }
-    else if (other.uniqueName != null) {
+    else if (other.uniqueName != null)
+    {
       uniqueNameCompare = -1;
     }
     if (uniqueNameCompare != 0)
@@ -461,10 +622,12 @@ public class Item : IComparable<Item>, IAbilityProvider
       return uniqueNameCompare;
     }
     // A parent sorts before it's children.
-    if (this.itemType.IsDescendentOf(other.itemType)) {
+    if (this.itemType.IsDescendentOf(other.itemType))
+    {
       return 1;
     }
-    if (other.itemType.IsDescendentOf(this.itemType)) {
+    if (other.itemType.IsDescendentOf(this.itemType))
+    {
       return -1;
     }
     // Sort by item type.

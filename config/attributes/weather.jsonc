@@ -1,6 +1,8 @@
 {
   "weekly_high" : { "min": -110, "max": 212, "group": "weather" , "initial": 60, "intervals": []},
-  "weekly_low" : { "min": -110, "max": 212, "group": "weather" , "initial": 40, "intervals": []},
+  "weekly_low" : { "min": -110, "max": 212, "group": "weather" , "initial": 40, "intervals": [{"lower": -110, "abilities": ["frost"], "entry_effects": []}, {"lower": 33}]},
+  "weekly_tick_et" : { "min": 0, "max": 0.1, "group": "weather" , "initial": 0.015, "intervals": []},
+  "seasonal_growth" : { "min": 0, "max": 5, "group": "weather" , "initial": 1, "intervals": []},
   "weekly_sun" : { "min": 0, "max": 120, "group": "weather" , "initial": 0, "intervals": []},
   "weekly_rain" : { "min": 0, "max": 200, "group": "weather" , "initial": 0, "intervals": []},
 }

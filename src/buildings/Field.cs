@@ -52,6 +52,11 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   {
     lock(_lock)
     {
+      if (itemType.cropSettings == null)
+      {
+        // Can't plant something that isn't a crop.
+        return false;
+      }
       if (quantity + _cropCount > _size)
       {
         // Too many to plant.
@@ -114,6 +119,10 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     private const string cropAttributeGroup = "crop";
     public CropInfo(ItemType itemType, double quantity, Field parent)
     {
+      if (itemType.cropSettings == null)
+      {
+        throw new System.ArgumentException("ItemType must be a crop.", nameof(itemType));
+      }
       this.itemType = itemType;
       this._quantity = quantity;
       // Crop attributes effects use the field's abilities, but point at the Crop and
@@ -128,9 +137,9 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
       {
         this.state.Add(attributeType);
       }
-      if (itemType.cropAttribute != null)
+      if (itemType.cropSettings != null && itemType.cropSettings!.cropAttribute != null)
       {
-        this.state.Add(itemType.cropAttribute);
+        this.state.Add(itemType.cropSettings!.cropAttribute);
       }
     }
 
