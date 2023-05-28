@@ -45,7 +45,7 @@ public class WeatherAttributes
         _attributes.SetValue(_seasonalGrowth!, 1.0);
         break;
       case Season.Summer:
-        _attributes.SetValue(_weeklyHigh!, 90);
+        _attributes.SetValue(_weeklyHigh!, 85);
         _attributes.SetValue(_weeklyLow!, 60);
         _attributes.SetValue(_weeklySun!, 75);
         _attributes.SetValue(_weeklyRain!, 0.5);
