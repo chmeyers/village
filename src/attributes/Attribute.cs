@@ -14,9 +14,9 @@ namespace Village.Attributes;
 public class AttributeInterval : IAbilityProvider
 {
   // The lower limit of the interval, inclusive.
-  public int lower;
+  public double lower;
   // The upper limit of the interval, exclusive.
-  public int upper;
+  public double upper;
   // The abilities that will be granted while in this interval.
   public HashSet<AbilityType> Abilities { get; } = new HashSet<AbilityType>();
 
@@ -56,13 +56,30 @@ public class AttributeType
     return null;
   }
 
+  private static double _Double(object? value)
+  {
+    if (value == null)
+    {
+      return 0;
+    }
+    if (value.GetType() == typeof(double))
+    {
+      return (double)value;
+    }
+    else if (value.GetType() == typeof(long))
+    {
+      return (long)value;
+    }
+    return 0;
+  }
+
   // Loader function to load all attribute types from a JSON Dictionary.
   public static void Load(Dictionary<string, Dictionary<string, object>> data)
   {
     foreach (var attribute in data)
     {
-      var min = (int)(long)attribute.Value["min"];
-      var max = (int)(long)attribute.Value["max"];
+      var min = _Double(attribute.Value["min"]);
+      var max = _Double(attribute.Value["max"]);
       AbilityValue init = AbilityValue.FromJson(attribute.Value["initial"]);
       // Check that the initial value is NOT a named value.
       // Names generally refer to other attributes, and we don't
@@ -118,23 +135,23 @@ public class AttributeType
       }
       // if the first interval doesn't start at min, insert a blank interval that
       // covers the range from min to the start of the first interval.
-      else if ((int)(long)intervals[0]["lower"] > min)
+      else if (_Double(intervals[0]["lower"]) > min)
       {
         AttributeInterval attributeInterval = new AttributeInterval();
         attributeInterval.lower = min;
-        attributeInterval.upper = (int)(long)intervals[0]["lower"];
+        attributeInterval.upper = _Double(intervals[0]["lower"]);
         a.intervals.Add(min, attributeInterval);
       }
       foreach (var interval in intervals)
       {
         var intervalData = interval;
-        var lower = (int)(long)intervalData["lower"];
+        var lower = _Double(intervalData["lower"]);
         // Peek at the next interval to get the upper bound, unless this is the last interval.
         // In that case, use the max value.
         var upper = max;
         if (intervals.IndexOf(interval) < intervals.Count - 1)
         {
-          upper = (int)(long)intervals[intervals.IndexOf(interval) + 1]["lower"];
+          upper = _Double(intervals[intervals.IndexOf(interval) + 1]["lower"]);
         }
         // Check that the lower bound is less than the upper bound.
         if (lower == upper)
@@ -260,7 +277,7 @@ public class AttributeType
   // The key is the lower limit of the interval, inclusive. The upper limit is
   // the key of the next interval, exclusive. The last interval will include
   // the maxvalue of the attribute.
-  public SortedList<int, AttributeInterval> intervals { get; private set; } = new SortedList<int, AttributeInterval>();
+  public SortedList<double, AttributeInterval> intervals { get; private set; } = new SortedList<double, AttributeInterval>();
 
   public int FindIntervalIndex(double value)
   {
