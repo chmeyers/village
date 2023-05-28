@@ -35,6 +35,8 @@ public class CropSettings
   // Settings describing how the crop grows. We give realistic defaults here,
   // but these should be overridden by the crop type.
 
+  // The name of the crop attribute for this item type
+  public string? cropAttributeName;
   // The crop attribute for this item type
   public AttributeType? cropAttribute;
   public double minSoilQuality = 2.0;
@@ -78,7 +80,8 @@ public class CropSettings
     }
     return kcEnd;
   }
-  public double perTickYieldGrowth = 0.5;
+  // How much yield does each tenth of an acre grow each tick.
+  public double perTickYieldGrowth = 0.05;
   public double currentYieldGrowth(int day)
   {
     // TODO(chmeyers): This should be a non-linear function of the crop development stage.
@@ -253,16 +256,12 @@ public class ItemType
         craftQuality = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)itemData["craftQuality"]);
       }
 
-      // Get the Crop Attribute.
-      AttributeType? cropAttribute = null;
+      // Get the Crop Settings.
+      CropSettings? cropSettings = null;
       if (itemData.ContainsKey("cropAttribute"))
       {
-        cropAttribute = AttributeType.Find((string)itemData["cropAttribute"]);
-        // Check that the crop attribute exists in the AttributeType dictionary.
-        if (cropAttribute == null)
-        {
-          throw new Exception("Crop attribute not found: " + itemData["cropAttribute"] + " for item type: " + name);
-        }
+        cropSettings = new CropSettings();
+        cropSettings.cropAttributeName = (string)itemData["cropAttribute"];
       }
 
       // Read the harvest Items.
@@ -295,7 +294,7 @@ public class ItemType
 
 
       // Create the item type.
-      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet, cropAttribute, harvestItems);
+      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet, cropSettings, harvestItems);
       // Add the item type to the dictionary.
       _itemTypes.Add(name, itemType);
     }
@@ -321,7 +320,7 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities, AttributeType? cropAttribute, Dictionary<string, double>? harvestItems = null)
+  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities, CropSettings? cropSettings, Dictionary<string, double>? harvestItems = null)
   {
     itemType = name;
     itemGroup = group;
@@ -351,10 +350,9 @@ public class ItemType
     {
       this.abilities = abilities;
     }
-    if (cropAttribute != null)
+    if (cropSettings != null)
     {
-      this.cropSettings = new CropSettings();
-      this.cropSettings.cropAttribute = cropAttribute;
+      this.cropSettings = cropSettings;
     }
     // If harvest items is null, set it to an empty dictionary.
     this.harvestItems = new Dictionary<ItemType, double>();
@@ -383,6 +381,28 @@ public class ItemType
     foreach (var parent in parentTypes)
     {
       parent.childTypes.Add(this);
+    }
+  }
+
+  // Initialize is called after all effects and other types have been loaded.
+  // This is used to resolve any references between items.
+  public void Initialize() {
+    // Resolve the crop attribute.
+    if (cropSettings != null && cropSettings.cropAttributeName != null)
+    {
+      cropSettings.cropAttribute = AttributeType.Find(cropSettings.cropAttributeName);
+      if (cropSettings.cropAttribute == null)
+      {
+        throw new Exception("Crop attribute not found: " + cropSettings.cropAttributeName + " for item type: " + itemType);
+      }
+    }
+  }
+
+  public static void InitializeAll()
+  {
+    foreach (var itemType in _itemTypes.Values)
+    {
+      itemType.Initialize();
     }
   }
 

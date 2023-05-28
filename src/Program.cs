@@ -47,8 +47,9 @@ namespace Village
       Skill.LoadParentsFile("config/skills/skilltree.jsonc");
       // Load the default price list.
       ConfigPriceList.LoadDefault("config/items/pricelist.jsonc");
-      // Do the Effect Initialization after everything else is loaded.
+      // Do the secondary Initializations after everything else is loaded.
       EffectLoader.Initialize();
+      ItemType.InitializeAll();
       // Init the weather.
       WeatherAttributes.Init();
     }
