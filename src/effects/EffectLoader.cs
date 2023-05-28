@@ -30,32 +30,34 @@ public class EffectLoader : Effect
       switch (effectType)
       {
         case EffectType.Degrade:
-          // Create the effect.
           newEffect = new DegradeEffect(name, effectTarget, effectType, config);
           break;
         case EffectType.Skill:
-          // Create the effect.
           newEffect = new SkillEffect(name, effectTarget, effectType, config);
           break;
         case EffectType.BuildingComponent:
-          // Create the effect.
           newEffect = new BuildingComponentEffect(name, effectTarget, effectType, config);
           break;
         case EffectType.SkillTree:
-          // Create the effect.
           newEffect = new SkillTreeEffect(name, effectTarget, effectType, config);
           break;
         case EffectType.AttributePuller:
-          // Create the effect.
           newEffect = new AttributePullerEffect(name, effectTarget, effectType, config);
           break;
         case EffectType.AttributeTransfer:
-          // Create the effect.
           newEffect = new AttributeTransferEffect(name, effectTarget, effectType, config);
           break;
         case EffectType.AttributeAdder:
-          // Create the effect.
           newEffect = new AttributeAdderEffect(name, effectTarget, effectType, config);
+          break;
+        case EffectType.PlantCrop:
+          newEffect = new PlantCropEffect(name, effectTarget, effectType, config);
+          break;
+        case EffectType.HarvestCrop:
+          newEffect = new HarvestCropEffect(name, effectTarget, effectType, config);
+          break;
+        case EffectType.GrowCrop:
+          newEffect = new GrowCropEffect(name, effectTarget, effectType, config);
           break;
         default:
           throw new Exception("Unknown effect type: " + effectType);

@@ -49,6 +49,8 @@ public enum EffectType
   PlantCrop,
   // Harvest a crop from a field.
   HarvestCrop,
+  // Grow a crop in a field.
+  GrowCrop,
 }
 
 public class EffectTarget
