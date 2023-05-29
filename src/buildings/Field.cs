@@ -84,8 +84,14 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
         // Can't harvest what isn't planted.
         return false;
       }
-      _crops[itemType].quantity -= quantity;
       _cropCount -= quantity;
+      if (_crops[itemType].quantity - quantity <= 0)
+      {
+        // Remove the crop.
+        _crops.Remove(itemType);
+        return true;
+      }
+      _crops[itemType].quantity -= quantity;
       return true;
     }
   }
