@@ -54,9 +54,9 @@ public class AttributePullerEffect : Effect
 
     foreach (var puller in _pullers)
     {
-      double amount = puller.amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize;
+      double amount = puller.amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize;
       if (amount == 0) continue;
-      double target = puller.target.GetValue(chosenEffectTarget.runningContext) * scaler;
+      double target = puller.target.GetScaledValue(chosenEffectTarget.runningContext, scaler);
       // Get the attribute from the person.
       double currentValue = attributes.GetAttributeValue(puller.type!);
       // If the current value is within amount of the target, then set it to the target.
@@ -186,10 +186,10 @@ public class AttributeTransferEffect : Effect
 
     foreach (var transferer in _transferers)
     {
-      double amount = transferer.amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize;
+      double amount = transferer.amount.GetScaledValue(chosenEffectTarget.runningContext, scaler)  * batchSize;
       if (amount == 0) continue;
-      double min = transferer.sourceMin!.GetValue(chosenEffectTarget.runningContext) * scaler;
-      double max = transferer.destMax!.GetValue(chosenEffectTarget.runningContext) * scaler;
+      double min = transferer.sourceMin!.GetScaledValue(chosenEffectTarget.runningContext, scaler);
+      double max = transferer.destMax!.GetScaledValue(chosenEffectTarget.runningContext, scaler);
       // Get the attribute from the person.
       double currentValue = attributes.GetAttributeValue(transferer.type!);
       double currentDestValue = attributes.GetAttributeValue(transferer.destType!);
@@ -387,9 +387,9 @@ public class AttributeAdderEffect : Effect
 
     foreach (var adder in _adders)
     {
-      double amount = adder.amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize;
+      double amount = adder.amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize;
       if (amount == 0) continue;
-      double target = adder.target.GetValue(chosenEffectTarget.runningContext) * scaler;
+      double target = adder.target.GetScaledValue(chosenEffectTarget.runningContext, scaler);
       // Get the attribute from the person.
       double currentValue = attributes.GetAttributeValue(adder.type!);
       // Positive Amounts add up to the target, negative amounts subtract down to the target.

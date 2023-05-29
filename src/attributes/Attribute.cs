@@ -590,4 +590,10 @@ public class Attribute : IAbilityCollection
       UpdateValue();
     }
   }
+
+  // In case you need the unscaled value of the attribute
+  public double GetUnscaled()
+  {
+    return abilityValue.baseValue;
+  }
 }

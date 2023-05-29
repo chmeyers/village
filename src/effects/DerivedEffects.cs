@@ -56,7 +56,7 @@ public class DegradeEffect : Effect
     // Batching is equivalent to degrading the item for the specified amount of time.
     // Note that we don't overflow the degradation onto a second item,
     // so batching is not exactly equivalent.
-    int degradeAmount = (int)(amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize);
+    int degradeAmount = (int)(amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize);
 
     // Check if person has more than one of the item.
     if (targetInventory.inventory[item] > Inventory.DEFAULT_QUANTITY)
@@ -152,7 +152,7 @@ public class SkillEffect : Effect
     // If the person is currently at level, they get one XP, if less they get two,
     // if more they get nothing.
     int trainingLevel = (int)level.GetValue(chosenEffectTarget.runningContext);
-    int trainingAmount = (int)(amount.GetValue(chosenEffectTarget.runningContext) * scaler * batchSize);
+    int trainingAmount = (int)(amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize);
     while (trainingAmount > 0 && person.GetLevel(_skill!) <= trainingLevel)
     {
       // Grant the max of trainingAmount or the amount needed to get to the next level.

@@ -23,6 +23,8 @@ public class AbilityValue
   private Dictionary<AbilityType, double> multAbilities = new Dictionary<AbilityType, double>();
   private double namedAdd = 0;
   private double namedMult = 1;
+  private bool prescaled = false;
+
   // Set of abilities that can affect the AbilityValue.
   public HashSet<AbilityType> Abilities
   {
@@ -106,6 +108,12 @@ public class AbilityValue
       if (dict.ContainsKey("mult"))
       {
         this.namedMult = AbilityValueConverter.GetDouble(dict, "mult");
+      }
+      // Named values are allowed to indicate if they are pre-scaled.
+      // It's up the consumer to decide how to handle this.
+      if (dict.ContainsKey("prescaled"))
+      {
+        this.prescaled = (bool)dict["prescaled"];
       }
     }
     // Get the abilities.
@@ -218,6 +226,18 @@ public class AbilityValue
     // and converted to an int.
     return Math.Clamp(value, min, max);
   }
+
+  // GetScaledValue returns the value of the AbilityValue, scaled by the quantity.
+  public double GetScaledValue(IAbilityContext? context, double quantity)
+  {
+    double value = GetValue(context);
+    if (prescaled)
+    {
+      return value;
+    }
+    return value * quantity;
+  }
+
   // Return the base value of the AbilityValue.
   public double GetBaseValue()
   {

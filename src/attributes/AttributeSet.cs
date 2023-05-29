@@ -214,6 +214,19 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     }
   }
 
+  public double GetUnscaledValue(AttributeType attributeType)
+  {
+    lock (_lock)
+    {
+      Attribute? attribute = _GetScopedAttribute(attributeType);
+      if (attribute == null)
+      {
+        return attributeType.initialValue.GetValue(_abilityContext);
+      }
+      return attribute.GetUnscaled();
+    }
+  }
+
   public double GetNamedValue(string name)
   {
     lock (_lock)

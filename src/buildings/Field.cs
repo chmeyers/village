@@ -197,6 +197,11 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
       return state.GetAttributeValue(attributeType);
     }
 
+    public double GetUnscaledAttributeValue(AttributeType attributeType)
+    {
+      return state.GetUnscaledValue(attributeType);
+    }
+
     public double AddAttribute(AttributeType attributeType, double value)
     {
       return state.AddAttribute(attributeType, value);
