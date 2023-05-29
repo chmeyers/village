@@ -59,6 +59,9 @@ public class EffectLoader : Effect
         case EffectType.GrowCrop:
           newEffect = new GrowCropEffect(name, effectTarget, effectType, config);
           break;
+        case EffectType.FieldMaintenance:
+          newEffect = new FieldMaintenanceEffect(name, effectTarget, effectType, config);
+          break;
         default:
           throw new Exception("Unknown effect type: " + effectType);
       }

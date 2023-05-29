@@ -286,7 +286,7 @@ public class AttributeTransferEffect : Effect
       if (puller.sourceMin == null)
       {
         // Pull the default value from the attribute.
-        // TODO(chmeyers): This doesn't take attribute scaling into account. Do we care?
+        // This doesn't take attribute scaling into account. I think that is the correct behavior.
         puller.sourceMin = puller.type.minValue;
       }
       puller.destType = AttributeType.Find(puller.dest);
@@ -298,7 +298,7 @@ public class AttributeTransferEffect : Effect
       if (puller.destMax == null)
       {
         // Pull the default value from the attribute.
-        // TODO(chmeyers): This doesn't take attribute scaling into account. Do we care?
+        // This doesn't take attribute scaling into account. I think that is the correct behavior.
         puller.destMax = puller.destType.maxValue;
       }
     }

@@ -96,6 +96,11 @@ public class CropSettings
     {
       droughtTolerance = _Double(cropData["droughtTolerance"]);
     }
+    // Get the weed susceptible days.
+    if (cropData.ContainsKey("weedSusceptibleDays"))
+    {
+      weedSusceptibleDays = (int)(long)cropData["weedSusceptibleDays"];
+    }
     // Get the initial days.
     if (cropData.ContainsKey("initDays"))
     {
@@ -236,6 +241,8 @@ public class CropSettings
   public double heatTolerance = 85.0;
   // Drought Tolerance - 0 == very poor, 1 == very good.
   public double droughtTolerance = 0.5;
+  // How many days is the crop susceptible to weeds.
+  public int weedSusceptibleDays = 20;
   // Development stage days should probably coorespond to intervals in
   // the crop's attribute, but don't have to.
   public int initDays = 20;

@@ -96,6 +96,19 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
   }
 
+  public double GetCropCanopyUtilization()
+  {
+    lock(_lock)
+    {
+      double canopyUtilization = 0;
+      foreach (var crop in _crops.Values)
+      {
+        canopyUtilization += crop.GetCropCanopyUtilization() * crop.GetCropCoverage();
+      }
+      return canopyUtilization;
+    }
+  }
+
   public double Count(ItemType itemType)
   {
     lock (_lock)
@@ -153,6 +166,36 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     {
       // Advance the attributes.
       state.Advance();
+    }
+
+    public double GetCropCoverage()
+    {
+      return quantity / _parent._size;
+    }
+
+    public double GetCropCanopyUtilization()
+    {
+      // Estimate what percentage of the field is being fully utilized by the crop,
+      // such that the crop is getting the full benefit of the light and nutrients.
+      // We assume that the crop starts at zero and goes to 20% during the first
+      // initDays, then goes to 100% at the end of the devDays or weedSusceptibleDays,
+      // whichever is longer.
+      // Get the current day of the crop from the cropAttribute.
+      var cropAttribute = itemType.cropSettings!.cropAttribute;
+      var cropDay = state.GetUnscaledValue(cropAttribute!);
+      var initDays = itemType.cropSettings!.initDays;
+      var devDays = itemType.cropSettings!.devDays;
+      var weedSusceptibleDays = itemType.cropSettings!.weedSusceptibleDays;
+      var fullDays = System.Math.Max(devDays + initDays, weedSusceptibleDays);
+      if (cropDay < initDays)
+      {
+        return cropDay / initDays * 0.2;
+      }
+      if (cropDay < fullDays)
+      {
+        return 0.2 + 0.8 * (cropDay - initDays) / (fullDays - initDays);
+      }
+      return 1.0;
     }
 
     public ItemType itemType;
@@ -279,6 +322,11 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   public double GetAttributeValue(AttributeType attributeType)
   {
     return state.GetAttributeValue(attributeType);
+  }
+
+  public double GetUnscaledAttributeValue(AttributeType attributeType)
+  {
+    return state.GetUnscaledValue(attributeType);
   }
 
   public double AddAttribute(AttributeType attributeType, double value)

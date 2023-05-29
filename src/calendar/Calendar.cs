@@ -18,6 +18,7 @@ public class Calendar
 {
   // Constants defining the length of a day, month, and year in ticks.
   public const uint ticksPerDay = 10;
+  public const uint ticksPerWeek = 50;
   public const uint ticksPerMonth = 300;
   public const uint ticksPerYear = 3600;
 

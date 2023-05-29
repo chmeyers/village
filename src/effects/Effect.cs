@@ -51,6 +51,8 @@ public enum EffectType
   HarvestCrop,
   // Grow a crop in a field.
   GrowCrop,
+  // Ongoing Field Maintenance.
+  FieldMaintenance,
 }
 
 public class EffectTarget
