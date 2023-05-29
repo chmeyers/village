@@ -81,7 +81,7 @@ public class HarvestCropEffect : Effect
     string cropName = (string)data["crop"];
     // Get the crop type from the name.
     crop = ItemType.Find(cropName) ?? throw new Exception("Unknown crop: " + cropName + " in effect: " + effect);
-    if (crop.harvestItems.Count == 0)
+    if (crop.cropSettings!.harvestItems.Count == 0)
     {
       throw new Exception("Crop has no harvest items: " + cropName + " in harvest effect: " + effect);
     }
@@ -127,7 +127,7 @@ public class HarvestCropEffect : Effect
     yield -= field.GetValue(crop, yieldAttributeType!);
 
     // Add the yield of each item in the itemtype's harvestItems to the inventory.
-    foreach (var harvestItem in crop.harvestItems)
+    foreach (var harvestItem in crop.cropSettings!.harvestItems)
     {
       Item item = new Item(harvestItem.Key);
       int quantity = (int)(yield * harvestItem.Value);
@@ -182,7 +182,6 @@ public class GrowCropEffect : Effect
   public const double heavyFrostDegrees = 5;
   public const double heavyFrostStressHealthEffect = 2;
   public const double heatStressHealthEffect = 0.1;
-  public const double nitrogenFixingPercentage = 0.5;
   public GrowCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
     // Target must be a field.
@@ -241,16 +240,19 @@ public class GrowCropEffect : Effect
     double seasonalGrowth = cropInfo.GetAttributeValue(seasonalGrowthAttr!);
     yieldGain *= seasonalGrowth;
     // Reduce the maximum yield based on the crop's health.
-    double currentHealthPercentage = currentHealth / scaler / 100;
+    double currentHealthPercentage = cropInfo.GetUnscaledAttributeValue(healthAttr!) / 100;
     yieldGain *= currentHealthPercentage;
     // Reduce the maximum yield based on the lack of soil quality.
     double minSoilQuality = cropInfo.itemType.cropSettings!.minSoilQuality;
-    double soilQuality = cropInfo.GetAttributeValue(soilQualityAttr!) / scaler;
+    double soilQuality = cropInfo.GetUnscaledAttributeValue(soilQualityAttr!);
     double soilQualityDeficitMultiplier = Math.Clamp(soilQuality / minSoilQuality, 0.1, 1);
     yieldGain *= soilQualityDeficitMultiplier;
 
+    // TODO(chmeyers): Weeds!
+
     // Whether the crop actually get's it's maximum yield gain depends several factors.
     // 1) It must have enough water.
+    // TODO(chmeyers): Init days should only use surface moisture.
     // Determine the current water needs of the crop.
     // The water needs are based on the current et and the kc of the crop for it's
     // current stage.
@@ -262,6 +264,11 @@ public class GrowCropEffect : Effect
     double surfaceMoisture = cropInfo.GetAttributeValue(surfaceMoistureAttr!);
     double deepMoisture = cropInfo.GetAttributeValue(deepMoistureAttr!);
     double waterAvailable = surfaceMoisture + deepMoisture;
+    // If the crop is still in the first init days, it can only use the surface moisture.
+    if (cropDay <= cropInfo.itemType.cropSettings!.initDays)
+    {
+      waterAvailable = surfaceMoisture;
+    }
     // Yield gain is reduced by the the percentage of water needs that are not met.
     yieldGain *= Math.Min(1, waterAvailable / waterNeeds);
     // Determine the water stress. 0 = no stress, 1 = full stress.
@@ -270,7 +277,7 @@ public class GrowCropEffect : Effect
     // Remove the moisture that we used, starting with the surface moisture.
     cropInfo.SetAttribute(surfaceMoistureAttr!, Math.Max(0, surfaceMoisture - waterNeeds));
     // If we still need more water, remove it from the deep moisture.
-    if (waterNeeds > surfaceMoisture)
+    if (waterNeeds > surfaceMoisture && cropDay > cropInfo.itemType.cropSettings!.initDays)
     {
       cropInfo.SetAttribute(deepMoistureAttr!, Math.Max(0, deepMoisture - (waterNeeds - surfaceMoisture)));
     }
@@ -281,16 +288,17 @@ public class GrowCropEffect : Effect
     double phosphorusNeeds = cropInfo.itemType.cropSettings!.totalPhosphorus * yieldGain;
     double potassiumNeeds = cropInfo.itemType.cropSettings!.totalPotassium * yieldGain;
     // Nitrogen fixing crops get a percentage of their nitrogen needs for free.
-    if (cropInfo.itemType.cropSettings!.nitrogenFixing)
-    {
-      nitrogenNeeds *= nitrogenFixingPercentage;
-    }
+    nitrogenNeeds *= (1 - cropInfo.itemType.cropSettings!.nitrogenFixing);
     // Determine the current nutrients available to the crop.
     double nitrogenAvailable = cropInfo.GetAttributeValue(nitrogenAttr!);
     double phosphorusAvailable = cropInfo.GetAttributeValue(phosphorusAttr!);
     double potassiumAvailable = cropInfo.GetAttributeValue(potassiumAttr!);
+
     // Determine which nutrient is the most limiting.
     double nitrogenStress = Math.Max(0, 1 - nitrogenAvailable / nitrogenNeeds);
+    // Nitrogen fixing crops nitrogen stress is capped by the fixing percentage.
+    nitrogenStress = Math.Min((1 - cropInfo.itemType.cropSettings!.nitrogenFixing), nitrogenStress);
+
     double phosphorusStress = Math.Max(0, 1 - phosphorusAvailable / phosphorusNeeds);
     double potassiumStress = Math.Max(0, 1 - potassiumAvailable / potassiumNeeds);
     double nutrientStress = Math.Max(nitrogenStress, Math.Max(phosphorusStress, potassiumStress));
@@ -368,6 +376,11 @@ public class GrowCropEffect : Effect
     // crop yield effects are not optional.
     // If you can't apply the effect, then you shouldn't run the task.
     return false;
+  }
+
+  public override bool SupportsBatching()
+  {
+    return true;
   }
 
   // The Attribute Type holding the crop yield.

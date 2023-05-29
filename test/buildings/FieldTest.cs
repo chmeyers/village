@@ -84,12 +84,13 @@ public class FieldUnitTest
     {
       ItemType.Clear();
       string json = @"{
-  'wheat': { 'group': 'FOOD', 'cropAttribute': 'crop_wheat_growing', 'harvestItems': { 'wheat': 1} }
+  'wheat': { 'group': 'FOOD', 'cropSettings' : {'cropAttribute': 'crop_wheat_growing', 'harvestItems': { 'wheat': 1} } }
 }";
       // Load the item types.
       ItemType.LoadString(json);
     }
     EffectLoader.Initialize();
+    ItemType.InitializeAll();
     // Create a Household.
     Household household = new Household();
     // Create a person in the household.

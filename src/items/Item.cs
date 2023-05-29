@@ -35,6 +35,196 @@ public class CropSettings
   // Settings describing how the crop grows. We give realistic defaults here,
   // but these should be overridden by the crop type.
 
+
+  public static double _Double(object? value)
+  {
+    if (value == null)
+    {
+      return 0;
+    }
+    if (value.GetType() == typeof(double))
+    {
+      return (double)value;
+    }
+    else if (value.GetType() == typeof(long))
+    {
+      return (long)value;
+    }
+    return 0;
+  }
+  // Constructor
+  public CropSettings(string itemName, object data)
+  {
+    // Load the crop settings from the JSON data.
+    if (!(data is Newtonsoft.Json.Linq.JObject))
+    {
+      throw new Exception("Crop Settings must be a dictionary for item type: " + itemName);
+    }
+    Dictionary<string, object>? cropData = ((Newtonsoft.Json.Linq.JObject)data).ToObject<Dictionary<string, object>>();
+    if (cropData == null)
+    {
+      throw new Exception("Crop Settings must be a dictionary for item type: " + itemName);
+    }
+    // Get the crop attribute name.
+    if (!cropData.ContainsKey("cropAttribute"))
+    {
+      throw new Exception("Crop settings must have a cropAttribute for item type: " + itemName);
+    }
+    cropAttributeName = (string)cropData["cropAttribute"];
+    // Get the minimum soil quality.
+    if (cropData.ContainsKey("minSoilQuality"))
+    {
+      minSoilQuality = _Double(cropData["minSoilQuality"]);
+    }
+    // Get the minimum planting temperature.
+    if (cropData.ContainsKey("minPlantingTemp"))
+    {
+      minPlantingTemp = _Double(cropData["minPlantingTemp"]);
+    }
+    // Get the frost tolerance.
+    if (cropData.ContainsKey("frostTolerance"))
+    {
+      frostTolerance = _Double(cropData["frostTolerance"]);
+    }
+    // Get the heat tolerance.
+    if (cropData.ContainsKey("heatTolerance"))
+    {
+      heatTolerance = _Double(cropData["heatTolerance"]);
+    }
+    // Get the drought tolerance.
+    if (cropData.ContainsKey("droughtTolerance"))
+    {
+      droughtTolerance = _Double(cropData["droughtTolerance"]);
+    }
+    // Get the initial days.
+    if (cropData.ContainsKey("initDays"))
+    {
+      initDays = (int)(long)cropData["initDays"];
+    }
+    // Get the development days.
+    if (cropData.ContainsKey("devDays"))
+    {
+      devDays = (int)(long)cropData["devDays"];
+    }
+    // Get the mid days.
+    if (cropData.ContainsKey("midDays"))
+    {
+      midDays = (int)(long)cropData["midDays"];
+    }
+    // Get the late days.
+    if (cropData.ContainsKey("lateDays"))
+    {
+      lateDays = (int)(long)cropData["lateDays"];
+    }
+    // Get the total days.
+    totalDays = initDays + devDays + midDays + lateDays;
+    // Get the kcInit.
+    if (cropData.ContainsKey("kcInit"))
+    {
+      kcInit = _Double(cropData["kcInit"]);
+    }
+    // Get the kcMid.
+    if (cropData.ContainsKey("kcMid"))
+    {
+      kcMid = _Double(cropData["kcMid"]);
+    }
+    // Get the kcEnd.
+    if (cropData.ContainsKey("kcEnd"))
+    {
+      kcEnd = _Double(cropData["kcEnd"]);
+    }
+    // Get the perTickYieldGrowth.
+    if (cropData.ContainsKey("perTickYieldGrowth"))
+    {
+      perTickYieldGrowth = _Double(cropData["perTickYieldGrowth"]);
+    }
+    // Get the temperatePlantingMonths.
+    if (cropData.ContainsKey("temperatePlantingMonths") && cropData["temperatePlantingMonths"] is Newtonsoft.Json.Linq.JArray)
+    {
+      temperatePlantingMonths = ((Newtonsoft.Json.Linq.JArray)cropData["temperatePlantingMonths"])!.ToObject<List<int>>() ?? throw new Exception("Invalid temperatePlantingMonths in crop settings for item type: " + itemName);
+    }
+    // Get the targetYield.
+    if (cropData.ContainsKey("targetYieldPerAcreTenth"))
+    {
+      targetYieldPerAcreTenth = _Double(cropData["targetYieldPerAcreTenth"]);
+    }
+    // Get the seedPerAcreTenth.
+    if (cropData.ContainsKey("seedPerAcreTenth"))
+    {
+      seedPerAcreTenth = _Double(cropData["seedPerAcreTenth"]);
+    }
+    // Get the hasHarvestableStraw.
+    if (cropData.ContainsKey("hasHarvestableStraw"))
+    {
+      hasHarvestableStraw = (bool)cropData["hasHarvestableStraw"];
+    }
+    // Get the strawPerYield.
+    if (cropData.ContainsKey("strawPerYield"))
+    {
+      strawPerYield = _Double(cropData["strawPerYield"]);
+    }
+    // Get the nitrogenPerYield.
+    if (cropData.ContainsKey("nitrogenPerYield"))
+    {
+      nitrogenPerYield = _Double(cropData["nitrogenPerYield"]);
+    }
+    // Get the phosphorusPerYield.
+    if (cropData.ContainsKey("phosphorusPerYield"))
+    {
+      phosphorusPerYield = _Double(cropData["phosphorusPerYield"]);
+    }
+    // Get the potassiumPerYield.
+    if (cropData.ContainsKey("potassiumPerYield"))
+    {
+      potassiumPerYield = _Double(cropData["potassiumPerYield"]);
+    }
+    // Get the nitrogenPerStraw.
+    if (cropData.ContainsKey("nitrogenPerStraw"))
+    {
+      nitrogenPerStraw = _Double(cropData["nitrogenPerStraw"]);
+    }
+    // Get the phosphorusPerStraw.
+    if (cropData.ContainsKey("phosphorusPerStraw"))
+    {
+      phosphorusPerStraw = _Double(cropData["phosphorusPerStraw"]);
+    }
+    // Get the potassiumPerStraw.
+    if (cropData.ContainsKey("potassiumPerStraw"))
+    {
+      potassiumPerStraw = _Double(cropData["potassiumPerStraw"]);
+    }
+    // Get the nitrogenFixing.
+    if (cropData.ContainsKey("nitrogenFixing"))
+    {
+      nitrogenFixing = _Double(cropData["nitrogenFixing"]);
+    }
+    // Read the harvest Items.
+    // Harvest Items quantities are in pounds per yield.
+    // To convert to inventory quantities, divide by the item weight.
+    if (cropData.ContainsKey("harvestItems"))
+    {
+      // Check that the harvest items are a dictionary.
+      if (!(cropData["harvestItems"] is Newtonsoft.Json.Linq.JObject))
+      {
+        throw new Exception("Harvest items must be a dictionary for item type: " + itemName);
+      }
+      var dict = ((Newtonsoft.Json.Linq.JObject)cropData["harvestItems"]).ToObject<Dictionary<string, object>>();
+      if (dict == null)
+      {
+        throw new Exception("Harvest items must not be null for item type: " + itemName);
+      }
+      foreach (var harvestItem in dict!)
+      {
+        harvestItemsNames.Add(harvestItem.Key, _Double(harvestItem.Value));
+      }
+    }
+  }
+
+  // What items and quantities this item will turn into when harvested.
+  // The quantity is a multiplier for the crop yield attribute.
+  public Dictionary<string, double> harvestItemsNames = new Dictionary<string, double>();
+  public Dictionary<ItemType, double> harvestItems = new Dictionary<ItemType, double>();
+
   // The name of the crop attribute for this item type
   public string? cropAttributeName;
   // The crop attribute for this item type
@@ -91,9 +281,9 @@ public class CropSettings
   // Month zero is the beginning of spring.
   public List<int> temperatePlantingMonths = new List<int> { 1, 2 };
   // Target yield per acre in pounds.
-  public double targetYield = 1000.0;
+  public double targetYieldPerAcreTenth = 100.0;
   // Seed needed per acre in pounds.
-  public double seedPerAcre = 150.0;
+  public double seedPerAcreTenth = 15.0;
   // Does this crop have harvestable straw?
   public bool hasHarvestableStraw = false;
   // Pounds of straw per pound of crop yield.
@@ -120,7 +310,7 @@ public class CropSettings
   // For nitrogen fixing crops, we will assume that a percentage of the nitrogen
   // used by the crop is fixed from the air. It doesn't actually go back into the
   // soil unless the crop is plowed under.
-  public bool nitrogenFixing = false;
+  public double nitrogenFixing = 0.0;
 }
 
 // A ItemType describes a general item and stores information
@@ -256,45 +446,27 @@ public class ItemType
         craftQuality = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)itemData["craftQuality"]);
       }
 
+      // Get the weight and bulk.
+      double weight = 0.5;
+      if (itemData.ContainsKey("weight"))
+      {
+        weight = CropSettings._Double(itemData["weight"]);
+      }
+      double bulk = 1.0;
+      if (itemData.ContainsKey("bulk"))
+      {
+        bulk = CropSettings._Double(itemData["bulk"]);
+      }
+
       // Get the Crop Settings.
       CropSettings? cropSettings = null;
-      if (itemData.ContainsKey("cropAttribute"))
+      if (itemData.ContainsKey("cropSettings"))
       {
-        cropSettings = new CropSettings();
-        cropSettings.cropAttributeName = (string)itemData["cropAttribute"];
+        cropSettings = new CropSettings(name, itemData["cropSettings"]);
       }
-
-      // Read the harvest Items.
-      Dictionary<string, double> harvestItems = new Dictionary<string, double>();
-      if (itemData.ContainsKey("harvestItems"))
-      {
-        // Check that the harvest items are a dictionary.
-        if (!(itemData["harvestItems"] is Newtonsoft.Json.Linq.JObject))
-        {
-          throw new Exception("Harvest items must be a dictionary for item type: " + name);
-        }
-        var dict = ((Newtonsoft.Json.Linq.JObject)itemData["harvestItems"]).ToObject<Dictionary<string, object>>();
-        if (dict == null)
-        {
-          throw new Exception("Harvest items must not be null for item type: " + name);
-        }
-        foreach (var harvestItem in dict!)
-        {
-          // Allow the value to be a double or a long.
-          if (harvestItem.Value is double)
-          {
-            harvestItems.Add(harvestItem.Key, (double)harvestItem.Value);
-          }
-          else if (harvestItem.Value is long)
-          {
-            harvestItems.Add(harvestItem.Key, (double)(long)harvestItem.Value);
-          }
-        }
-      }
-
 
       // Create the item type.
-      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, scrapItems, craftQuality, abilitySet, cropSettings, harvestItems);
+      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, weight, bulk, scrapItems, craftQuality, abilitySet, cropSettings);
       // Add the item type to the dictionary.
       _itemTypes.Add(name, itemType);
     }
@@ -320,7 +492,7 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities, CropSettings? cropSettings, Dictionary<string, double>? harvestItems = null)
+  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, double weight, double bulk, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities, CropSettings? cropSettings)
   {
     itemType = name;
     itemGroup = group;
@@ -331,6 +503,8 @@ public class ItemType
     this.spoilTime = spoilTime;
     this.lossRate = lossRate;
     this.flammable = flammable;
+    this.weight = weight;
+    this.bulk = bulk;
     // If scrap items is null, set it to an empty dictionary.
     if (scrapItems == null)
     {
@@ -353,30 +527,29 @@ public class ItemType
     if (cropSettings != null)
     {
       this.cropSettings = cropSettings;
-    }
-    // If harvest items is null, set it to an empty dictionary.
-    this.harvestItems = new Dictionary<ItemType, double>();
-    if (harvestItems != null)
-    {
-      // Look up the keys in the item type dictionary.
-      // If the key is not found, throw an error, unless the key is for this item type.
-      // in which case we point to ourselves.
-      foreach (var harvestItem in harvestItems)
+      if (cropSettings.harvestItems != null)
       {
-        if (harvestItem.Key == itemType)
+        // Look up the keys in the item type dictionary.
+        // If the key is not found, throw an error, unless the key is for this item type.
+        // in which case we point to ourselves.
+        foreach (var harvestItem in cropSettings.harvestItemsNames)
         {
-          this.harvestItems.Add(this, harvestItem.Value);
-        }
-        else
-        {
-          if (!_itemTypes.ContainsKey(harvestItem.Key))
+          if (harvestItem.Key == itemType)
           {
-            throw new Exception("Harvest item type not found: " + harvestItem.Key + " for item type: " + name);
+            this.cropSettings.harvestItems.Add(this, harvestItem.Value);
           }
-          this.harvestItems.Add(_itemTypes[harvestItem.Key]!, harvestItem.Value);
+          else
+          {
+            if (!_itemTypes.ContainsKey(harvestItem.Key))
+            {
+              throw new Exception("Harvest item type not found: " + harvestItem.Key + " for item type: " + name);
+            }
+            this.cropSettings.harvestItems.Add(_itemTypes[harvestItem.Key]!, harvestItem.Value);
+          }
         }
       }
     }
+    
     // Add this item type to the parent's child types.
     foreach (var parent in parentTypes)
     {
@@ -441,25 +614,21 @@ public class ItemType
   // Set of abilities this item type provides.
   public readonly HashSet<AbilityType> abilities;
 
-  // What items and quantities this item will turn into when harvested.
-  // The quantity is a multiplier for the crop yield attribute.
-  public readonly Dictionary<ItemType, double> harvestItems = new Dictionary<ItemType, double>();
-
   // The crop settings for this item type, or null if it is not a crop.
-  public CropSettings? cropSettings = null;
+  public readonly CropSettings? cropSettings = null;
 
   // Unit weight of this item type in pounds.
   // For aggregate items, the size of the unit may have a specific meaning.
   // For example, all food items are measured such that one unit is enough
   // to feed an average adult for one meal.
   // Weight will affect the cost of shipping.
-  public double weight = 0.5;
+  public readonly double weight;
 
   // How difficult is the item to ship, beyond what it's weight would indicate.
   // A high bulk value can indicate that the item is fragile or difficult to pack,
   // and force it to not be shipped.
   // For example, unfired pottery is difficult to ship.
-  public double bulk = 1.0;
+  public readonly double bulk;
 
   public override bool Equals(object? obj)
   {
