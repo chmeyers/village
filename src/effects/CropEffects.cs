@@ -179,7 +179,7 @@ public class GrowCropEffect : Effect
   public const double nutrientStressHealthEffect = 0.05;
   public const double plantingStressHealthEffect = 0.1;
   public const double frostStressHealthEffect = 0.5;
-  public const double heavyFrostDegrees = 5;
+  public const double heavyFrostDegrees = 4;
   public const double heavyFrostStressHealthEffect = 2;
   public const double heatStressHealthEffect = 0.1;
   public GrowCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
@@ -327,17 +327,17 @@ public class GrowCropEffect : Effect
     }
     // Plants get a health penalty if the low temperature is below their frost temp.
     // and a larger penalty if it is 5 degrees below that.
-    if (weeklyLow <= cropInfo.itemType.cropSettings!.frostTolerance)
+    if (weeklyLow < cropInfo.itemType.cropSettings!.frostTolerance)
     {
       healthPenalty += scaler * batchSize * frostStressHealthEffect;
-      if (weeklyLow <= cropInfo.itemType.cropSettings!.frostTolerance - heavyFrostDegrees)
+      if (weeklyLow < cropInfo.itemType.cropSettings!.frostTolerance - heavyFrostDegrees)
       {
         // This is probably enough to kill the crop.
         healthPenalty += scaler * batchSize * heavyFrostStressHealthEffect;
       }
     }
     // Plants get a health penalty if the high temperature is above their heat temp.
-    if (weeklyHigh >= cropInfo.itemType.cropSettings!.heatTolerance)
+    if (weeklyHigh > cropInfo.itemType.cropSettings!.heatTolerance)
     {
       healthPenalty += scaler * batchSize * heatStressHealthEffect;
     }
