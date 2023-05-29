@@ -158,9 +158,10 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     }
     foreach (var scopedSet in _scopedSets)
     {
-      if (scopedSet.attributes.ContainsKey(attributeType))
+      var scoped = scopedSet._GetScopedAttribute(attributeType);
+      if (scoped != null)
       {
-        return scopedSet.attributes[attributeType];
+        return scoped;
       }
     }
     return null;
