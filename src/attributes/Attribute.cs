@@ -44,6 +44,7 @@ public class AttributeType
   public static void Clear()
   {
     types.Clear();
+    groups.Clear();
   }
 
   // Find an attribute type by name.

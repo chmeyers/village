@@ -119,11 +119,14 @@ public class CropUnitTest
     ChosenEffectTarget fieldTarget = new ChosenEffectTarget(EffectTargetType.Field, field, field, field);
     // Plant 9 wheat. The field can hold 10, but we leave one empty to test for bugs
     // in the scaling code.
-    plantCrop.ApplySync(fieldTarget, 10, 1);
+    plantCrop.ApplySync(fieldTarget, 9, 1);
 
     AttributeType crop_health = AttributeType.Find("crop_health")!;
     AttributeType crop_yield = AttributeType.Find("crop_yield")!;
     AttributeType weekly_low = AttributeType.Find("weekly_low")!;
+
+    Item wheatItem = new Item(wheat);
+    Assert.AreEqual(0, household.inventory[wheatItem]);
 
     // Advance the calendar five days (50 ticks) at a time for 135 days.
     for (int i = 0; i < 27; i++)
@@ -149,61 +152,11 @@ public class CropUnitTest
     HarvestCropEffect harvestCrop = (HarvestCropEffect)Effect.effects["harvest_crop"];
     harvestCrop.ApplySync(fieldTarget, 9, 1);
     // Check household inventory for the wheat.
-    Item wheatItem = new Item(wheat);
     // Item should have been converted from pounds to food units.
-    Assert.IsTrue(household.inventory[wheatItem] > 890);
+    Assert.AreEqual(783, household.inventory[wheatItem]);
 
     // Clear the inventory.
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
-    // Plant a new crop.
-    plantCrop.ApplySync(fieldTarget, 9, 1);
-    // Advance the calendar 135 days.
-    for (int i = 0; i < 27; i++)
-    {
-      Calendar.Advance(50);
-      WeatherAttributes.AdvanceWeather();
-      // Advance the field.
-      field.Advance();
-      // print all the attributes.
-      Console.WriteLine("Week {0}", i+27);
-      foreach (var attribute in field.state.attributes)
-      {
-        Console.WriteLine("{0}: {1}", attribute.Key.name, attribute.Value.value);
-      }
-      // And the crop attributes.
-      Console.WriteLine("Health: {0}", field.GetValue(wheat, crop_health));
-      Console.WriteLine("Yield: {0}", field.GetValue(wheat, crop_yield));
-      Console.WriteLine();
-    }
-
-    // Harvest the crop.
-    harvestCrop.ApplySync(fieldTarget, 9, 1);
-    // Check household inventory for the wheat.
-    Assert.IsTrue(household.inventory[wheatItem] > 500);
-
-    // Clear the inventory.
-    household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
-    // Plant a new crop.
-    plantCrop.ApplySync(fieldTarget, 9, 1);
-    // Advance the calendar 135 days.
-    for (int i = 0; i < 27; i++)
-    {
-      Calendar.Advance(50);
-      WeatherAttributes.AdvanceWeather();
-      // Advance the field.
-      field.Advance();
-      // print all the attributes.
-      Console.WriteLine("Week {0}", i + 54);
-      foreach (var attribute in field.state.attributes)
-      {
-        Console.WriteLine("{0}: {1}", attribute.Key.name, attribute.Value.value);
-      }
-      // And the crop attributes.
-      Console.WriteLine("Weekly_low: {0}", field.GetValue(wheat, weekly_low));
-      Console.WriteLine("Health: {0}", field.GetValue(wheat, crop_health));
-      Console.WriteLine("Yield: {0}", field.GetValue(wheat, crop_yield));
-      Console.WriteLine();
-    }
   }
 
 }

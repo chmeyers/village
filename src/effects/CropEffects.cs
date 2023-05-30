@@ -92,6 +92,15 @@ public class HarvestCropEffect : Effect
   public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // TODO(chmeyers): Verify that the field has a crop to harvest here.
+    Field field = (Field)chosenEffectTarget.target!;
+    // Make sure the field is not null.
+    if (field == null)
+    {
+      // This effect should never be called without a valid target field.
+      throw new Exception("Field is null in harvest crop effect: " + effect);
+    }
+    // Advance the field before starting the harvest.
+    field.Advance();
   }
 
   // Apply the effect to the target.
@@ -130,7 +139,7 @@ public class HarvestCropEffect : Effect
     foreach (var harvestItem in crop.cropSettings!.harvestItems)
     {
       Item item = new Item(harvestItem.Key);
-      int quantity = (int)(yield * harvestItem.Value);
+      int quantity = (int)(yield * harvestItem.Value / harvestItem.Key.weight);
       if (quantity <= 0) continue;
       // The field's harvest always goes to the household inventory that owns the field,
       // regardless of the target context.
