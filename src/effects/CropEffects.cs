@@ -243,9 +243,9 @@ public class KillCropEffect : Effect
   public KillCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
     // Target must be a crop.
-    if (target != EffectTargetType.Crop)
+    if (target != EffectTargetType.Crop && target != EffectTargetType.Field)
     {
-      throw new Exception("Kill Crop effect must target a crop: " + effect);
+      throw new Exception("Kill Crop effect must target a crop or field: " + effect);
     }
   }
 
@@ -253,6 +253,8 @@ public class KillCropEffect : Effect
   {
     ItemType crop = cropInfo.itemType;
     Field field = cropInfo.field;
+    // Ensure the field is up to date.
+    field.Advance();
     // Get the difference in yield before and after the kill.
     double killYield = cropInfo.GetAttributeValue(StaticAttributes.cropYield!);
     // Remove the crop from the field.
@@ -269,6 +271,33 @@ public class KillCropEffect : Effect
     field.AddAttribute(StaticAttributes.potassium!, crop.cropSettings!.totalPotassium * killYield);
   }
 
+  public static void KillAll(Field field)
+  {
+    // Ensure the field is up to date.
+    field.Advance();
+    // Sum up the NPK of all the crops in the field.
+    double nitrogen = 0;
+    double phosphorus = 0;
+    double potassium = 0;
+    foreach (var cropInfo in field.crops)
+    {
+      ItemType crop = cropInfo.Key;
+      // Get the difference in yield before and after the kill.
+      double killYield = cropInfo.Value.GetAttributeValue(StaticAttributes.cropYield!);
+      nitrogen += crop.cropSettings!.totalNitrogen * killYield;
+      phosphorus += crop.cropSettings!.totalPhosphorus * killYield;
+      potassium += crop.cropSettings!.totalPotassium * killYield;
+    }
+
+    // Add the nutrients from the rotted yield back to the field.
+    field.AddAttribute(StaticAttributes.nitrogen!, nitrogen);
+    field.AddAttribute(StaticAttributes.phosphorus!, phosphorus);
+    field.AddAttribute(StaticAttributes.potassium!, potassium);
+
+    // Clear the field.
+    field.RemoveAll();
+  }
+
   public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Nothing to do here.
@@ -277,6 +306,12 @@ public class KillCropEffect : Effect
   // Apply the effect to the target.
   public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
+    // If the target is a field, kill all the crops in the field.
+    if (chosenEffectTarget.target is Field field)
+    {
+      KillAll(field);
+      return;
+    }
     // Get the crop from the chosen target.
     Field.CropInfo cropInfo = (Field.CropInfo)chosenEffectTarget.target!;
     // Make sure the crop is not null.
@@ -628,6 +663,17 @@ public class FieldMaintenanceEffect : Effect
         perTickWeedPercentageChange /= 2;
       }
     }
+    // Weeds grow slowly below 40 degrees, and not at all below 32.
+    double weeklyLow = field.GetAttributeValue(StaticAttributes.weeklyLow!);
+    if (weeklyLow < 32)
+    {
+      perTickWeedPercentageChange = 0;
+    }
+    else if (weeklyLow < 40)
+    {
+      perTickWeedPercentageChange *= (weeklyLow - 32) / 8;
+    }
+    
     double weedsChange = perTickWeedPercentageChange * 100 * scaler * batchSize;
     field.AddAttribute(StaticAttributes.weeds!, weedsChange);
 

@@ -101,6 +101,16 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
   }
 
+  public void RemoveAll()
+  {
+    // Remove all the crops.
+    lock (_lock)
+    {
+      _crops.Clear();
+      _cropCount = 0;
+    }
+  }
+
   public double GetCropCanopyUtilization()
   {
     lock (_lock)
@@ -283,6 +293,9 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   }
 
   private Dictionary<ItemType, CropInfo> _crops = new Dictionary<ItemType, CropInfo>();
+
+  // Readonly accessor for the crops.
+  public IReadOnlyDictionary<ItemType, CropInfo> crops { get { return _crops; } }
 
   // The current number of crops in the field.
   private double _cropCount = 0;
