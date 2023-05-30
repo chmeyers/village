@@ -23,7 +23,7 @@ public class AttributeUnitTest
     // Not Currently Used.
     public event AbilitiesChanged? AbilitiesChanged { add { } remove { } }
 
-    public double GetNamedValue(string name)
+    public double? GetNamedValue(string name)
     {
       return set.GetNamedValue(name);
     }

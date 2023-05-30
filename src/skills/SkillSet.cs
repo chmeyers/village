@@ -131,6 +131,22 @@ public class SkillSet
     }
   }
 
+  public double? GetNamedValue(string name)
+  {
+    lock (_lock)
+    {
+      Skill? skill = Skill.Find(name);
+      if (skill != null)
+      {
+        if (skills.TryGetValue(skill, out var personSkill))
+        {
+          return personSkill.level;
+        }
+      }
+      return null;
+    }
+  }
+
 
 
 }

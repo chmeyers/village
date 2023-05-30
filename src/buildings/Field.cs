@@ -261,7 +261,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
       throw new NotImplementedException();
     }
 
-    public double GetNamedValue(string name)
+    public double? GetNamedValue(string name)
     {
       return state.GetNamedValue(name);
     }
@@ -313,7 +313,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   // AttributeSet to track the current state of the field.
   public AttributeSet state;
 
-  public double GetNamedValue(string name)
+  public double? GetNamedValue(string name)
   {
     return state.GetNamedValue(name);
   }

@@ -195,7 +195,7 @@ public class AbilityValue
     {
       return baseValue;
     }
-    return (context.GetNamedValue(namedValue) + namedAdd) * namedMult;
+    return ((context.GetNamedValue(namedValue) ?? 0) + namedAdd) * namedMult;
   }
   // Return the value of the AbilityValue.
   public double GetValue(IAbilityContext? context)

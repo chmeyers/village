@@ -311,9 +311,10 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     }
   }
 
-  public double GetNamedValue(string name)
+  public double? GetNamedValue(string name)
   {
-    return attributes.GetNamedValue(name);
+    // Resolved from attributes first then skills.
+    return attributes.GetNamedValue(name) ?? skills.GetNamedValue(name);
   }
 
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)

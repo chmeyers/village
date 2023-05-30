@@ -242,7 +242,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     }
   }
 
-  public double GetNamedValue(string name)
+  public double? GetNamedValue(string name)
   {
     lock (_lock)
     {
@@ -250,7 +250,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
       var attributeType = AttributeType.Find(name);
       if (attributeType == null)
       {
-        return 0;
+        return null;
       }
       return GetValue(attributeType);
     }
