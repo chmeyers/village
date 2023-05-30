@@ -120,6 +120,7 @@ public class CropUnitTest
       string data = @"{ 'field': {} }";
       BuildingType.LoadString(data);
     }
+    StaticAttributes.Initialize(true);
     EffectLoader.Initialize();
     ItemType.InitializeAll();
     WeatherAttributes.Init();

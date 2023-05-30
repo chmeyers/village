@@ -64,10 +64,6 @@ public class PlantCropEffect : Effect
 
 public class HarvestCropEffect : Effect
 {
-  public const string defaultYieldAttributeType = "crop_yield";
-  public const string defaultNitrogenAttributeType = "nitrogen";
-  public const string defaultPhosphorusAttributeType = "phosphorus";
-  public const string defaultPotassiumAttributeType = "potassium";
   public HarvestCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
     // TODO(chmeyers): Target should be a crop?
@@ -88,11 +84,6 @@ public class HarvestCropEffect : Effect
     {
       throw new Exception("Crop has no harvest items: " + cropName + " in harvest effect: " + effect);
     }
-    // The name of the attribute types to use
-    yieldAttributeTypeName = (string)data.GetValueOrDefault("yieldAttributeType", defaultYieldAttributeType);
-    nitrogenAttributeTypeName = (string)data.GetValueOrDefault("nitrogenAttributeType", defaultNitrogenAttributeType);
-    phosphorusAttributeTypeName = (string)data.GetValueOrDefault("phosphorusAttributeType", defaultPhosphorusAttributeType);
-    potassiumAttributeTypeName = (string)data.GetValueOrDefault("potassiumAttributeType", defaultPotassiumAttributeType);
   }
 
   public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
@@ -122,7 +113,7 @@ public class HarvestCropEffect : Effect
     }
     // Determine the yield.
     double yield = 0;
-    yield = field.GetValue(crop, yieldAttributeType!);
+    yield = field.GetValue(crop, StaticAttributes.cropYield!);
     double harvestAmount = scaler;
     if (field.Count(crop) < harvestAmount)
     {
@@ -139,7 +130,7 @@ public class HarvestCropEffect : Effect
       throw new Exception("Unable to harvest crop in harvest crop effect: " + effect);
     }
     // Actual yield is the difference between the yield before and after the harvest.
-    yield -= field.GetValue(crop, yieldAttributeType!);
+    yield -= field.GetValue(crop, StaticAttributes.cropYield!);
 
     // Add the yield of each item in the itemtype's harvestItems to the inventory.
     foreach (var harvestItem in crop.cropSettings!.harvestItems)
@@ -155,20 +146,10 @@ public class HarvestCropEffect : Effect
     if (!crop.cropSettings!.hasHarvestableStraw && crop.cropSettings!.strawPerYield > 0)
     {
       double strawYield = yield * crop.cropSettings!.strawPerYield;
-      field.AddAttribute(nitrogenAttributeType!, crop.cropSettings!.nitrogenPerStraw * strawYield);
-      field.AddAttribute(phosphorusAttributeType!, crop.cropSettings!.phosphorusPerStraw * strawYield);
-      field.AddAttribute(potassiumAttributeType!, crop.cropSettings!.potassiumPerStraw * strawYield);
+      field.AddAttribute(StaticAttributes.nitrogen!, crop.cropSettings!.nitrogenPerStraw * strawYield);
+      field.AddAttribute(StaticAttributes.phosphorus!, crop.cropSettings!.phosphorusPerStraw * strawYield);
+      field.AddAttribute(StaticAttributes.potassium!, crop.cropSettings!.potassiumPerStraw * strawYield);
     }
-  }
-
-  // Initialize should resolve the attribute names to the actual attribute type.
-  public override void Initialize()
-  {
-    // Get the attribute type from the name.
-    yieldAttributeType = AttributeType.Find(yieldAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + yieldAttributeTypeName + " in effect: " + effect);
-    nitrogenAttributeType = AttributeType.Find(nitrogenAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + nitrogenAttributeTypeName + " in effect: " + effect);
-    phosphorusAttributeType = AttributeType.Find(phosphorusAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + phosphorusAttributeTypeName + " in effect: " + effect);
-    potassiumAttributeType = AttributeType.Find(potassiumAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + potassiumAttributeTypeName + " in effect: " + effect);
   }
 
   public override bool IsOptional()
@@ -180,35 +161,10 @@ public class HarvestCropEffect : Effect
 
   // The type of the crop to harvest.
   public ItemType crop;
-  // The Attribute Type holding the crop yield.
-  public string yieldAttributeTypeName;
-  public AttributeType? yieldAttributeType;
-  // The Attribute Type holding the nitrogen.
-  public string nitrogenAttributeTypeName;
-  public AttributeType? nitrogenAttributeType;
-  // The Attribute Type holding the phosphorus.
-  public string phosphorusAttributeTypeName;
-  public AttributeType? phosphorusAttributeType;
-  // The Attribute Type holding the potassium.
-  public string potassiumAttributeTypeName;
-  public AttributeType? potassiumAttributeType;
 }
 
 public class GrowCropEffect : Effect
 {
-  public const string defaultYieldAttributeType = "crop_yield";
-  public const string defaultHealthAttributeType = "crop_health";
-  public const string defaultWeeklyTickEtAttributeType = "weekly_tick_et";
-  public const string defaultSeasonalGrowthAttributeType = "seasonal_growth";
-  public const string defaultWeeklyHighAttributeType = "weekly_high";
-  public const string defaultWeeklyLowAttributeType = "weekly_low";
-  public const string defaultSurfaceMoistureAttributeType = "surface_moisture";
-  public const string defaultDeepMoistureAttributeType = "deep_moisture";
-  public const string defaultSoilQualityAttributeType = "soil_quality";
-  public const string defaultWeedsAttributeType = "weeds";
-  public const string defaultNitrogenAttributeType = "nitrogen";
-  public const string defaultPhosphorusAttributeType = "phosphorus";
-  public const string defaultPotassiumAttributeType = "potassium";
   public const double fullETGrowth = 15;
   public const double waterEpsilon = 0.001;
   public const double waterStressHealthEffect = 0.5;
@@ -230,19 +186,6 @@ public class GrowCropEffect : Effect
     {
       throw new Exception("Crop Yield effect must have a config dictionary: " + effect);
     }
-    yieldAttributeTypeName = (string)data.GetValueOrDefault("yieldAttributeType", defaultYieldAttributeType);
-    healthAttributeTypeName = (string)data.GetValueOrDefault("healthAttributeType", defaultHealthAttributeType);
-    weeklyEtAttributeTypeName = (string)data.GetValueOrDefault("weeklyEtAttributeType", defaultWeeklyTickEtAttributeType);
-    seasonalGrowthAttributeTypeName = (string)data.GetValueOrDefault("seasonalGrowthAttributeType", defaultSeasonalGrowthAttributeType);
-    weeklyHighAttributeTypeName = (string)data.GetValueOrDefault("weeklyHighAttributeType", defaultWeeklyHighAttributeType);
-    weeklyLowAttributeTypeName = (string)data.GetValueOrDefault("weeklyLowAttributeType", defaultWeeklyLowAttributeType);
-    surfaceMoistureAttributeTypeName = (string)data.GetValueOrDefault("surfaceMoistureAttributeType", defaultSurfaceMoistureAttributeType);
-    deepMoistureAttributeTypeName = (string)data.GetValueOrDefault("deepMoistureAttributeType", defaultDeepMoistureAttributeType);
-    soilQualityAttributeTypeName = (string)data.GetValueOrDefault("soilQualityAttributeType", defaultSoilQualityAttributeType);
-    weedsAttributeTypeName = (string)data.GetValueOrDefault("weedsAttributeType", defaultWeedsAttributeType);
-    nitrogenAttributeTypeName = (string)data.GetValueOrDefault("nitrogenAttributeType", defaultNitrogenAttributeType);
-    phosphorusAttributeTypeName = (string)data.GetValueOrDefault("phosphorusAttributeType", defaultPhosphorusAttributeType);
-    potassiumAttributeTypeName = (string)data.GetValueOrDefault("potassiumAttributeType", defaultPotassiumAttributeType);
 
   }
 
@@ -263,7 +206,7 @@ public class GrowCropEffect : Effect
       throw new Exception("Crop Info is null in harvest crop effect: " + effect);
     }
     ItemType crop = cropInfo.itemType;
-    double currentHealth = cropInfo.GetAttributeValue(healthAttr!);
+    double currentHealth = cropInfo.GetAttributeValue(StaticAttributes.cropHealth!);
     if (currentHealth <= 0)
     {
       // The crop is dead.
@@ -275,14 +218,14 @@ public class GrowCropEffect : Effect
     double yieldGain = cropInfo.itemType.cropSettings!.currentYieldGrowth(cropDay) * scaler * batchSize;
     double healthPenalty = 0.0;
     // The maximum yield gain varies based on the seasonal growth.
-    double seasonalGrowth = cropInfo.GetAttributeValue(seasonalGrowthAttr!);
+    double seasonalGrowth = cropInfo.GetAttributeValue(StaticAttributes.seasonalGrowth!);
     yieldGain *= seasonalGrowth;
     // Reduce the maximum yield based on the crop's health.
-    double currentHealthPercentage = cropInfo.GetUnscaledAttributeValue(healthAttr!) / 100;
+    double currentHealthPercentage = cropInfo.GetUnscaledAttributeValue(StaticAttributes.cropHealth!) / 100;
     yieldGain *= currentHealthPercentage;
     // Reduce the maximum yield based on the lack of soil quality.
     double minSoilQuality = cropInfo.itemType.cropSettings!.minSoilQuality;
-    double soilQuality = cropInfo.GetUnscaledAttributeValue(soilQualityAttr!);
+    double soilQuality = cropInfo.GetUnscaledAttributeValue(StaticAttributes.soilQuality!);
     double soilQualityDeficitMultiplier = Math.Clamp(soilQuality / minSoilQuality, 0.1, 1);
     yieldGain *= soilQualityDeficitMultiplier;
 
@@ -291,7 +234,7 @@ public class GrowCropEffect : Effect
     // and will receive both a health penalty and a yield penalty.
     // After the first weedSusceptibleDays, the crop will only receive a yield penalty.
     // The penalties are based on the percentage of weeds in the field.
-    double weedPercentage = cropInfo.GetUnscaledAttributeValue(weedsAttr!) / 100;
+    double weedPercentage = cropInfo.GetUnscaledAttributeValue(StaticAttributes.weeds!) / 100;
     // Ignore 5% of weeds, as low levels of weeds are not a problem.
     weedPercentage = Math.Max(0, weedPercentage - 0.05);
     double weedSusceptibleDays = cropInfo.itemType.cropSettings!.weedSusceptibleDays;
@@ -315,13 +258,13 @@ public class GrowCropEffect : Effect
     // Determine the current water needs of the crop.
     // The water needs are based on the current et and the kc of the crop for it's
     // current stage.
-    double et = cropInfo.GetAttributeValue(weeklyTickEtAttr!);
+    double et = cropInfo.GetAttributeValue(StaticAttributes.weeklyTickET!);
     double kc = cropInfo.itemType.cropSettings!.currentKC(cropDay);
     double waterNeeds = et * kc * scaler * batchSize + waterEpsilon;
     // Determine the current water available to the crop.
     // The water available is based on the current surface and deep moisture.
-    double surfaceMoisture = cropInfo.GetAttributeValue(surfaceMoistureAttr!);
-    double deepMoisture = cropInfo.GetAttributeValue(deepMoistureAttr!);
+    double surfaceMoisture = cropInfo.GetAttributeValue(StaticAttributes.surfaceMoisture!);
+    double deepMoisture = cropInfo.GetAttributeValue(StaticAttributes.deepMoisture!);
     double waterAvailable = surfaceMoisture + deepMoisture;
     // If the crop is still in the first init days, it can only use the surface moisture.
     if (cropDay <= cropInfo.itemType.cropSettings!.initDays)
@@ -334,11 +277,11 @@ public class GrowCropEffect : Effect
     double waterStress = Math.Max(0, 1 - waterAvailable / waterNeeds - cropInfo.itemType.cropSettings!.droughtTolerance);
     healthPenalty += waterStress * scaler * batchSize * waterStressHealthEffect;
     // Remove the moisture that we used, starting with the surface moisture.
-    cropInfo.SetAttribute(surfaceMoistureAttr!, Math.Max(0, surfaceMoisture - waterNeeds));
+    cropInfo.SetAttribute(StaticAttributes.surfaceMoisture!, Math.Max(0, surfaceMoisture - waterNeeds));
     // If we still need more water, remove it from the deep moisture.
     if (waterNeeds > surfaceMoisture && cropDay > cropInfo.itemType.cropSettings!.initDays)
     {
-      cropInfo.SetAttribute(deepMoistureAttr!, Math.Max(0, deepMoisture - (waterNeeds - surfaceMoisture)));
+      cropInfo.SetAttribute(StaticAttributes.deepMoisture!, Math.Max(0, deepMoisture - (waterNeeds - surfaceMoisture)));
     }
 
     // 2) It must have enough nutrients (NPK).
@@ -349,9 +292,9 @@ public class GrowCropEffect : Effect
     // Nitrogen fixing crops get a percentage of their nitrogen needs for free.
     nitrogenNeeds *= (1 - cropInfo.itemType.cropSettings!.nitrogenFixing);
     // Determine the current nutrients available to the crop.
-    double nitrogenAvailable = cropInfo.GetAttributeValue(nitrogenAttr!);
-    double phosphorusAvailable = cropInfo.GetAttributeValue(phosphorusAttr!);
-    double potassiumAvailable = cropInfo.GetAttributeValue(potassiumAttr!);
+    double nitrogenAvailable = cropInfo.GetAttributeValue(StaticAttributes.nitrogen!);
+    double phosphorusAvailable = cropInfo.GetAttributeValue(StaticAttributes.phosphorus!);
+    double potassiumAvailable = cropInfo.GetAttributeValue(StaticAttributes.potassium!);
 
     // Determine which nutrient is the most limiting.
     double nitrogenStress = Math.Max(0, 1 - nitrogenAvailable / nitrogenNeeds);
@@ -369,14 +312,14 @@ public class GrowCropEffect : Effect
     phosphorusNeeds = cropInfo.itemType.cropSettings!.totalPhosphorus * yieldGain;
     potassiumNeeds = cropInfo.itemType.cropSettings!.totalPotassium * yieldGain;
     // Remove the nutrients that we used.
-    cropInfo.AddAttribute(nitrogenAttr!, -nitrogenNeeds);
-    cropInfo.AddAttribute(phosphorusAttr!, -phosphorusNeeds);
-    cropInfo.AddAttribute(potassiumAttr!, -potassiumNeeds);
+    cropInfo.AddAttribute(StaticAttributes.nitrogen!, -nitrogenNeeds);
+    cropInfo.AddAttribute(StaticAttributes.phosphorus!, -phosphorusNeeds);
+    cropInfo.AddAttribute(StaticAttributes.potassium!, -potassiumNeeds);
 
     // 3) The temperature must be within the range of the crop.
     // Determine the current temperature.
-    double weeklyHigh = cropInfo.GetAttributeValue(weeklyHighAttr!);
-    double weeklyLow = cropInfo.GetAttributeValue(weeklyLowAttr!);
+    double weeklyHigh = cropInfo.GetAttributeValue(StaticAttributes.weeklyHigh!);
+    double weeklyLow = cropInfo.GetAttributeValue(StaticAttributes.weeklyLow!);
     double soilTemp = (weeklyHigh + weeklyLow) / 2;
     // Plants get a health penalty if the soil temperature is below their planting temp
     // during the init days.
@@ -402,8 +345,8 @@ public class GrowCropEffect : Effect
     }
 
     // Apply the health penalty and yield gain.
-    cropInfo.AddAttribute(healthAttr!, -healthPenalty);
-    cropInfo.AddAttribute(yieldAttr!, yieldGain);
+    cropInfo.AddAttribute(StaticAttributes.cropHealth!, -healthPenalty);
+    cropInfo.AddAttribute(StaticAttributes.cropYield!, yieldGain);
     if (currentHealth - healthPenalty <= 0)
     {
       // The crop is dead.
@@ -411,24 +354,6 @@ public class GrowCropEffect : Effect
       // Decide if any of it is still harvestable, maybe if the day is near the end of the
       // crop's life cycle.
     }
-  }
-
-  // Initialize should resolve the attribute names to the actual attribute type.
-  public override void Initialize()
-  {
-    yieldAttr = AttributeType.Find(yieldAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + yieldAttributeTypeName + " in effect: " + effect);
-    healthAttr = AttributeType.Find(defaultHealthAttributeType) ?? throw new Exception("Unknown attribute type: " + defaultHealthAttributeType + " in effect: " + effect);
-    weeklyTickEtAttr = AttributeType.Find(weeklyEtAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + weeklyEtAttributeTypeName + " in effect: " + effect);
-    seasonalGrowthAttr = AttributeType.Find(defaultSeasonalGrowthAttributeType) ?? throw new Exception("Unknown attribute type: " + defaultSeasonalGrowthAttributeType + " in effect: " + effect);
-    weeklyHighAttr = AttributeType.Find(weeklyHighAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + weeklyHighAttributeTypeName + " in effect: " + effect);
-    weeklyLowAttr = AttributeType.Find(weeklyLowAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + weeklyLowAttributeTypeName + " in effect: " + effect);
-    surfaceMoistureAttr = AttributeType.Find(surfaceMoistureAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + surfaceMoistureAttributeTypeName + " in effect: " + effect);
-    deepMoistureAttr = AttributeType.Find(deepMoistureAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + deepMoistureAttributeTypeName + " in effect: " + effect);
-    soilQualityAttr = AttributeType.Find(soilQualityAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + soilQualityAttributeTypeName + " in effect: " + effect);
-    weedsAttr = AttributeType.Find(defaultWeedsAttributeType) ?? throw new Exception("Unknown attribute type: " + defaultWeedsAttributeType + " in effect: " + effect);
-    nitrogenAttr = AttributeType.Find(nitrogenAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + nitrogenAttributeTypeName + " in effect: " + effect);
-    phosphorusAttr = AttributeType.Find(phosphorusAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + phosphorusAttributeTypeName + " in effect: " + effect);
-    potassiumAttr = AttributeType.Find(potassiumAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + potassiumAttributeTypeName + " in effect: " + effect);
   }
 
   public override bool IsOptional()
@@ -443,59 +368,11 @@ public class GrowCropEffect : Effect
     return true;
   }
 
-  // The Attribute Type holding the crop yield.
-  public string yieldAttributeTypeName;
-  public AttributeType? yieldAttr;
-  // The Attribute Type holding the crop health.
-  public string healthAttributeTypeName;
-  public AttributeType? healthAttr;
-  // The Attribute Type holding the weekly et.
-  public string weeklyEtAttributeTypeName;
-  public AttributeType? weeklyTickEtAttr;
-  // The Attribute Type holding the seasonal growth.
-  public string seasonalGrowthAttributeTypeName;
-  public AttributeType? seasonalGrowthAttr;
-  // The Attribute Type holding the weekly high.
-  public string weeklyHighAttributeTypeName;
-  public AttributeType? weeklyHighAttr;
-  // The Attribute Type holding the weekly low.
-  public string weeklyLowAttributeTypeName;
-  public AttributeType? weeklyLowAttr;
-  // The Attribute Type holding the surface moisture.
-  public string surfaceMoistureAttributeTypeName;
-  public AttributeType? surfaceMoistureAttr;
-  // The Attribute Type holding the deep moisture.
-  public string deepMoistureAttributeTypeName;
-  public AttributeType? deepMoistureAttr;
-  // The Attribute Type holding the soil quality.
-  public string soilQualityAttributeTypeName;
-  public AttributeType? soilQualityAttr;
-  // The Attribute Type holding the weeds.
-  public string weedsAttributeTypeName;
-  public AttributeType? weedsAttr;
-  // The Attribute Type holding the nitrogen.
-  public string nitrogenAttributeTypeName;
-  public AttributeType? nitrogenAttr;
-  // The Attribute Type holding the phosphorus.
-  public string phosphorusAttributeTypeName;
-  public AttributeType? phosphorusAttr;
-  // The Attribute Type holding the potassium.
-  public string potassiumAttributeTypeName;
-  public AttributeType? potassiumAttr;
-
 }
 
 
 public class FieldMaintenanceEffect : Effect
 {
-  public const string defaultWeeklyTickEtAttributeType = "weekly_tick_et";
-  public const string defaultWeeklyLowAttributeType = "weekly_low";
-  public const string defaultWeeklyRainAttributeType = "weekly_rain";
-  public const string defaultSurfaceMoistureAttributeType = "surface_moisture";
-  public const string defaultDeepMoistureAttributeType = "deep_moisture";
-  public const string defaultSoilQualityAttributeType = "soil_quality";
-  public const string defaultDrainageAttributeType = "drainage";
-  public const string defaultWeedsAttributeType = "weeds";
   public const double bareSoilEvaporationConstant = 0.5;
   public const double weedsDeepMoistureCutoff = 0.3;
   public const double lowWeedsCutoff = 0.05;
@@ -514,15 +391,6 @@ public class FieldMaintenanceEffect : Effect
     {
       throw new Exception("Field Maintenance effect must have a config dictionary: " + effect);
     }
-    // The names of the attribute types.
-    weeklyTickEtAttributeTypeName = (string)data.GetValueOrDefault("weeklyTickEtAttributeType", defaultWeeklyTickEtAttributeType);
-    weeklyLowAttributeTypeName = (string)data.GetValueOrDefault("weeklyLowAttributeType", defaultWeeklyLowAttributeType);
-    weeklyRainAttributeTypeName = (string)data.GetValueOrDefault("weeklyRainAttributeType", defaultWeeklyRainAttributeType);
-    surfaceMoistureAttributeTypeName = (string)data.GetValueOrDefault("surfaceMoistureAttributeType", defaultSurfaceMoistureAttributeType);
-    deepMoistureAttributeTypeName = (string)data.GetValueOrDefault("deepMoistureAttributeType", defaultDeepMoistureAttributeType);
-    soilQualityAttributeTypeName = (string)data.GetValueOrDefault("soilQualityAttributeType", defaultSoilQualityAttributeType);
-    drainageAttributeTypeName = (string)data.GetValueOrDefault("drainageAttributeType", defaultDrainageAttributeType);
-    weedsAttributeTypeName = (string)data.GetValueOrDefault("weedsAttributeType", defaultWeedsAttributeType);
   }
 
   public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
@@ -543,7 +411,7 @@ public class FieldMaintenanceEffect : Effect
     }
 
     // Determine the percentage of the field that is covered in weeds and crops.
-    double weedsPercentage = field.GetUnscaledAttributeValue(weedsAttr!) / 100;
+    double weedsPercentage = field.GetUnscaledAttributeValue(StaticAttributes.weeds!) / 100;
     double cropPercentage = field.GetCropCanopyUtilization();
     double targetWeeds = 1 - cropPercentage;
     double canopyPercentage = Math.Min(1.0, cropPercentage + weedsPercentage);
@@ -554,8 +422,8 @@ public class FieldMaintenanceEffect : Effect
     // Evaporation depends on the canopy percentage, at 100% the evaporation is 0,
     // and water loss depends only on usage by the plants. Below that, we have to
     // calculate the evaporation based on the weekly et.
-    double surfaceMoisture = field.GetAttributeValue(surfaceMoistureAttr!);
-    double perTickEt = field.GetAttributeValue(weeklyTickEtAttr!);
+    double surfaceMoisture = field.GetAttributeValue(StaticAttributes.surfaceMoisture!);
+    double perTickEt = field.GetAttributeValue(StaticAttributes.weeklyTickET!);
     if (canopyPercentage < 1.0 && surfaceMoisture > 0)
     {
       double evaporation = perTickEt * scaler * batchSize * (1 - canopyPercentage) * bareSoilEvaporationConstant;
@@ -571,7 +439,7 @@ public class FieldMaintenanceEffect : Effect
     // Note that weeds get first dibs on the new surface water, but we
     // don't apply the max surface water limit until after the weeds
     // have taken their share.
-    double rain = (field.GetAttributeValue(weeklyRainAttr!) / Calendar.ticksPerWeek) * scaler * batchSize;
+    double rain = (field.GetAttributeValue(StaticAttributes.weeklyRain!) / Calendar.ticksPerWeek) * scaler * batchSize;
     surfaceMoisture += rain;
 
     // Grow/Diminish Weeds
@@ -588,7 +456,7 @@ public class FieldMaintenanceEffect : Effect
       double weedsWaterAvailable = surfaceMoisture;
       if (weedsPercentage >= weedsDeepMoistureCutoff)
       {
-        weedsWaterAvailable += field.GetAttributeValue(deepMoistureAttr!);
+        weedsWaterAvailable += field.GetAttributeValue(StaticAttributes.deepMoisture!);
       }
       waterSatisfied = Math.Min(1, weedsWaterAvailable / weedsWaterNeeds);
       double weedsWaterUsed = weedsWaterNeeds * waterSatisfied;
@@ -604,7 +472,7 @@ public class FieldMaintenanceEffect : Effect
       }
       if (weedsWaterUsed > 0 && weedsPercentage >= weedsDeepMoistureCutoff)
       {
-        field.AddAttribute(deepMoistureAttr!, -weedsWaterUsed);
+        field.AddAttribute(StaticAttributes.deepMoisture!, -weedsWaterUsed);
       }
     }
 
@@ -631,24 +499,10 @@ public class FieldMaintenanceEffect : Effect
       }
     }
     double weedsChange = perTickWeedPercentageChange * 100 * scaler * batchSize;
-    field.AddAttribute(weedsAttr!, weedsChange);
+    field.AddAttribute(StaticAttributes.weeds!, weedsChange);
 
     // Set the surface moisture.
-    field.SetAttribute(surfaceMoistureAttr!, surfaceMoisture);
-  }
-
-  // Initialize should resolve the attribute names to the actual attribute type.
-  public override void Initialize()
-  {
-    // Get the attribute types from the names.
-    weeklyTickEtAttr = AttributeType.Find(weeklyTickEtAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + weeklyTickEtAttributeTypeName + " in effect: " + effect);
-    weeklyLowAttr = AttributeType.Find(weeklyLowAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + weeklyLowAttributeTypeName + " in effect: " + effect);
-    weeklyRainAttr = AttributeType.Find(weeklyRainAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + weeklyRainAttributeTypeName + " in effect: " + effect);
-    surfaceMoistureAttr = AttributeType.Find(surfaceMoistureAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + surfaceMoistureAttributeTypeName + " in effect: " + effect);
-    deepMoistureAttr = AttributeType.Find(deepMoistureAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + deepMoistureAttributeTypeName + " in effect: " + effect);
-    soilQualityAttr = AttributeType.Find(soilQualityAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + soilQualityAttributeTypeName + " in effect: " + effect);
-    drainageAttr = AttributeType.Find(drainageAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + drainageAttributeTypeName + " in effect: " + effect);
-    weedsAttr = AttributeType.Find(weedsAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + weedsAttributeTypeName + " in effect: " + effect);
+    field.SetAttribute(StaticAttributes.surfaceMoisture!, surfaceMoisture);
   }
 
   public override bool IsOptional()
@@ -662,22 +516,4 @@ public class FieldMaintenanceEffect : Effect
   {
     return true;
   }
-
-  // The Attribute Types.
-  public string weeklyTickEtAttributeTypeName;
-  public AttributeType? weeklyTickEtAttr;
-  public string weeklyLowAttributeTypeName;
-  public AttributeType? weeklyLowAttr;
-  public string weeklyRainAttributeTypeName;
-  public AttributeType? weeklyRainAttr;
-  public string surfaceMoistureAttributeTypeName;
-  public AttributeType? surfaceMoistureAttr;
-  public string deepMoistureAttributeTypeName;
-  public AttributeType? deepMoistureAttr;
-  public string soilQualityAttributeTypeName;
-  public AttributeType? soilQualityAttr;
-  public string drainageAttributeTypeName;
-  public AttributeType? drainageAttr;
-  public string weedsAttributeTypeName;
-  public AttributeType? weedsAttr;
 }

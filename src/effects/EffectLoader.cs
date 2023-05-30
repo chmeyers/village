@@ -1,4 +1,5 @@
 using Newtonsoft.Json;
+using Village.Attributes;
 
 namespace Village.Effects;
 

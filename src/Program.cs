@@ -48,6 +48,7 @@ namespace Village
       // Load the default price list.
       ConfigPriceList.LoadDefault("config/items/pricelist.jsonc");
       // Do the secondary Initializations after everything else is loaded.
+      StaticAttributes.Initialize();
       EffectLoader.Initialize();
       ItemType.InitializeAll();
       // Init the weather.
