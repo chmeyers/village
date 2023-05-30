@@ -124,7 +124,7 @@ public class HarvestCropEffect : Effect
       // Nothing to harvest.
       return;
     }
-    if (!field.Harvest(crop, harvestAmount))
+    if (!field.Remove(crop, harvestAmount))
     {
       // This effect should never be called without a valid target field.
       throw new Exception("Unable to harvest crop in harvest crop effect: " + effect);
@@ -163,6 +163,143 @@ public class HarvestCropEffect : Effect
   public ItemType crop;
 }
 
+public class RotCropEffect : Effect
+{
+  public RotCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a crop.
+    if (target != EffectTargetType.Crop)
+    {
+      throw new Exception("Rot Crop effect must target a crop: " + effect);
+    }
+    if (data == null)
+    {
+      throw new Exception("Rot Crop effect must have a config dictionary: " + effect);
+    }
+    if (!data.ContainsKey("rotRate"))
+    {
+      throw new Exception("Rot Crop effect must have a rotRate: " + effect);
+    }
+    rotRate = AbilityValue.FromJson(data["rotRate"]);
+  }
+
+  public static void Rot(Field.CropInfo cropInfo, double percent)
+  {
+    ItemType crop = cropInfo.itemType;
+    // Reduce the crop health by the value of the percent
+    // and reduce the yield by the relative value.
+    // Health will be reduced quickly and yield will be reduced slowly.
+    // We don't reduce the yield to zero, for that we'd need to call KillCrop.
+    cropInfo.AddAttribute(StaticAttributes.cropHealth!, -percent * 100);
+    double yield = cropInfo.GetAttributeValue(StaticAttributes.cropYield!);
+    double rotYield = percent * yield;
+    cropInfo.AddAttribute(StaticAttributes.cropYield!, -rotYield);
+
+    // Add the nutrients from the rotted yield back to the field.
+    cropInfo.AddAttribute(StaticAttributes.nitrogen!, crop.cropSettings!.totalNitrogen * rotYield);
+    cropInfo.AddAttribute(StaticAttributes.phosphorus!, crop.cropSettings!.totalPhosphorus * rotYield);
+    cropInfo.AddAttribute(StaticAttributes.potassium!, crop.cropSettings!.totalPotassium * rotYield);
+  }
+
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
+  {
+    // Nothing to do here.
+  }
+
+  // Apply the effect to the target.
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
+  {
+    // Get the crop from the chosen target.
+    Field.CropInfo cropInfo = (Field.CropInfo)chosenEffectTarget.target!;
+    // Make sure the crop is not null.
+    if (cropInfo == null)
+    {
+      // This effect should never be called without a valid target crop.
+      throw new Exception("Crop Info is null in rot crop effect: " + effect);
+    }
+    double perTickRate = rotRate.GetScaledValue(chosenEffectTarget.runningContext, scaler) / scaler;
+    // Get the total rot rate for the batchSize by calculating the exponential.
+    double totalRate = (1 - Math.Pow(1 - (perTickRate), batchSize));
+    Rot(cropInfo, totalRate);
+  }
+
+  public override bool IsOptional()
+  {
+    // crop yield effects are not optional.
+    // If you can't apply the effect, then you shouldn't run the task.
+    return false;
+  }
+
+  public override bool SupportsBatching()
+  {
+    return true;
+  }
+
+  private AbilityValue rotRate;
+}
+
+public class KillCropEffect : Effect
+{
+  public KillCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a crop.
+    if (target != EffectTargetType.Crop)
+    {
+      throw new Exception("Kill Crop effect must target a crop: " + effect);
+    }
+  }
+
+  public static void Kill(Field.CropInfo cropInfo, double quantity)
+  {
+    ItemType crop = cropInfo.itemType;
+    Field field = cropInfo.field;
+    // Get the difference in yield before and after the kill.
+    double killYield = cropInfo.GetAttributeValue(StaticAttributes.cropYield!);
+    // Remove the crop from the field.
+    cropInfo.field.Remove(crop, quantity);
+    if (field.Count(crop) > 0)
+    {
+      // Not all the crop was killed, so reduce the yield by the remaining.
+      killYield -= cropInfo.GetAttributeValue(StaticAttributes.cropYield!);
+    }
+
+    // Add the nutrients from the rotted yield back to the field.
+    field.AddAttribute(StaticAttributes.nitrogen!, crop.cropSettings!.totalNitrogen * killYield);
+    field.AddAttribute(StaticAttributes.phosphorus!, crop.cropSettings!.totalPhosphorus * killYield);
+    field.AddAttribute(StaticAttributes.potassium!, crop.cropSettings!.totalPotassium * killYield);
+  }
+
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
+  {
+    // Nothing to do here.
+  }
+
+  // Apply the effect to the target.
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
+  {
+    // Get the crop from the chosen target.
+    Field.CropInfo cropInfo = (Field.CropInfo)chosenEffectTarget.target!;
+    // Make sure the crop is not null.
+    if (cropInfo == null)
+    {
+      // This effect should never be called without a valid target crop.
+      throw new Exception("Crop Info is null in kill crop effect: " + effect);
+    }
+    // Kill the crop.
+    Kill(cropInfo, scaler);
+  }
+
+  public override bool IsOptional()
+  {
+    return false;
+  }
+
+  public override bool SupportsBatching()
+  {
+    return false;
+  }
+}
+
 public class GrowCropEffect : Effect
 {
   public const double fullETGrowth = 15;
@@ -175,12 +312,14 @@ public class GrowCropEffect : Effect
   public const double heavyFrostStressHealthEffect = 2;
   public const double heatStressHealthEffect = 0.1;
   public const double weedStressHealthEffect = 0.1;
+  public const double rotPercentOnCropDeath = 0.2;
+  public const double rotPercentPerTick = 0.005;
   public GrowCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
-    // Target must be a field.
+    // Target must be a crop.
     if (target != EffectTargetType.Crop)
     {
-      throw new Exception("Crop Yield effect must target a field: " + effect);
+      throw new Exception("Grow Crop effect must target a crop: " + effect);
     }
   }
 
@@ -205,7 +344,8 @@ public class GrowCropEffect : Effect
     if (currentHealth <= 0)
     {
       // The crop is dead.
-      // TODO(chmeyers): Deal with dead crops. Remove from field and reincorporate nutrients.
+      double totalRate = 1 - Math.Pow(1 - rotPercentPerTick, batchSize);
+      RotCropEffect.Rot(cropInfo, totalRate);
       return;
     }
     int cropDay = (int)cropInfo.GetUnscaledAttributeValue(cropInfo.itemType.cropSettings!.cropAttribute!);
@@ -344,10 +484,9 @@ public class GrowCropEffect : Effect
     cropInfo.AddAttribute(StaticAttributes.cropYield!, yieldGain);
     if (currentHealth - healthPenalty <= 0)
     {
-      // The crop is dead.
-      // TODO(chmeyers): Deal with dead crops. Remove from field and reincorporate nutrients.
-      // Decide if any of it is still harvestable, maybe if the day is near the end of the
-      // crop's life cycle.
+      // The crop died.
+      // Immediately Rot 20% of the crop.
+      RotCropEffect.Rot(cropInfo, rotPercentOnCropDeath);
     }
   }
 

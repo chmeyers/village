@@ -53,6 +53,10 @@ public enum EffectType
   GrowCrop,
   // Ongoing Field Maintenance.
   FieldMaintenance,
+  // Rot a crop in a field.
+  RotCrop,
+  // Kill a crop in a field.
+  KillCrop,
 }
 
 public class EffectTarget

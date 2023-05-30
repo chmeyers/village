@@ -63,6 +63,12 @@ public class EffectLoader : Effect
         case EffectType.FieldMaintenance:
           newEffect = new FieldMaintenanceEffect(name, effectTarget, effectType, config);
           break;
+        case EffectType.RotCrop:
+          newEffect = new RotCropEffect(name, effectTarget, effectType, config);
+          break;
+        case EffectType.KillCrop:
+          newEffect = new KillCropEffect(name, effectTarget, effectType, config);
+          break;
         default:
           throw new Exception("Unknown effect type: " + effectType);
       }

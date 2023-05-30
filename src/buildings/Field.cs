@@ -14,7 +14,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 {
   public Inventory inventory { get; private set; } = new Inventory();
 
-  public Household household { get; private set;}
+  public Household household { get; private set; }
 
   private const string fieldAttributeGroup = "field";
   // TODO(chmeyers): We shouldn't have to specify the type here.
@@ -53,7 +53,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 
   public bool Plant(ItemType itemType, double quantity)
   {
-    lock(_lock)
+    lock (_lock)
     {
       Advance();
       if (itemType.cropSettings == null)
@@ -79,9 +79,9 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
   }
 
-  public bool Harvest(ItemType itemType, double quantity)
+  public bool Remove(ItemType itemType, double quantity)
   {
-    lock(_lock)
+    lock (_lock)
     {
       Advance();
       if (!_crops.ContainsKey(itemType) || _crops[itemType].quantity < quantity)
@@ -103,7 +103,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 
   public double GetCropCanopyUtilization()
   {
-    lock(_lock)
+    lock (_lock)
     {
       double canopyUtilization = 0;
       foreach (var crop in _crops.Values)
@@ -164,9 +164,9 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
       // Crop attributes effects use the field's abilities, but point at the Crop and
       // take named attribute values from the crop's AttributeSet, which includes
       // the field's AttributeSet as a scoped set.
-      _parent = parent;
-      this.state = new AttributeSet(this, _parent, this);
-      this.state.AddScopedSet(_parent.state);
+      field = parent;
+      this.state = new AttributeSet(this, field, this);
+      this.state.AddScopedSet(field.state);
       this.state.Rescale(quantity);
       this.state.SetEffectMultiplier(quantity);
       foreach (var attributeType in AttributeType.groups[cropAttributeGroup])
@@ -187,7 +187,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 
     public double GetCropCoverage()
     {
-      return quantity / _parent._size;
+      return quantity / field._size;
     }
 
     public double GetCropCanopyUtilization()
@@ -218,27 +218,30 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     public ItemType itemType;
     // Whenver the quantity changes we need to rescale the AttributeSet.
     private double _quantity;
-    public double quantity {
-      get {
+    public double quantity
+    {
+      get
+      {
         return _quantity;
       }
-      set {
+      set
+      {
         _quantity = value;
         this.state.Rescale(quantity);
         this.state.SetEffectMultiplier(value);
       }
     }
     public AttributeSet state;
-    private Field _parent;
+    public Field field;
 
     public Dictionary<AbilityType, HashSet<IAbilityProvider>> AbilityProviders => throw new NotImplementedException();
 
     // Crop abilities the parent field's abilities.
     // Note that this means that any abilites added by the crop's AttributeSet
     // will be ignored.
-    public HashSet<AbilityType> Abilities => _parent.Abilities;
+    public HashSet<AbilityType> Abilities => field.Abilities;
 
-    public Household household => _parent.household;
+    public Household household => field.household;
 
     // Not Currently Used.
     public event AbilitiesChanged? AbilitiesChanged { add { } remove { } }
