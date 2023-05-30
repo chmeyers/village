@@ -182,11 +182,6 @@ public class GrowCropEffect : Effect
     {
       throw new Exception("Crop Yield effect must target a field: " + effect);
     }
-    if (data == null)
-    {
-      throw new Exception("Crop Yield effect must have a config dictionary: " + effect);
-    }
-
   }
 
   public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
@@ -386,10 +381,6 @@ public class FieldMaintenanceEffect : Effect
     if (target != EffectTargetType.Field)
     {
       throw new Exception("Field Maintenance effect must target a field: " + effect);
-    }
-    if (data == null)
-    {
-      throw new Exception("Field Maintenance effect must have a config dictionary: " + effect);
     }
   }
 
