@@ -32,6 +32,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
     // Add the weather as a scoped set.
     state.AddScopedSet(WeatherAttributes.GetWeather());
+    this._lastAdvanceTick = Calendar.Ticks;
   }
 
   // Advance the current state of the field to the current tick.
@@ -39,6 +40,8 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   {
     lock (_lock)
     {
+      if (Calendar.Ticks == _lastAdvanceTick) return;
+      _lastAdvanceTick = Calendar.Ticks;
       state.Advance();
       // Advance each crop.
       foreach (var crop in _crops.Values)
@@ -52,6 +55,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   {
     lock(_lock)
     {
+      Advance();
       if (itemType.cropSettings == null)
       {
         // Can't plant something that isn't a crop.
@@ -79,6 +83,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   {
     lock(_lock)
     {
+      Advance();
       if (!_crops.ContainsKey(itemType) || _crops[itemType].quantity < quantity)
       {
         // Can't harvest what isn't planted.
@@ -274,6 +279,9 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   // One skilled guy with a good plow and a single ox can plow 1 acre in a day.
   private int _size = 10;
 
+  // When was the last time the attributes were advanced.
+  private long _lastAdvanceTick = 0;
+
   // AttributeSet to track the current state of the field.
   public AttributeSet state;
 
@@ -316,6 +324,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 
   public double SetAttribute(AttributeType attributeType, double value)
   {
+    Advance();
     return state.SetAttribute(attributeType, value);
   }
 
@@ -331,11 +340,13 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 
   public double AddAttribute(AttributeType attributeType, double value)
   {
+    Advance();
     return state.AddAttribute(attributeType, value);
   }
 
   public double AddAttribute(AttributeType attributeType)
   {
+    Advance();
     return state.AddAttribute(attributeType);
   }
 }

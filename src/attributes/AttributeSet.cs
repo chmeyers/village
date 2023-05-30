@@ -1,4 +1,5 @@
 using Village.Abilities;
+using Village.Base;
 using Village.Items;
 
 namespace Village.Attributes;
@@ -48,6 +49,8 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
 
   private double _scale = 1;
   private double _effectMultiplier = 1;
+  // When was the last time the attributes were advanced.
+  private long _lastAdvanceTick = 0;
 
   // Constructor for an AttributeSet.
   public AttributeSet(object? target, IInventoryContext? effectTarget, IAbilityContext? effectContext)
@@ -55,6 +58,10 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     this._target = target;
     this._targetContext = effectTarget;
     this._abilityContext = effectContext;
+    // Note that we can't set the last advance tick to the current calendar tick
+    // because the calendar creates an attribute set during it's constructor.
+    // Instead it will get set the first time the attributes are advanced.
+    this._lastAdvanceTick = 0;
   }
 
   public void AddScopedSet(AttributeSet set)
@@ -70,6 +77,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
   {
     lock (_lock)
     {
+      Advance();
       if (attributes.ContainsKey(attributeType)) return;
       AddNoLock(attributeType);
     }
@@ -88,6 +96,8 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
   {
     lock (_lock)
     {
+      if (Calendar.Ticks == _lastAdvanceTick) return;
+      _lastAdvanceTick = Calendar.Ticks;
       foreach (var attribute in effectAttributes)
       {
         // Only advance the attribute if it has ongoing effects or a change per tick.
@@ -101,6 +111,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     if (scale <= 0) throw new ArgumentException("Attribute Scale must be positive.");
     lock (_lock)
     {
+      Advance();
       _scale = scale;
       foreach (var attribute in attributes.Values)
       {
@@ -113,6 +124,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
   {
     lock (_lock)
     {
+      Advance();
       _effectMultiplier = value;
       foreach (var attribute in effectAttributes)
       {
@@ -174,6 +186,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
   {
     lock (_lock)
     {
+      Advance();
       Attribute? attribute = _GetScopedAttribute(attributeType);
       if (attribute == null)
       {
@@ -190,6 +203,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
   {
     lock (_lock)
     {
+      Advance();
       Attribute? attribute = _GetScopedAttribute(attributeType);
       if (attribute == null)
       {

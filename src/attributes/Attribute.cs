@@ -350,7 +350,7 @@ public class Attribute : IAbilityCollection
   // Set of Abilities that can trigger value updates.
   private HashSet<AbilityType> _modifierAbilities = new HashSet<AbilityType>();
   // When were the daily effects last triggered?
-  private long _lastEffectTick = 0;
+  private long _lastAdvanceTick = 0;
 
   private object _lock = new object();
   
@@ -380,7 +380,7 @@ public class Attribute : IAbilityCollection
     {
       abilityContext.AbilitiesChanged += OnAbilitiesChanged;
     }
-    this._lastEffectTick = Calendar.Ticks;
+    this._lastAdvanceTick = Calendar.Ticks;
     _scaledMaxValue = attributeType.maxValue * scale;
     _scaledMinValue = attributeType.minValue * scale;
     _scaledChangePerTick = attributeType.changePerTick * scale;
@@ -401,16 +401,17 @@ public class Attribute : IAbilityCollection
   public void Advance()
   {
     lock(_lock) {
+      if (Calendar.Ticks == _lastAdvanceTick) return;
       // Advance one interval at a time, to ensure that we don't miss entry effects,
       // and ongoing effects are accurately applied.
-      int ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), Calendar.Ticks - _lastEffectTick);
+      int ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), Calendar.Ticks - _lastAdvanceTick);
       while (ticksForCurrentInterval > 0)
       {
+        _lastAdvanceTick += ticksForCurrentInterval;
         RunOngoingEffects(attributeType.intervals.GetValueAtIndex(intervalIndex), ticksForCurrentInterval);
         // Update the value by the change per tick.
         AdvanceChangePerTick(ticksForCurrentInterval);
-        _lastEffectTick += ticksForCurrentInterval;
-        ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), Calendar.Ticks - _lastEffectTick);
+        ticksForCurrentInterval = (int)Math.Min(TicksToNextInterval(), Calendar.Ticks - _lastAdvanceTick);
       }
     }
   }
