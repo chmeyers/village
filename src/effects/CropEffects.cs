@@ -65,6 +65,9 @@ public class PlantCropEffect : Effect
 public class HarvestCropEffect : Effect
 {
   public const string defaultYieldAttributeType = "crop_yield";
+  public const string defaultNitrogenAttributeType = "nitrogen";
+  public const string defaultPhosphorusAttributeType = "phosphorus";
+  public const string defaultPotassiumAttributeType = "potassium";
   public HarvestCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
     // TODO(chmeyers): Target should be a crop?
@@ -85,8 +88,11 @@ public class HarvestCropEffect : Effect
     {
       throw new Exception("Crop has no harvest items: " + cropName + " in harvest effect: " + effect);
     }
-    // The name of the attribute type to use for the yield.
+    // The name of the attribute types to use
     yieldAttributeTypeName = (string)data.GetValueOrDefault("yieldAttributeType", defaultYieldAttributeType);
+    nitrogenAttributeTypeName = (string)data.GetValueOrDefault("nitrogenAttributeType", defaultNitrogenAttributeType);
+    phosphorusAttributeTypeName = (string)data.GetValueOrDefault("phosphorusAttributeType", defaultPhosphorusAttributeType);
+    potassiumAttributeTypeName = (string)data.GetValueOrDefault("potassiumAttributeType", defaultPotassiumAttributeType);
   }
 
   public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
@@ -145,6 +151,14 @@ public class HarvestCropEffect : Effect
       // regardless of the target context.
       field.household.inventory.AddItem(item, quantity);
     }
+    // If the straw wasn't harvested, add it's nutrients back to the field.
+    if (!crop.cropSettings!.hasHarvestableStraw && crop.cropSettings!.strawPerYield > 0)
+    {
+      double strawYield = yield * crop.cropSettings!.strawPerYield;
+      field.AddAttribute(nitrogenAttributeType!, crop.cropSettings!.nitrogenPerStraw * strawYield);
+      field.AddAttribute(phosphorusAttributeType!, crop.cropSettings!.phosphorusPerStraw * strawYield);
+      field.AddAttribute(potassiumAttributeType!, crop.cropSettings!.potassiumPerStraw * strawYield);
+    }
   }
 
   // Initialize should resolve the attribute names to the actual attribute type.
@@ -152,6 +166,9 @@ public class HarvestCropEffect : Effect
   {
     // Get the attribute type from the name.
     yieldAttributeType = AttributeType.Find(yieldAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + yieldAttributeTypeName + " in effect: " + effect);
+    nitrogenAttributeType = AttributeType.Find(nitrogenAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + nitrogenAttributeTypeName + " in effect: " + effect);
+    phosphorusAttributeType = AttributeType.Find(phosphorusAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + phosphorusAttributeTypeName + " in effect: " + effect);
+    potassiumAttributeType = AttributeType.Find(potassiumAttributeTypeName) ?? throw new Exception("Unknown attribute type: " + potassiumAttributeTypeName + " in effect: " + effect);
   }
 
   public override bool IsOptional()
@@ -166,6 +183,15 @@ public class HarvestCropEffect : Effect
   // The Attribute Type holding the crop yield.
   public string yieldAttributeTypeName;
   public AttributeType? yieldAttributeType;
+  // The Attribute Type holding the nitrogen.
+  public string nitrogenAttributeTypeName;
+  public AttributeType? nitrogenAttributeType;
+  // The Attribute Type holding the phosphorus.
+  public string phosphorusAttributeTypeName;
+  public AttributeType? phosphorusAttributeType;
+  // The Attribute Type holding the potassium.
+  public string potassiumAttributeTypeName;
+  public AttributeType? potassiumAttributeType;
 }
 
 public class GrowCropEffect : Effect
