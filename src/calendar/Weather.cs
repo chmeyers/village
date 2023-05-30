@@ -40,7 +40,7 @@ public class WeatherAttributes
         _attributes.SetValue(_weeklyHigh!, 70);
         _attributes.SetValue(_weeklyLow!, 45);
         _attributes.SetValue(_weeklySun!, 50);
-        _attributes.SetValue(_weeklyRain!, 0.7);
+        _attributes.SetValue(_weeklyRain!, 1.2);
         _attributes.SetValue(_weeklyTickET!, 0.015);
         _attributes.SetValue(_seasonalGrowth!, 1.0);
         break;
@@ -48,7 +48,7 @@ public class WeatherAttributes
         _attributes.SetValue(_weeklyHigh!, 85);
         _attributes.SetValue(_weeklyLow!, 60);
         _attributes.SetValue(_weeklySun!, 75);
-        _attributes.SetValue(_weeklyRain!, 0.5);
+        _attributes.SetValue(_weeklyRain!, 0.9);
         _attributes.SetValue(_weeklyTickET!, 0.025);
         _attributes.SetValue(_seasonalGrowth!, 1.0);
         break;
@@ -56,7 +56,7 @@ public class WeatherAttributes
         _attributes.SetValue(_weeklyHigh!, 65);
         _attributes.SetValue(_weeklyLow!, 40);
         _attributes.SetValue(_weeklySun!, 40);
-        _attributes.SetValue(_weeklyRain!, 0.3);
+        _attributes.SetValue(_weeklyRain!, 1.1);
         _attributes.SetValue(_weeklyTickET!, 0.010);
         _attributes.SetValue(_seasonalGrowth!, 1.0);
         break;
@@ -64,7 +64,7 @@ public class WeatherAttributes
         _attributes.SetValue(_weeklyHigh!, 40);
         _attributes.SetValue(_weeklyLow!, 20);
         _attributes.SetValue(_weeklySun!, 20);
-        _attributes.SetValue(_weeklyRain!, 0.1);
+        _attributes.SetValue(_weeklyRain!, 0.4);
         _attributes.SetValue(_weeklyTickET!, 0.005);
         _attributes.SetValue(_seasonalGrowth!, 1.0);
         break;

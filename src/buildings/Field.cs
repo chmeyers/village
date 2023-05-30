@@ -138,6 +138,18 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
   }
 
+  public double GetUnscaledValue(ItemType itemType, AttributeType attributeType)
+  {
+    lock (_lock)
+    {
+      if (!_crops.ContainsKey(itemType))
+      {
+        return state.GetUnscaledValue(attributeType);
+      }
+      return _crops[itemType].state.GetUnscaledValue(attributeType);
+    }
+  }
+
   public class CropInfo : IAbilityContext, IAttributeContext, IHouseholdContext
   {
     private const string cropAttributeGroup = "crop";

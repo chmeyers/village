@@ -15,6 +15,29 @@ namespace VillageTest;
 [TestClass]
 public class CropUnitTest
 {
+
+  public void RunCrop(Field field, ItemType crop, AttributeType cropAttribute, uint days, uint batchSize, bool print = false)
+  {
+    while(field.GetUnscaledValue(crop, cropAttribute) < days)
+    {
+      Calendar.Advance(batchSize);
+      WeatherAttributes.AdvanceWeather();
+      field.Advance();
+
+      if (print && field.GetUnscaledValue(crop, AttributeType.Find("crop_wheat_growing")!)% 10 == 0)
+      {
+        foreach (var attribute in field.state.attributes)
+        {
+          Console.WriteLine("{0}: {1}", attribute.Key.name, attribute.Value.value);
+        }
+        Console.WriteLine("Health: {0}", field.GetValue(crop, AttributeType.Find("crop_health")!));
+        Console.WriteLine("Yield: {0}", field.GetValue(crop, AttributeType.Find("crop_yield")!));
+        Console.WriteLine("Day: {0}", field.GetUnscaledValue(crop, AttributeType.Find("crop_wheat_growing")!));
+        Console.WriteLine();
+      }
+    }
+  }
+
   [TestMethod]
   public void TestField()
   {
@@ -55,10 +78,9 @@ public class CropUnitTest
       EffectLoader.Clear();
       string json = """
       {
-"drain_update" : { "target": "Field", "effectType": "AttributeTransfer", "config": { "surface_moisture" : { "sourceMin":1, "amount": { "val": "drainage"}, "dest": "deep_moisture", "destMax": { "val": "soil_quality"} }, } },
+"drain_update" : { "target": "Field", "effectType": "AttributeTransfer", "config": { "surface_moisture" : { "sourceMin":1, "amount": {"val": "drainage", "prescaled": true}, "dest": "deep_moisture", "destMax": { "val": "soil_quality", "prescaled": true}}, } },
 "field_changes" : { "target": "Field", "effectType": "AttributeAdder", "config": { "soil_quality" : { "amount": 0.0001}, "nitrogen" : { "amount": { "val": "soil_quality", "add": 2.5, "mult": 0.000052, "prescaled": true} }, "phosphorus" : { "amount": 0.0000972 }, "potassium" : { "amount": { "val": "soil_quality", "mult": 0.0000925, "prescaled": true} } } },
 "field_maintenance" : { "target": "Field", "effectType": "FieldMaintenance", "config": {  } },
-"rotting" : { "target": "Crop", "effectType": "AttributeAdder", "config": { "crop_health" : { "target":0, "amount": { "val": -0.5, "modifiers": { "wet_surface_soil": { "mult": 2} } } }, "crop_yield" : { "target":0, "amount": { "val": -5, "modifiers": { "wet_surface_soil": { "mult": 2} } } }, } },
 "grow_crop" : { "target": "Crop", "effectType": "GrowCrop", "config": { } },
 "plant_crop" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "wheat" } },
 "harvest_crop" : { "target": "Field", "effectType": "HarvestCrop", "config": { "crop" : "wheat" } },
@@ -81,7 +103,7 @@ public class CropUnitTest
 "weeds" : { "min": 0, "max": 100, "group": "field" , "initial": 100, "intervals": [{"lower": 0, "abilities": ["low_weeds"]},{"lower": 10, "abilities": ["mid_weeds"]},{"lower": 20, "abilities": ["high_weeds"]}]},
 "crop_health" : { "min": 0, "max": 100, "group": "crop" , "initial": 100, "intervals": [{"lower": 0, "abilities": []},{"lower": 10, "abilities": []}]},
 "crop_yield" : { "min": 0, "max": 3000, "group": "crop" , "initial": 0, "intervals": [{"lower": 0, "abilities": []}]},
-"crop_wheat_growing": { "min": 0, "max": 140, "changePerTick": 0.1, "initial": 0, "intervals": [{"lower": 0, "ongoing_effects": ["grow_crop"]}, {"lower": 135, "ongoing_effects": ["rotting"]}]},
+"crop_wheat_growing": { "min": 0, "max": 140, "changePerTick": 0.1, "initial": 0, "intervals": [{"lower": 0, "ongoing_effects": ["grow_crop"]}, {"lower": 135, "ongoing_effects": []}]},
   "weekly_high" : { "min": -110, "max": 212, "group": "weather" , "initial": 60, "intervals": []},
   "weekly_low" : { "min": -110, "max": 212, "group": "weather" , "initial": 40, "intervals": [{"lower": -110, "abilities": [], "entry_effects": []}, {"lower": 33}]},
   "weekly_tick_et" : { "min": 0, "max": 0.1, "group": "weather" , "initial": 0.015, "intervals": []},
@@ -107,56 +129,102 @@ public class CropUnitTest
     Household household = new Household();
     // Create a person in the household.
     Person person = new Person("Bob", "Bob", household, Role.HeadOfHousehold);
-    // Create a field.
-    Field field = new Field(BuildingType.Find("field")!, household);
-    // Set the field's soil quality to 5 (times 10), the minimum for wheat.
-    field.SetAttribute(AttributeType.Find("soil_quality")!, 50);
-    // Set the field's weeds to a low amount.
-    field.SetAttribute(AttributeType.Find("weeds")!, 0);
-    // Plant a crop in the field.
+
     ItemType wheat = ItemType.Find("wheat")!;
     PlantCropEffect plantCrop = (PlantCropEffect)Effect.effects["plant_crop"];
-    ChosenEffectTarget fieldTarget = new ChosenEffectTarget(EffectTargetType.Field, field, field, field);
-    // Plant 9 wheat. The field can hold 10, but we leave one empty to test for bugs
-    // in the scaling code.
-    plantCrop.ApplySync(fieldTarget, 9, 1);
-
+    
     AttributeType crop_health = AttributeType.Find("crop_health")!;
     AttributeType crop_yield = AttributeType.Find("crop_yield")!;
-    AttributeType weekly_low = AttributeType.Find("weekly_low")!;
 
     Item wheatItem = new Item(wheat);
     Assert.AreEqual(0, household.inventory[wheatItem]);
 
+
+    Field field = new Field(BuildingType.Find("field")!, household);
+    ChosenEffectTarget fieldTarget = new ChosenEffectTarget(EffectTargetType.Field, field, field, field);
+    // Set the field's soil quality to 5 (times 10), the minimum for wheat.
+    field.SetAttribute(AttributeType.Find("soil_quality")!, 50);
+    // Set the field's weeds to a low amount.
+    field.SetAttribute(AttributeType.Find("weeds")!, 0);
+    // Plant 9 wheat. The field can hold 10, but we leave one empty to test for bugs
+    // in the scaling code.
+    plantCrop.ApplySync(fieldTarget, 9, 1);
+
     // Advance the calendar five days (50 ticks) at a time for 135 days.
-    for (int i = 0; i < 27; i++)
-    {
-      Calendar.Advance(50);
-      WeatherAttributes.AdvanceWeather();
-      // Advance the field.
-      field.Advance();
-      // print all the attributes.
-      Console.WriteLine("Week {0}", i);
-      foreach (var attribute in field.state.attributes)
-      {
-        Console.WriteLine("{0}: {1}", attribute.Key.name, attribute.Value.value);
-      }
-      // And the crop attributes.
-      Console.WriteLine("Weekly_low: {0}", field.GetValue(wheat, weekly_low));
-      Console.WriteLine("Health: {0}", field.GetValue(wheat, crop_health));
-      Console.WriteLine("Yield: {0}", field.GetValue(wheat, crop_yield));
-      Console.WriteLine();
-    }
+    RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 50);
 
     // Harvest the crop.
     HarvestCropEffect harvestCrop = (HarvestCropEffect)Effect.effects["harvest_crop"];
     harvestCrop.ApplySync(fieldTarget, 9, 1);
     // Check household inventory for the wheat.
     // Item should have been converted from pounds to food units.
-    Assert.AreEqual(783, household.inventory[wheatItem]);
+    Assert.AreEqual(910, household.inventory[wheatItem]);
 
     // Clear the inventory.
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
+
+    field = new Field(BuildingType.Find("field")!, household);
+    fieldTarget = new ChosenEffectTarget(EffectTargetType.Field, field, field, field);
+    // Advance to the beginning of the next year.
+    Calendar.Advance((uint)(Calendar.ticksPerYear - Calendar.Ticks % Calendar.ticksPerYear));
+    field.SetAttribute(AttributeType.Find("soil_quality")!, 50);
+    field.SetAttribute(AttributeType.Find("weeds")!, 0);
+    field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
+    field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
+    plantCrop.ApplySync(fieldTarget, 9, 1);
+
+    // Advance the calendar one day (10 ticks) at a time for 135 days.
+    RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 10);
+
+    harvestCrop.ApplySync(fieldTarget, 9, 1);
+    Assert.AreEqual(906, household.inventory[wheatItem]);
+
+    household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
+
+    field = new Field(BuildingType.Find("field")!, household);
+    fieldTarget = new ChosenEffectTarget(EffectTargetType.Field, field, field, field);
+    // Advance to the beginning of the next year.
+    Calendar.Advance((uint)(Calendar.ticksPerYear - Calendar.Ticks % Calendar.ticksPerYear));
+    field.SetAttribute(AttributeType.Find("soil_quality")!, 50);
+    field.SetAttribute(AttributeType.Find("weeds")!, 0);
+    field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
+    field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
+    plantCrop.ApplySync(fieldTarget, 9, 1);
+
+    // Advance the calendar one tick at a time for 135 days.
+    RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
+
+    harvestCrop.ApplySync(fieldTarget, 9, 1);
+    Assert.AreEqual(902, household.inventory[wheatItem]);
+
+    household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
+
+    // Another crop planted immediately after harvest in the same field.
+    field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
+    field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
+    plantCrop.ApplySync(fieldTarget, 9, 1);
+
+    // Advance the calendar one tick at a time for 135 days.
+    RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
+
+    harvestCrop.ApplySync(fieldTarget, 9, 1);
+    Assert.AreEqual(682, household.inventory[wheatItem]);
+
+    household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
+
+    // A third crop planted immediately after harvest in the same field.
+    field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
+    field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
+    plantCrop.ApplySync(fieldTarget, 9, 1);
+
+    // Advance the calendar one tick at a time for 135 days.
+    RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
+
+    harvestCrop.ApplySync(fieldTarget, 9, 1);
+    Assert.AreEqual(12, household.inventory[wheatItem]);
+
+    household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
+    
   }
 
 }
