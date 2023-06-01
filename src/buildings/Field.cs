@@ -17,13 +17,14 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   public Household household { get; private set; }
 
   private const string fieldAttributeGroup = "field";
+  private const double minPlantQuantity = 0.000022; // ~ 1 square foot.
   // TODO(chmeyers): We shouldn't have to specify the type here.
   public Field(BuildingType buildingType, Household household) : base(buildingType)
   {
     this.household = household;
     state = new AttributeSet(this, this, this);
-    state.Rescale(_size);
-    state.SetEffectMultiplier(_size);
+    state.Rescale(size);
+    state.SetEffectMultiplier(size);
     state.AbilitiesChanged += UpdateAbilities;
     // Add field attributes to set.
     foreach (var attributeType in AttributeType.groups[fieldAttributeGroup])
@@ -61,7 +62,11 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
         // Can't plant something that isn't a crop.
         return false;
       }
-      if (quantity + _cropCount > _size)
+      if (quantity <= minPlantQuantity) {
+        // Refuse to plant tiny areas.
+        return false;
+      }
+      if (quantity + cropCount > size)
       {
         // Too many to plant.
         return false;
@@ -74,7 +79,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
       {
         _crops[itemType].quantity += quantity;
       }
-      _cropCount += quantity;
+      cropCount += quantity;
       return true;
     }
   }
@@ -89,7 +94,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
         // Can't harvest what isn't planted.
         return false;
       }
-      _cropCount -= quantity;
+      cropCount -= quantity;
       if (_crops[itemType].quantity - quantity <= 0)
       {
         // Remove the crop.
@@ -107,7 +112,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     lock (_lock)
     {
       _crops.Clear();
-      _cropCount = 0;
+      cropCount = 0;
     }
   }
 
@@ -197,7 +202,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 
     public double GetCropCoverage()
     {
-      return quantity / field._size;
+      return quantity / field.size;
     }
 
     public double GetCropCanopyUtilization()
@@ -298,14 +303,24 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   public IReadOnlyDictionary<ItemType, CropInfo> crops { get { return _crops; } }
 
   // The current number of crops in the field.
-  private double _cropCount = 0;
+  public double cropCount { get; private set; } = 0;
 
   // The size of the field
-  // In tenths of an acre, i.e. 4 rods by 4 rods.
-  // 1 acre = 4 rods by 40 rods = 80 furrows each 1 furlong long.
+  // In acres, 1 acre = 4 rods by 40 rods = 80 furrows each 1 furlong long.
   // 1 rod = 5.5 yards = 16.5 feet
   // One skilled guy with a good plow and a single ox can plow 1 acre in a day.
-  private int _size = 10;
+  public double size { get; private set; } = 1.0;
+
+  public void Resize(double size)
+  {
+    lock (_lock)
+    {
+      Advance();
+      this.size = size;
+      state.Rescale(size);
+      state.SetEffectMultiplier(size);
+    }
+  }
 
   // When was the last time the attributes were advanced.
   private long _lastAdvanceTick = 0;

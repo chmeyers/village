@@ -68,7 +68,7 @@ public class CropUnitTest
 {
   "straw": { "group": "RESOURCE"},
   "food": { "group": "FOOD"},
-  "wheat": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.0444, "targetYieldPerAcreTenth": 60, "seedPerAcreTenth": 15, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
+  "wheat": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.444, "targetYieldPerAcre": 600, "seedPerAcre": 150, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
 }
 """;
       // Load the item types.
@@ -80,7 +80,7 @@ public class CropUnitTest
       string json = """
       {
 "drain_update" : { "target": "Field", "effectType": "AttributeTransfer", "config": { "surface_moisture" : { "sourceMin":1, "amount": {"val": "drainage", "prescaled": true}, "dest": "deep_moisture", "destMax": { "val": "soil_quality", "prescaled": true}}, } },
-"field_changes" : { "target": "Field", "effectType": "AttributeAdder", "config": { "soil_quality" : { "amount": 0.0001}, "nitrogen" : { "amount": { "val": "soil_quality", "add": 2.5, "mult": 0.000052, "prescaled": true} }, "phosphorus" : { "amount": 0.0000972 }, "potassium" : { "amount": { "val": "soil_quality", "mult": 0.0000925, "prescaled": true} } } },
+"field_changes" : { "target": "Field", "effectType": "AttributeAdder", "config": { "soil_quality" : { "amount": 0.0001}, "nitrogen" : { "amount": { "val": "soil_quality", "add": 2.5, "mult": 0.00052, "prescaled": true} }, "phosphorus" : { "amount": 0.000972 }, "potassium" : { "amount": { "val": "soil_quality", "mult": 0.000925, "prescaled": true} } } },
 "field_maintenance" : { "target": "Field", "effectType": "FieldMaintenance", "config": {  } },
 "grow_crop" : { "target": "Crop", "effectType": "GrowCrop", "config": {  } },
 "rotting" : { "target": "Crop", "effectType": "RotCrop", "config": { "rotRate" : { "val": 0.003, "modifiers": {"wet_surface_soil": {"mult": 2}}}, } },
@@ -100,12 +100,12 @@ public class CropUnitTest
 "deep_moisture" : { "min": 0, "max": 10, "group": "field" , "initial": 4, "intervals": [{"lower": 0, "abilities": ["low_deep_moisture"]},{"lower": 0.1, "abilities": ["high_deep_moisture"]}]},
 "drainage" : { "min": 0.2, "max": 2, "group": "field" , "initial": 1, "intervals": [{"lower": 0.2, "abilities": []}]},
 "soil_quality" : { "min": 1, "max": 7.5, "group": "field" , "initial": 4, "intervals": [{"lower": 1, "abilities": []},{"lower": 4, "abilities": []}]},
-"nitrogen" : { "min": 0, "max": 500, "group": "field" , "initial": 10, "intervals": [{"lower": 0, "abilities": ["low_nitrogen"]},{"lower": 5, "abilities": []}]},
-"phosphorus" : { "min": 0, "max": 1000, "group": "field" , "initial": 15, "intervals": [{"lower": 0, "abilities": ["low_phosphorus"]},{"lower": 5, "abilities": []}]},
-"potassium" : { "min": 0, "max": 1000, "group": "field" , "initial": 500, "intervals": [{"lower": 0, "abilities": ["low_potassium"]},{"lower": 50, "abilities": []}]},
+"nitrogen" : { "min": 0, "max": 500, "group": "field" , "initial": 100, "intervals": [{"lower": 0, "abilities": ["low_nitrogen"]},{"lower": 5, "abilities": []}]},
+"phosphorus" : { "min": 0, "max": 1000, "group": "field" , "initial": 150, "intervals": [{"lower": 0, "abilities": ["low_phosphorus"]},{"lower": 5, "abilities": []}]},
+"potassium" : { "min": 0, "max": 10000, "group": "field" , "initial": 5000, "intervals": [{"lower": 0, "abilities": ["low_potassium"]},{"lower": 50, "abilities": []}]},
 "weeds" : { "min": 0, "max": 100, "group": "field" , "initial": 100, "intervals": [{"lower": 0, "abilities": ["low_weeds"]},{"lower": 10, "abilities": ["mid_weeds"]},{"lower": 20, "abilities": ["high_weeds"]}]},
 "crop_health" : { "min": 0, "max": 100, "group": "crop" , "initial": 100, "intervals": [{"lower": 0, "abilities": []},{"lower": 10, "abilities": []}]},
-"crop_yield" : { "min": 0, "max": 3000, "group": "crop" , "initial": 0, "intervals": [{"lower": 0, "abilities": []}]},
+"crop_yield" : { "min": 0, "max": 100000, "group": "crop" , "initial": 0, "intervals": [{"lower": 0, "abilities": []}]},
 "crop_wheat_growing": { "min": 0, "max": 190, "changePerTick": 0.1, "initial": 0, "intervals": [{"lower": 0, "ongoing_effects": ["grow_crop"]}, {"lower": 130, "abilities": ["harvestable"], "ongoing_effects": ["grow_crop"]}, {"lower": 135, "abilities": ["harvestable"]}, {"lower": 155, "ongoing_effects": ["rotting"]}, {"lower": 185, "entry_effects": ["kill_crop"]} ]},
   "weekly_high" : { "min": -110, "max": 212, "group": "weather" , "initial": 60, "intervals": []},
   "weekly_low" : { "min": -110, "max": 212, "group": "weather" , "initial": 40, "intervals": [{"lower": -110, "abilities": [], "entry_effects": []}, {"lower": 33}]},
@@ -152,17 +152,17 @@ public class CropUnitTest
     field.SetAttribute(AttributeType.Find("weeds")!, 0);
     // Plant 9 wheat. The field can hold 10, but we leave one empty to test for bugs
     // in the scaling code.
-    plantCrop.ApplySync(fieldTarget, 9, 1);
+    plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar five days (50 ticks) at a time for 135 days.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 50);
 
     // Harvest the crop.
     HarvestCropEffect harvestCrop = (HarvestCropEffect)Effect.effects["harvest_crop"];
-    harvestCrop.ApplySync(fieldTarget, 9, 1);
+    harvestCrop.ApplySync(fieldTarget, 0.9, 1);
     // Check household inventory for the wheat.
     // Item should have been converted from pounds to food units.
-    Assert.AreEqual(910, household.inventory[wheatItem]);
+    Assert.AreEqual(911, household.inventory[wheatItem]);
 
     // Clear the inventory.
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
@@ -175,13 +175,13 @@ public class CropUnitTest
     field.SetAttribute(AttributeType.Find("weeds")!, 0);
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
-    plantCrop.ApplySync(fieldTarget, 9, 1);
+    plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one day (10 ticks) at a time for 135 days.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 10);
 
-    harvestCrop.ApplySync(fieldTarget, 9, 1);
-    Assert.AreEqual(906, household.inventory[wheatItem]);
+    harvestCrop.ApplySync(fieldTarget, 0.9, 1);
+    Assert.AreEqual(907, household.inventory[wheatItem]);
 
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
 
@@ -193,25 +193,25 @@ public class CropUnitTest
     field.SetAttribute(AttributeType.Find("weeds")!, 0);
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
-    plantCrop.ApplySync(fieldTarget, 9, 1);
+    plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one tick at a time for 135 days.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
 
-    harvestCrop.ApplySync(fieldTarget, 9, 1);
-    Assert.AreEqual(902, household.inventory[wheatItem]);
+    harvestCrop.ApplySync(fieldTarget, 0.9, 1);
+    Assert.AreEqual(904, household.inventory[wheatItem]);
 
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
 
     // Another crop planted immediately after harvest in the same field.
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
-    plantCrop.ApplySync(fieldTarget, 9, 1);
+    plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one tick at a time for 135 days.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
 
-    harvestCrop.ApplySync(fieldTarget, 9, 1);
+    harvestCrop.ApplySync(fieldTarget, 0.9, 1);
     Assert.AreEqual(682, household.inventory[wheatItem]);
 
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
@@ -219,12 +219,12 @@ public class CropUnitTest
     // A third crop planted immediately after harvest in the same field.
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
-    plantCrop.ApplySync(fieldTarget, 9, 1);
+    plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one tick at a time for 135 days.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
 
-    harvestCrop.ApplySync(fieldTarget, 9, 1);
+    harvestCrop.ApplySync(fieldTarget, 0.9, 1);
     Assert.AreEqual(0, household.inventory[wheatItem]);
 
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
@@ -237,22 +237,22 @@ public class CropUnitTest
     field.SetAttribute(AttributeType.Find("weeds")!, 0);
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
-    plantCrop.ApplySync(fieldTarget, 9, 1);
+    plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one tick at a time for 135 days.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
-    Assert.AreEqual(451, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);
+    Assert.AreEqual(452, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);
 
     // Yield should stay stable for the next 20 days.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 155, 1);
-    Assert.AreEqual(451, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);
+    Assert.AreEqual(452, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);
 
     // The crop should start to rot, dropping the yield.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 165, 1);
-    Assert.AreEqual(9, field.Count(wheat));
+    Assert.AreEqual(0.9, field.Count(wheat));
     Assert.AreEqual(247, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 175, 1);
-    Assert.AreEqual(9, field.Count(wheat));
+    Assert.AreEqual(0.9, field.Count(wheat));
     Assert.AreEqual(135, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 184, 1);
     Assert.AreEqual(78, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);

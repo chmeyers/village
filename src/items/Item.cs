@@ -149,14 +149,14 @@ public class CropSettings
       temperatePlantingMonths = ((Newtonsoft.Json.Linq.JArray)cropData["temperatePlantingMonths"])!.ToObject<List<int>>() ?? throw new Exception("Invalid temperatePlantingMonths in crop settings for item type: " + itemName);
     }
     // Get the targetYield.
-    if (cropData.ContainsKey("targetYieldPerAcreTenth"))
+    if (cropData.ContainsKey("targetYieldPerAcre"))
     {
-      targetYieldPerAcreTenth = _Double(cropData["targetYieldPerAcreTenth"]);
+      targetYieldPerAcre = _Double(cropData["targetYieldPerAcre"]);
     }
-    // Get the seedPerAcreTenth.
-    if (cropData.ContainsKey("seedPerAcreTenth"))
+    // Get the seedPerAcre.
+    if (cropData.ContainsKey("seedPerAcre"))
     {
-      seedPerAcreTenth = _Double(cropData["seedPerAcreTenth"]);
+      seedPerAcre = _Double(cropData["seedPerAcre"]);
     }
     // Get the hasHarvestableStraw.
     if (cropData.ContainsKey("hasHarvestableStraw"))
@@ -277,8 +277,8 @@ public class CropSettings
     }
     return kcEnd;
   }
-  // How much yield does each tenth of an acre grow each tick.
-  public double perTickYieldGrowth = 0.05;
+  // How much yield does each acre grow each tick.
+  public double perTickYieldGrowth = 0.5;
   public double currentYieldGrowth(int day)
   {
     // TODO(chmeyers): This should be a non-linear function of the crop development stage.
@@ -288,9 +288,9 @@ public class CropSettings
   // Month zero is the beginning of spring.
   public List<int> temperatePlantingMonths = new List<int> { 1, 2 };
   // Target yield per acre in pounds.
-  public double targetYieldPerAcreTenth = 100.0;
+  public double targetYieldPerAcre = 100.0;
   // Seed needed per acre in pounds.
-  public double seedPerAcreTenth = 15.0;
+  public double seedPerAcre = 15.0;
   // Does this crop have harvestable straw?
   public bool hasHarvestableStraw = false;
   // Pounds of straw per pound of crop yield.
