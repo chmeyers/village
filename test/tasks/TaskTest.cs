@@ -75,8 +75,9 @@ public class TaskUnitTest
       // Check that the effects were loaded correctly.
       Assert.AreEqual(2, WorkTask.tasks["gather_wood"].effects.Count);
       Assert.AreEqual(1, WorkTask.tasks["teach_chopping_1"].effects.Count);
-      Assert.AreEqual(1, WorkTask.tasks["gather_wood"].effects[Effect.Find("skill_chopping_1")!].Count);
-      Assert.AreEqual(EffectTargetType.Person, WorkTask.tasks["gather_wood"].effects[Effect.Find("skill_chopping_1")!][0].effectTargetType);
+      Assert.AreEqual(Effect.Find("skill_chopping_1")!, WorkTask.tasks["gather_wood"].effects[0].Key);
+      Assert.AreEqual(1, WorkTask.tasks["gather_wood"].effects[0].Value.Count());
+      Assert.AreEqual(EffectTargetType.Person, WorkTask.tasks["gather_wood"].effects[0].Value[0].effectTargetType);
       // Check the tasks by ability index.
       Assert.AreEqual(3, WorkTask.tasksByAbility["chopping_2"].Count);
       // chopping_2 should have gather_wood, gather_more_wood and teach_chopping_1.
@@ -130,15 +131,15 @@ public class TaskUnitTest
       Assert.AreEqual(1, axes.First().Value);
       Assert.AreEqual(100, axes.Last().Key.quality);
       Assert.AreEqual(1, axes.Last().Value);
-      // Try to perform the task again
-      Assert.IsTrue(TaskRunner.PerformTask(person, person, WorkTask.tasks["gather_wood"], null));
-      // Person should have 200 wood.
-      Assert.IsTrue(person.inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 200 } }));
-      // Person should have one axe with full quality, and one axe degraded two times.
+      // Try to perform the task again at double scale.
+      Assert.IsTrue(TaskRunner.PerformTask(person, person, WorkTask.tasks["gather_wood"], null, 2.0));
+      // Person should have 300 wood.
+      Assert.IsTrue(person.inventory.Contains(new Dictionary<ItemType, int> { { ItemType.Find("wood")!, 300 } }));
+      // Person should have one axe with full quality, and one axe degraded three times.
       axes = person.inventory[ItemType.Find("axe")!];
       Assert.AreEqual(2, axes.Count);
       // The lower quality one should be sorted first.
-      Assert.AreEqual(98, axes.First().Key.quality);
+      Assert.AreEqual(97, axes.First().Key.quality);
       Assert.AreEqual(1, axes.First().Value);
       Assert.AreEqual(100, axes.Last().Key.quality);
       Assert.AreEqual(1, axes.Last().Value);

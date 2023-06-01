@@ -318,6 +318,29 @@ public class KillCropEffect : Effect
   {
     return false;
   }
+
+  public override double MinScale(ChosenEffectTarget target)
+  {
+    // You can kill part of a crop, but only the whole field.
+    if (target.effectTargetType == EffectTargetType.Crop)
+    {
+      double? quantity = (target.target as Field.CropInfo)?.quantity;
+      if (quantity != null && quantity > 0)
+      {
+        return quantity.Value;
+      }
+      return Field.minPlantQuantity;
+    }
+    else if (target.effectTargetType == EffectTargetType.Field)
+    {
+      var field = target.target as Field;
+      if (field != null)
+      {
+        return field.size;
+      }
+    }
+    return 1.0;
+  }
 }
 
 public class GrowCropEffect : Effect
@@ -346,6 +369,8 @@ public class GrowCropEffect : Effect
   // Apply the effect to the target.
   public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
+    // TODO(chmeyers): Give penalties for fields with multiple dissimilar crop types, to encourage
+    // separating crops by field and setting up a rotation. Except for gardens!
     // Get the crop from the chosen target.
     Field.CropInfo cropInfo = (Field.CropInfo)chosenEffectTarget.target!;
     // Make sure the crop is not null.
@@ -370,7 +395,8 @@ public class GrowCropEffect : Effect
     // The maximum yield gain varies based on the seasonal growth.
     double seasonalGrowth = cropInfo.GetAttributeValue(StaticAttributes.seasonalGrowth!);
     yieldGain *= seasonalGrowth;
-    // Reduce the maximum yield based on the crop's health.
+    // Multiply the maximum yield based on the crop's health,
+    // note that the health can be greater than 100% if you are a skilled farmer.
     double currentHealthPercentage = cropInfo.GetUnscaledAttributeValue(StaticAttributes.cropHealth!) / 100;
     yieldGain *= currentHealthPercentage;
     // Reduce the maximum yield based on the lack of soil quality.

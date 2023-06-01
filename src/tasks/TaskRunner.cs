@@ -16,30 +16,34 @@ public class TaskRunner
   // Choose a target for the given effect target.
   // This will return a ChosenEffectTarget if the target is valid, or null otherwise.
   // This will throw an exception if the target is invalid.
-  public static ChosenEffectTarget? ChooseEffectTarget(EffectTarget effectTarget, RunningTask runningTask, Effect effect)
+  public static ChosenEffectTarget? ChooseEffectTarget(EffectTarget effectTarget, Effect effect, Dictionary<string, ChosenEffectTarget>? chosenTargets, IInventoryContext? targetContext, IAbilityContext? runningContext, string taskName)
   {
     ChosenEffectTarget? chosenTarget = null;
     if (EffectTarget.IsTargetString(effectTarget.target))
     {
       // Match the target string to a chosen target.
-      if (runningTask.chosenTargets == null || !runningTask.chosenTargets.ContainsKey(effectTarget.target))
+      if (chosenTargets == null || !chosenTargets.ContainsKey(effectTarget.target))
       {
-        throw new Exception("Invalid target string: " + effectTarget.target + " for effect: " + effect + " in task: " + runningTask.task);
+        // If the effect is optional, skip it, otherwise throw.
+        if (!effect.IsOptional())
+        {
+          throw new Exception("Invalid effect target: " + effectTarget + " for effect: " + effect + " in task: " + taskName);
+        }
+        return null;
       }
-      chosenTarget = runningTask.chosenTargets[effectTarget.target];
+      chosenTarget = chosenTargets[effectTarget.target];
     }
     else
     {
       // The target isn't a target string, so resolve it.
-      IInventoryContext target = runningTask.target;
-      chosenTarget = EffectTargetResolver.ResolveEffectTarget(effect, effectTarget, target, runningTask.owner);
+      chosenTarget = EffectTargetResolver.ResolveEffectTarget(effect, effectTarget, targetContext, runningContext);
     }
     if (chosenTarget == null)
     {
       // If the effect is optional, skip it, otherwise throw.
       if (!effect.IsOptional())
       {
-        throw new Exception("Invalid effect target: " + effectTarget + " for effect: " + effect + " in task: " + runningTask.task);
+        throw new Exception("Invalid effect target: " + effectTarget + " for effect: " + effect + " in task: " + taskName);
       }
       return null;
     }
@@ -49,7 +53,7 @@ public class TaskRunner
   // Start a task for a person, with the given list of Chosen Targets
   // If the task can be performed, returns a RunningTask and removes the
   // inputs from the target inventory. Otherwise, returns null.
-  public static RunningTask? StartTask(Person person, IInventoryContext target, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
+  public static RunningTask? StartTask(Person person, IInventoryContext target, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets, double scale = 1.0)
   {
     // Verify that the size of the chosenTargets list matches the size of the task's targets list.
     // Or that the chosenTargets list is null iff the task's list is empty.
@@ -64,28 +68,50 @@ public class TaskRunner
     // Check that the task is potential. Inputs will be checked by the inventory later.
     if (person.PotentialTasks.Contains(task))
     {
+      // Verify and actualize all the targets.
+      Dictionary<Effect, List<ChosenEffectTarget>> targetDict = new Dictionary<Effect, List<ChosenEffectTarget>>();
+      foreach (var effect in task.effects)
+      {
+        targetDict[effect.Key] = new List<ChosenEffectTarget>();
+        foreach (var effectTarget in effect.Value)
+        {
+          ChosenEffectTarget? chosenTarget = ChooseEffectTarget(effectTarget, effect.Key, chosenTargets, target, person, task.task);
+          // continue if it's null, since it's optional. We'd have thrown an exception otherwise.
+          if (chosenTarget == null) continue;
+          targetDict[effect.Key].Add(chosenTarget);
+        }
+      }
+      // Verify that the scale is acceptable.
+      // If the task has outputs, the scale must be a whole number >= 1.0.
+      if (task.outputs.Count > 0 && (scale != Math.Round(scale) || scale < 1.0))
+      {
+        throw new Exception("Invalid scale for task: " + task + " (" + scale + ") with outputs: " + task.outputs.Count);
+      }
+      // If the task has effects, the scale must be within each effect's scale range.
+      foreach (var effect in targetDict)
+      {
+        // Optional effects just won't be run if we are out of scale.
+        if (effect.Key.IsOptional()) continue;
+        foreach (var effectTarget in effect.Value)
+        {
+          // Check the scale.
+          if (scale < effect.Key.MinScale(effectTarget) || scale > effect.Key.MaxScale(effectTarget))
+          {
+            throw new Exception("Invalid scale for task: " + task + " (" + scale + ") with effect: " + effect.Key + " and target: " + target);
+          }
+        }
+      }
+
       // Remove the inputs from the inventory or return null if they are not present.
       // The inventory will choose the worst version of the item that matches.
-      var inputs = target.inventory.Get(task.Inputs(person));
+      var inputs = target.inventory.Get(task.Inputs(person, scale));
       if (inputs == null || !target.inventory.Remove(inputs))
       {
         return null;
       }
-      var runningTask = new RunningTask(task, person, inputs, target, chosenTargets, Calendar.Ticks);
+      var runningTask = new RunningTask(task, person, inputs, target, targetDict, Calendar.Ticks, scale);
       // Start the effects.
-      // For each effect, resolve the target and apply the effect.
-      foreach (var effect in task.effects)
-      {
-        // Effects are run once for each target in the list.
-        foreach (var effectTarget in effect.Value)
-        {
-          ChosenEffectTarget? chosenTarget = ChooseEffectTarget(effectTarget, runningTask, effect.Key);
-          // continue if it's null, since it's optional. We'd have thrown an exception otherwise.
-          if (chosenTarget == null) continue;
-          // Apply the effect to the chosen target.
-          effect.Key.Start(chosenTarget);
-        }
-      }
+      runningTask.StartEffects();
       return runningTask;
     }
     return null;
@@ -100,22 +126,11 @@ public class TaskRunner
     // Add the outputs to the inventory.
     foreach (var output in runningTask.task.Outputs(runningTask.owner))
     {
-      runningTask.target.inventory.AddItem(output.Key, output.Value);
+      runningTask.target.inventory.AddItem(output.Key, (int)Math.Floor(output.Value * runningTask.scale));
     }
 
-    // For each effect, resolve the target and apply the effect.
-    foreach (var effect in runningTask.task.effects)
-    {
-      // Effects are run once for each target in the list.
-      foreach (var effectTarget in effect.Value)
-      {
-        ChosenEffectTarget? chosenTarget = ChooseEffectTarget(effectTarget, runningTask, effect.Key);
-        // continue if it's null, since it's optional. We would have thrown an exception otherwise.
-        if (chosenTarget == null) continue;
-        // Apply the effect to the chosen target.
-        effect.Key.Finish(chosenTarget);
-      }
-    }
+    // Finish the effects.
+    runningTask.FinishEffects();
   }
 
   public static bool AdvanceTask(RunningTask runningTask, int ticks)
@@ -183,9 +198,9 @@ public class TaskRunner
   // Have the person perform a task, with the given list of Chosen Targets
   // Immediately finishes the task, ignoring the time cost.
   // Returns true if the task was performed, false otherwise.
-  public static bool PerformTask(Person person, IInventoryContext target, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets)
+  public static bool PerformTask(Person person, IInventoryContext target, WorkTask task, Dictionary<string, ChosenEffectTarget>? chosenTargets, double scale = 1.0)
   {
-    var runningTask = StartTask(person, target, task, chosenTargets);
+    var runningTask = StartTask(person, target, task, chosenTargets, scale);
     if (runningTask == null)
     {
       return false;

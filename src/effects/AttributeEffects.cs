@@ -101,6 +101,17 @@ public class AttributePullerEffect : Effect
     return true;
   }
 
+  // Attribute Effects can scale by any amount.
+  public override double MinScale(ChosenEffectTarget target)
+  {
+    return Double.MinValue;
+  }
+
+  public override double MaxScale(ChosenEffectTarget target)
+  {
+    return Double.MaxValue;
+  }
+
   class AttributePuller
   {
     // Constructor
@@ -304,6 +315,17 @@ public class AttributeTransferEffect : Effect
     return true;
   }
 
+  // Attribute Effects can scale by any amount.
+  public override double MinScale(ChosenEffectTarget target)
+  {
+    return Double.MinValue;
+  }
+
+  public override double MaxScale(ChosenEffectTarget target)
+  {
+    return Double.MaxValue;
+  }
+
   class AttributeTransfer
   {
     // Constructor
@@ -439,6 +461,17 @@ public class AttributeAdderEffect : Effect
   public override bool SupportsBatching()
   {
     return true;
+  }
+
+  // Attribute Effects can scale by any amount.
+  public override double MinScale(ChosenEffectTarget target)
+  {
+    return Double.MinValue;
+  }
+
+  public override double MaxScale(ChosenEffectTarget target)
+  {
+    return Double.MaxValue;
   }
 
   class AttributeAdder

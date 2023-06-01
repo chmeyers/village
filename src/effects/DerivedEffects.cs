@@ -51,7 +51,7 @@ public class DegradeEffect : Effect
     // Batching is equivalent to degrading the item for the specified amount of time.
     // Note that we don't overflow the degradation onto a second item,
     // so batching is not exactly equivalent.
-    int degradeAmount = (int)(amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize);
+    int degradeAmount = (int)Math.Ceiling(amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize);
 
     // Check if person has more than one of the item.
     if (targetInventory.inventory[item] > Inventory.DEFAULT_QUANTITY)
@@ -97,6 +97,22 @@ public class DegradeEffect : Effect
   public override bool SupportsBatching()
   {
     return true;
+  }
+
+  public override double MinScale(ChosenEffectTarget target)
+  {
+    // Degrade can scale infinitely, and it's an optional effect, so these
+    // values are mostly recommendations.
+    // This min scale will degrade by 1.
+    double amount = this.amount.GetValue(target.runningContext);
+    return amount == 0 ? Double.MinValue: 1.0/amount;
+  }
+
+  public override double MaxScale(ChosenEffectTarget target)
+  {
+    // This max scale will degrade the item completely.
+    double amount = this.amount.GetValue(target.runningContext);
+    return amount == 0 ? Double.MaxValue : (target.target! as Item)!.quality / amount;
   }
 
   // The amount to degrade the item by.
@@ -147,7 +163,7 @@ public class SkillEffect : Effect
     // If the person is currently at level, they get one XP, if less they get two,
     // if more they get nothing.
     int trainingLevel = (int)level.GetValue(chosenEffectTarget.runningContext);
-    int trainingAmount = (int)(amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize);
+    int trainingAmount = (int)Math.Floor(amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize);
     while (trainingAmount > 0 && person.GetLevel(_skill!) <= trainingLevel)
     {
       // Grant the max of trainingAmount or the amount needed to get to the next level.
@@ -189,6 +205,19 @@ public class SkillEffect : Effect
   public override bool SupportsBatching()
   {
     return true;
+  }
+
+  public override double MinScale(ChosenEffectTarget target)
+  {
+    // The code can scale however, but below this scale they will get no XP.
+    // This effect is optional, so these are just recommendations.
+    double amount = this.amount.GetValue(target.runningContext);
+    return amount == 0 ? 0.0 : 1.0 / amount;
+  }
+
+  public override double MaxScale(ChosenEffectTarget target)
+  {
+    return Double.MaxValue;
   }
 
   // The name of the skill to increase.
@@ -256,6 +285,16 @@ public class BuildingComponentEffect : Effect
     // Building Component effects are not optional.
     // If you can't apply the effect, then you shouldn't run the task.
     return false;
+  }
+
+  public override double MinScale(ChosenEffectTarget target)
+  {
+    return 1.0;
+  }
+
+  public override double MaxScale(ChosenEffectTarget target)
+  {
+    return 1.0;
   }
 
   public override HashSet<BuildingComponent> BuildingComponents()

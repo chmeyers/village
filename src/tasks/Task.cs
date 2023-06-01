@@ -251,32 +251,30 @@ namespace Village.Tasks
       // and convert the strings to Effects.
       if (effects != null)
       {
-        this.effects = effects.ToDictionary(
-          (KeyValuePair<string, List<string>> effect) =>
+        this.effects = effects.Select((KeyValuePair<string, List<string>> effect) =>
+        {
+          Effect? effectType = Effect.Find(effect.Key);
+          if (effectType == null)
           {
-            Effect? effectType = Effect.Find(effect.Key);
-            if (effectType == null)
-            {
-              throw new Exception("Invalid effect type in task config: " + effect.Key + " in task " + task);
-            }
-            return effectType;
-          },
-          (KeyValuePair<string, List<string>> effect) =>
-          {
-            return effect.Value.Select((string target) =>
-            {
-              try {
-                return new EffectTarget(Effect.Find(effect.Key)!.target, target);
-              } catch (Exception e) {
-                throw new Exception("Invalid effect target in task config: " + target + " in task " + task, e);
-              }
-            }).ToList();
+            throw new Exception("Invalid effect type in task config: " + effect.Key);
           }
-        );
+          // Verify that the targets are all valid EffectTargets,
+          // and convert the strings to EffectTargets.
+          List<EffectTarget> targets = effect.Value.Select((string target) =>
+          {
+            EffectTarget? targetType = new EffectTarget(Effect.Find(effect.Key)!.target, target);
+            if (targetType == null)
+            {
+              throw new Exception("Invalid effect target in task config: " + target);
+            }
+            return targetType;
+          }).ToList();
+          return new KeyValuePair<Effect, List<EffectTarget>>(effectType, targets);
+        }).ToList();
       }
       else
       {
-        this.effects = new Dictionary<Effect, List<EffectTarget>>();
+        this.effects = new List<KeyValuePair<Effect, List<EffectTarget>>>();
       }
 
       // Target set starts empty.
@@ -371,12 +369,12 @@ namespace Village.Tasks
       }
     }
 
-    public List<KeyValuePair<ItemType, int>> Inputs(IAbilityContext context)
+    public List<KeyValuePair<ItemType, int>> Inputs(IAbilityContext context, double scale = 1.0)
     {
       List<KeyValuePair<ItemType, int>> inputs = new List<KeyValuePair<ItemType, int>>();
       foreach (var input in this.inputs)
       {
-        inputs.Add(new KeyValuePair<ItemType, int>(input.Key, (int)input.Value.GetValue(context)));
+        inputs.Add(new KeyValuePair<ItemType, int>(input.Key, (int)Math.Ceiling(scale * input.Value.GetValue(context))));
       }
       return inputs;
     }
@@ -444,7 +442,7 @@ namespace Village.Tasks
     public Dictionary<ItemType, AbilityValue> outputs;
     // The side effects of the task, along with their targets.
     // Duplicate Effects are allowed with different targets.
-    public Dictionary<Effect, List<EffectTarget>> effects;
+    public List<KeyValuePair<Effect, List<EffectTarget>>> effects;
     // The time required to perform the task.
     // Measured in tenths of a day, so Persons can perform
     // 300 units worth of tasks per month/turn.
