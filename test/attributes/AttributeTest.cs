@@ -148,6 +148,15 @@ public class AttributeUnitTest
     // Check that the strength value is now 145.
     Assert.AreEqual(145, a.value);
 
+    // Set the strength value to 175
+    Assert.AreEqual(175, a.SetValue(175));
+    // Check that the strength value is now 175.
+    Assert.AreEqual(175, a.value);
+
+    // Try to set the strength value to 75, but it should be clamped to 125.
+    Assert.AreEqual(120, a.SetValue(75));
+    Assert.AreEqual(145, a.SetValue(145));
+
     // Rescale it back.
     a.Rescale(1);
     // Check that the strength value is now 145/20 = 7.25.

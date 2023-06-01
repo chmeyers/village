@@ -46,6 +46,9 @@ public class AbilityValue
   public AbilityValue(AbilityValue abilityValue)
   {
     this.baseValue = abilityValue.baseValue;
+    this.namedValue = abilityValue.namedValue;
+    this.namedAdd = abilityValue.namedAdd;
+    this.namedMult = abilityValue.namedMult;
     this.min = abilityValue.min;
     this.max = abilityValue.max;
     this.addAbilities = abilityValue.addAbilities;
@@ -195,7 +198,7 @@ public class AbilityValue
     {
       return baseValue;
     }
-    return ((context.GetNamedValue(namedValue) ?? 0) + namedAdd) * namedMult;
+    return ((context.GetNamedValue(namedValue) ?? 0) + baseValue + namedAdd) * namedMult;
   }
   // Return the value of the AbilityValue.
   public double GetValue(IAbilityContext? context)
@@ -242,6 +245,25 @@ public class AbilityValue
   public double GetBaseValue()
   {
     return baseValue;
+  }
+
+  // Add to the AbilityValue.
+  public void Add(double value)
+  {
+    if (namedValue != null)
+    {
+      value /= namedMult;
+    }
+    baseValue += value;
+  }
+
+  public void Set(double value)
+  {
+    if (namedValue != null)
+    {
+      value /= namedMult;
+    }
+    baseValue = value;
   }
 }
 

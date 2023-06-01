@@ -354,6 +354,8 @@ public class Attribute : IAbilityCollection
   private long _lastAdvanceTick = 0;
 
   private object _lock = new object();
+
+  public const double maxEpsilon = 0.01;
   
 
   public event AbilitiesChanged? AbilitiesChanged;
@@ -444,7 +446,7 @@ public class Attribute : IAbilityCollection
   private bool IsMaxed()
   {
     // True if the value is at the max value or the base value is at the max value (exclusive).
-    return value >= _scaledMaxValue - 1 ||  abilityValue.baseValue * scale >= _scaledMaxValue - 1;
+    return value >= _scaledMaxValue - maxEpsilon ||  abilityValue.baseValue * scale >= _scaledMaxValue - maxEpsilon;
   }
 
   private bool IsMinned()
@@ -476,11 +478,11 @@ public class Attribute : IAbilityCollection
     if ((added != null && _modifierAbilities.Overlaps(added)) ||
         (removed != null && _modifierAbilities.Overlaps(removed)))
     {
-      UpdateValue();
+      _UpdateValue();
     }
   }
 
-  private double UpdateValue()
+  private double _UpdateValue()
   {
     // Note that Advance() should be called before this method is called.
     // Recalculate the value.
@@ -493,8 +495,8 @@ public class Attribute : IAbilityCollection
     }
     else if (value >= _scaledMaxValue)
     {
-      // The max value is exclusive, so we need to subtract 1.
-      value = _scaledMaxValue - 1;
+      // The max value is exclusive, so we need to subtract epsilon.
+      value = _scaledMaxValue - maxEpsilon;
     }
 
     // if value is still inside the current range, we don't need to update the range
@@ -533,37 +535,32 @@ public class Attribute : IAbilityCollection
     return value;
   }
 
-  private double _SetValueInternal(double newBaseValue)
-  {
-    if (newBaseValue == abilityValue.baseValue) return value;
-
-    if (newBaseValue < _scaledMinValue)
-    {
-      newBaseValue = _scaledMinValue;
-    }
-    else if (newBaseValue >= _scaledMaxValue)
-    {
-      newBaseValue = _scaledMaxValue - 1;
-    }
-
-    abilityValue.baseValue = newBaseValue / scale;
-
-    return UpdateValue();
-  }
-
-  // Set the base value of the attribute.
-  public double SetValue(double newBaseValue)
+  // Set the value of the attribute.
+  public double SetValue(double newValue)
   {
     lock (_lock)
     {
       Advance();
-      return _SetValueInternal(newBaseValue);
+      return _AddValueInternal(newValue - value);
     }
   }
 
   private double _AddValueInternal(double addValue)
   {
-    return _SetValueInternal(abilityValue.baseValue * scale + addValue);
+    if (addValue == 0) return value;
+
+    abilityValue.Add(addValue / scale);
+
+    if (abilityValue.baseValue < attributeType.minValue)
+    {
+      abilityValue.Set(attributeType.minValue);
+    }
+    else if (abilityValue.baseValue >= attributeType.maxValue - maxEpsilon)
+    {
+      abilityValue.Set(attributeType.maxValue - maxEpsilon);
+    }
+
+    return _UpdateValue();
   }
 
   // Add a value to the attribute.
@@ -571,7 +568,8 @@ public class Attribute : IAbilityCollection
   {
     lock (_lock)
     {
-      return SetValue(abilityValue.baseValue*scale + addValue);
+      Advance();
+      return _AddValueInternal(addValue);
     }
   }
 
@@ -589,7 +587,7 @@ public class Attribute : IAbilityCollection
       var currentInterval = attributeType.intervals.GetValueAtIndex(intervalIndex);
       rangeMin = currentInterval.lower * scale;
       rangeMax = currentInterval.upper * scale;
-      UpdateValue();
+      _UpdateValue();
     }
   }
 

@@ -152,8 +152,8 @@ public class EffectUnitTest
     // Strength should be 8.
     Assert.AreEqual(8, person.GetAttributeValue(strength));
     pull10.ApplySync(target, 100, 1);
-    // Strength should be 10.
-    Assert.AreEqual(10, person.GetAttributeValue(strength));
+    // Strength should be 11 - epsilon.
+    Assert.AreEqual(10.99, person.GetAttributeValue(strength));
     
     // Test AttributeTransfer Effects.
     Assert.AreEqual(EffectType.AttributeTransfer, Effect.effects["transfer1"].effectType);
