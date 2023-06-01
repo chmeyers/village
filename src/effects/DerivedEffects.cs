@@ -36,11 +36,6 @@ public class DegradeEffect : Effect
     }
   }
 
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
-  {
-    // Nothing to do here.
-  }
-
   // Apply the effect to the target.
   public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
@@ -179,10 +174,6 @@ public class SkillEffect : Effect
       }
     }
   }
-
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1) {
-    // Nothing to do here.
-   }
 
   // Initialize should resolve the skill name to the actual skill object.
   public override void Initialize()
@@ -333,11 +324,6 @@ public class SkillTreeEffect : Effect
       // Increase the skill of the target.
       person.GrantXP(relative, (int)amount.GetValue(chosenEffectTarget.runningContext));
     }
-  }
-
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
-  {
-    // Nothing to do here.
   }
 
   // Initialize should resolve the skill name to the actual skill object.

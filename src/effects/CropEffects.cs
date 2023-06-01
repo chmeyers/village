@@ -46,11 +46,6 @@ public class PlantCropEffect : Effect
     }
   }
 
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
-  {
-    // Nothing to do here.
-  }
-
   public override bool IsOptional()
   {
     // plant crop effects are not optional.
@@ -201,11 +196,6 @@ public class RotCropEffect : Effect
     cropInfo.AddAttribute(StaticAttributes.potassium!, crop.cropSettings!.totalPotassium * rotYield);
   }
 
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
-  {
-    // Nothing to do here.
-  }
-
   // Apply the effect to the target.
   public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
@@ -298,11 +288,6 @@ public class KillCropEffect : Effect
     field.RemoveAll();
   }
 
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
-  {
-    // Nothing to do here.
-  }
-
   // Apply the effect to the target.
   public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
@@ -356,11 +341,6 @@ public class GrowCropEffect : Effect
     {
       throw new Exception("Grow Crop effect must target a crop: " + effect);
     }
-  }
-
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
-  {
-    // Nothing to do here.
   }
 
   // Apply the effect to the target.
@@ -556,11 +536,6 @@ public class FieldMaintenanceEffect : Effect
     {
       throw new Exception("Field Maintenance effect must target a field: " + effect);
     }
-  }
-
-  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
-  {
-    // Nothing to do.
   }
 
   // Apply the effect to the target.

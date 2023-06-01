@@ -267,11 +267,6 @@ public class AttributeTransferEffect : Effect
     }
   }
 
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
-  {
-    // Nothing to do here.
-  }
-
   // Initialize should resolve the attribute names to the actual attribute type.
   public override void Initialize()
   {
@@ -425,11 +420,6 @@ public class AttributeAdderEffect : Effect
       }
 
     }
-  }
-
-  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
-  {
-    // Nothing to do here.
   }
 
   // Initialize should resolve the attribute names to the actual attribute type.

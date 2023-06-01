@@ -231,12 +231,12 @@ public class Effect
 
   public virtual void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
-    throw new Exception("Effect.StartSync not implemented for " + effectType);
+    // Do Nothing.
   }
 
   public virtual void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
-    throw new Exception("Effect.FinishSync not implemented for " + effectType);
+    // Do Nothing.
   }
 
   // Initialize is called after all effects and other types have been loaded.
