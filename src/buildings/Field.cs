@@ -17,7 +17,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   public Household household { get; private set; }
 
   private const string fieldAttributeGroup = "field";
-  private const double minPlantQuantity = 0.000022; // ~ 1 square foot.
+  public const double minPlantQuantity = 0.00023; // ~10 square feet.
   // TODO(chmeyers): We shouldn't have to specify the type here.
   public Field(BuildingType buildingType, Household household) : base(buildingType)
   {
