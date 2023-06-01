@@ -190,7 +190,7 @@ public class RotCropEffect : Effect
     // and reduce the yield by the relative value.
     // Health will be reduced quickly and yield will be reduced slowly.
     // We don't reduce the yield to zero, for that we'd need to call KillCrop.
-    cropInfo.AddAttribute(StaticAttributes.cropHealth!, -percent * 100);
+    cropInfo.AddAttribute(StaticAttributes.cropHealth!, -percent * 100 * cropInfo.quantity);
     double yield = cropInfo.GetAttributeValue(StaticAttributes.cropYield!);
     double rotYield = percent * yield;
     cropInfo.AddAttribute(StaticAttributes.cropYield!, -rotYield);
