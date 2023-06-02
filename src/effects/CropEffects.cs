@@ -61,11 +61,10 @@ public class HarvestCropEffect : Effect
 {
   public HarvestCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
-    // TODO(chmeyers): Target should be a crop?
-    // Target must be a field.
-    if (target != EffectTargetType.Field)
+    // Target must be a crop or field.
+    if (target != EffectTargetType.Crop && target != EffectTargetType.Field)
     {
-      throw new Exception("Harvest Crop effect must target a crop: " + effect);
+      throw new Exception("Harvest Crop effect must target a crop or field: " + effect);
     }
     if (data == null)
     {
@@ -152,6 +151,11 @@ public class HarvestCropEffect : Effect
     // harvest crop effects are not optional.
     // If you can't apply the effect, then you shouldn't run the task.
     return false;
+  }
+
+  public override double MaxScale(ChosenEffectTarget target)
+  {
+    return Double.MaxValue;
   }
 
   // The type of the crop to harvest.
@@ -422,6 +426,79 @@ public class TouchCropEffect : Effect
   }
 
   private AbilityValue healthRate;
+}
+
+public class CropSkillEffect : Effect
+{
+  public CropSkillEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a crop or Field.
+    if (target != EffectTargetType.Crop && target != EffectTargetType.Field)
+    {
+      throw new Exception("Touch Crop effect must target a crop or field: " + effect);
+    }
+    if (data == null)
+    {
+      throw new Exception("Touch Crop effect must have a config dictionary: " + effect);
+    }
+    if (data.ContainsKey("amount"))
+    {
+      amount = AbilityValue.FromJson(data["amount"]);
+    }
+  }
+
+  private void Learn(Field.CropInfo cropInfo, ISkillContext farmer, double scaler = 1, int batchSize = 1)
+  {
+    ItemType crop = cropInfo.itemType;
+    double amount = this.amount.GetScaledValue(farmer, scaler) * batchSize;
+    SkillEffect.GiveSkillXP(farmer, crop.cropSettings!.cropSkill!, amount, crop.cropSettings!.cropSkillLevel);
+  }
+
+  private void LearnAll(Field field, ISkillContext farmer, double scaler = 1, int batchSize = 1)
+  {
+    foreach (var cropInfo in field.crops)
+    {
+      Learn(cropInfo.Value, farmer, cropInfo.Value.quantity * scaler / field.size, batchSize);
+    }
+  }
+
+  // Apply the effect to the target.
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
+  {
+    ISkillContext? farmer = chosenEffectTarget.runningContext as ISkillContext;
+    if (farmer == null)
+    {
+      // Effect is optional, so just return.
+      return;
+    }
+    if (chosenEffectTarget.target is Field field)
+    {
+      LearnAll(field, farmer, scaler, batchSize);
+      return;
+    }
+    // Get the crop from the chosen target.
+    Field.CropInfo cropInfo = (Field.CropInfo)chosenEffectTarget.target!;
+    // Make sure the crop is not null.
+    if (cropInfo == null)
+    {
+      // Effect is optional, so just return.
+      return;
+    }
+    Learn(cropInfo, farmer, scaler, batchSize);
+  }
+
+  public override bool IsOptional()
+  {
+    return true;
+  }
+
+  public override bool SupportsBatching()
+  {
+    return true;
+  }
+
+  // Amount to increase, defaults to 1.
+  public AbilityValue amount = new AbilityValue(1);
 }
 
 public class GrowCropEffect : Effect

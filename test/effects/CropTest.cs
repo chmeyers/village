@@ -8,6 +8,7 @@ using Village.Households;
 using Village.Items;
 using Village.Persons;
 using Village.Skills;
+using Village.Tasks;
 
 namespace VillageTest;
 
@@ -58,6 +59,14 @@ public class CropUnitTest
         'low_potassium' : { },
         'high_potassium' : { },
         'harvestable' : { },
+        'weeding' : { levels: 8 },
+        'plowing' : { levels: 8 },
+        'planting' : { levels: 8 },
+        'harvesting' : { levels: 8 },
+        'cereals' : { levels: 8 },
+        'hoe' : { levels: 8 },
+        'plow' : { levels: 8 },
+        'sickle' : { levels: 8 },
       }";
       // Load the ability types.
       AbilityType.LoadString(json);
@@ -68,7 +77,7 @@ public class CropUnitTest
 {
   "straw": { "group": "RESOURCE"},
   "food": { "group": "FOOD"},
-  "wheat": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.444, "targetYieldPerAcre": 600, "seedPerAcre": 150, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
+  "wheat": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 4, "minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.4444, "targetYieldPerAcre": 600, "seedPerAcre": 150, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
 }
 """;
       // Load the item types.
@@ -85,8 +94,24 @@ public class CropUnitTest
 "grow_crop" : { "target": "Crop", "effectType": "GrowCrop", "config": {  } },
 "rotting" : { "target": "Crop", "effectType": "RotCrop", "config": { "rotRate" : { "val": 0.003, "modifiers": {"wet_surface_soil": {"mult": 2}}}, } },
 "kill_crop" : { "target": "Crop", "effectType": "KillCrop", "config": {  } },
-"plant_crop" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "wheat" } },
-"harvest_crop" : { "target": "Field", "effectType": "HarvestCrop", "config": { "crop" : "wheat" } },
+"plant_wheat" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "wheat" } },
+"harvest_wheat" : { "target": "Crop", "effectType": "HarvestCrop", "config": { "crop" : "wheat" } },
+"plow_under" : { "target": "Field", "effectType": "KillCrop", "config": {  } },
+"plow" : { "target": "Field", "effectType": "AttributePuller", "config": { "soil_quality" : { "target": {"val": "plowing", "add": 1 }, "amount": 0.3}, "weeds" : { "target": 0, "amount": {"val": "plowing", "add": 2, "mult": 20 }}, } },
+"weed" : { "target": "Field", "effectType": "AttributeAdder", "config": { "weeds" : { "target": { "val": "weeding", "add": -10, "mult": -0.25}, "amount": {"val": "weeding", "add": 10, "mult": 0.3 }}, } },
+"minor_touch_crop" : { "target": "Crop", "effectType": "TouchCrop", "config": { "healthRate" : 0.2, } },
+"major_touch_crop" : { "target": "Crop", "effectType": "TouchCrop", "config": { "healthRate" : 5.0, } },
+"minor_touch_field" : { "target": "Field", "effectType": "TouchCrop", "config": { "healthRate" : 0.2, } },
+"major_touch_field" : { "target": "Field", "effectType": "TouchCrop", "config": { "healthRate" : 5.0, } },
+"minor_learn_crop" : { "target": "Crop", "effectType": "CropSkill", "config": { "amount": 1, } },
+"major_learn_crop" : { "target": "Crop", "effectType": "CropSkill", "config": { "amount": 5, } },
+"minor_learn_field" : { "target": "Field", "effectType": "CropSkill", "config": { "amount": 1, } },
+"major_learn_field" : { "target": "Field", "effectType": "CropSkill", "config": { "amount": 5, } },
+"degrade_1" : { "target": "Item", "effectType": "Degrade", "config": { "amount": 1 } },
+"skill_weeding_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "weeding", "level": 3} },
+"skill_harvesting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "harvesting", "level": 3} },
+"skill_planting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "planting", "level": 3} },
+"skill_plowing_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "plowing", "level": 3} },
       }
 """;
       EffectLoader.LoadString(json);
@@ -123,6 +148,33 @@ public class CropUnitTest
       string data = @"{ 'field': {} }";
       BuildingType.LoadString(data);
     }
+    {
+      Skill.Clear();
+      string json = """
+{
+  "cereals" : [ {"xp": 100, "requirements": [], "abilities": ["cereals_1"] },{"xp": 200, "requirements": [], "abilities": ["cereals_2"] },{"xp": 400, "requirements": [], "abilities": ["cereals_3"] },{"xp": 800, "requirements": [], "abilities": ["cereals_4"] },{"xp": 1600, "requirements": [], "abilities": ["cereals_5"] },{"xp": 3200, "requirements": [], "abilities": ["cereals_6"] } ],
+  "harvesting" : [ {"xp": 100, "requirements": [], "abilities": ["harvesting_1"] },{"xp": 200, "requirements": [], "abilities": ["harvesting_2"] },{"xp": 400, "requirements": [], "abilities": ["harvesting_3"] },{"xp": 800, "requirements": [], "abilities": ["harvesting_4"] },{"xp": 1600, "requirements": [], "abilities": ["harvesting_5"] },{"xp": 3200, "requirements": [], "abilities": ["harvesting_6"] } ],
+  "planting" : [ {"xp": 100, "requirements": [], "abilities": ["planting_1"] },{"xp": 200, "requirements": [], "abilities": ["planting_2"] },{"xp": 400, "requirements": [], "abilities": ["planting_3"] },{"xp": 800, "requirements": [], "abilities": ["planting_4"] },{"xp": 1600, "requirements": [], "abilities": ["planting_5"] },{"xp": 3200, "requirements": [], "abilities": ["planting_6"] } ],
+  "plowing" : [ {"xp": 200, "requirements": [], "abilities": ["plowing_1"] },{"xp": 400, "requirements": [], "abilities": ["plowing_2"] },{"xp": 800, "requirements": [], "abilities": ["plowing_3"] },{"xp": 1600, "requirements": [], "abilities": ["plowing_4"] },{"xp": 3200, "requirements": [], "abilities": ["plowing_5"] } ],
+  "weeding" : [ {"xp": 200, "requirements": [], "abilities": ["weeding_1"] },{"xp": 400, "requirements": [], "abilities": ["weeding_2"] },{"xp": 800, "requirements": [], "abilities": ["weeding_3"] },{"xp": 1600, "requirements": [], "abilities": ["weeding_4"] },{"xp": 3200, "requirements": [], "abilities": ["weeding_5"] } ],
+}
+""";
+      // Load the skills.
+      Skill.LoadString(json);
+    }
+    {
+      WorkTask.Clear();
+      string json = """
+{
+"weed_field": { "timeCost": {"val": 10, "min":1, "modifiers": { "weeding_1":{ "mult":0.8},"weeding_2":{ "mult":0.8}}}, "requirements": ["hoe_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["hoe_1"],"skill_weeding_3": [""],"weed": ["@1"], "minor_touch_field": ["@1"], "minor_learn_field": ["@1"]} },
+"plow_field": { "timeCost": {"val": 10, "min":1, "modifiers": { "plowing_1":{ "mult":0.8},"plowing_2":{ "mult":0.8}}}, "requirements": ["plow_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["plow_1"],"skill_plowing_3": [""],"minor_learn_field": ["@1"], "plow_under": ["@1"], "plow": ["@1"]} },
+"plant_wheat": { "timeCost": {"val": 10, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"wheat" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_wheat":["@1"], "major_touch_crop":["@1"], "major_learn_crop":["@1"]} },
+"harvest_wheat": { "timeCost": {"val": 10, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_crop":["@1"], "harvest_wheat":["@1"]} },
+}
+""";
+      // Load the tasks.
+      WorkTask.LoadString(json);
+    }
     StaticAttributes.Initialize(true);
     EffectLoader.Initialize();
     ItemType.InitializeAll();
@@ -135,7 +187,7 @@ public class CropUnitTest
     Person person = new Person("Bob", "Bob", household, Role.HeadOfHousehold);
 
     ItemType wheat = ItemType.Find("wheat")!;
-    PlantCropEffect plantCrop = (PlantCropEffect)Effect.effects["plant_crop"];
+    PlantCropEffect plantCrop = (PlantCropEffect)Effect.effects["plant_wheat"];
     
     AttributeType crop_health = AttributeType.Find("crop_health")!;
     AttributeType crop_yield = AttributeType.Find("crop_yield")!;
@@ -158,11 +210,11 @@ public class CropUnitTest
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 50);
 
     // Harvest the crop.
-    HarvestCropEffect harvestCrop = (HarvestCropEffect)Effect.effects["harvest_crop"];
+    HarvestCropEffect harvestCrop = (HarvestCropEffect)Effect.effects["harvest_wheat"];
     harvestCrop.ApplySync(fieldTarget, 0.9, 1);
     // Check household inventory for the wheat.
     // Item should have been converted from pounds to food units.
-    Assert.AreEqual(911, household.inventory[wheatItem]);
+    Assert.AreEqual(912, household.inventory[wheatItem]);
 
     // Clear the inventory.
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
@@ -181,7 +233,7 @@ public class CropUnitTest
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 10);
 
     harvestCrop.ApplySync(fieldTarget, 0.9, 1);
-    Assert.AreEqual(907, household.inventory[wheatItem]);
+    Assert.AreEqual(908, household.inventory[wheatItem]);
 
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
 
@@ -199,7 +251,7 @@ public class CropUnitTest
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
 
     harvestCrop.ApplySync(fieldTarget, 0.9, 1);
-    Assert.AreEqual(904, household.inventory[wheatItem]);
+    Assert.AreEqual(905, household.inventory[wheatItem]);
 
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
 
@@ -212,7 +264,7 @@ public class CropUnitTest
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
 
     harvestCrop.ApplySync(fieldTarget, 0.9, 1);
-    Assert.AreEqual(682, household.inventory[wheatItem]);
+    Assert.AreEqual(683, household.inventory[wheatItem]);
 
     household.inventory.RemoveItem(wheatItem, household.inventory[wheatItem]);
 
@@ -255,7 +307,7 @@ public class CropUnitTest
     Assert.AreEqual(0.9, field.Count(wheat));
     Assert.AreEqual(135, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 184, 1);
-    Assert.AreEqual(78, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);
+    Assert.AreEqual(79, field.GetValue(wheat, AttributeType.Find("crop_yield")!), 1.0);
 
     // The crop should be entirely killed and removed from the field on the 185th day.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 185, 1);

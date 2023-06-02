@@ -58,6 +58,10 @@ public enum EffectType
   RotCrop,
   // Kill a crop in a field.
   KillCrop,
+  // Interact with a crop, effecting it's health.
+  TouchCrop,
+  // Learn XP in a skill from a crop interaction.
+  CropSkill,
 }
 
 public class EffectTarget
@@ -112,6 +116,18 @@ public class EffectTarget
     }
     this.target = target;
   }
+
+  // Returns true if the two EffectTargets can point to the same target.
+  public bool Compatible(EffectTarget target)
+  {
+    // Fields and Crops are compatible with each other.
+    return (effectTargetType == target.effectTargetType || 
+            effectTargetType == EffectTargetType.Crop && target.effectTargetType == EffectTargetType.Field || 
+            effectTargetType == EffectTargetType.Field && target.effectTargetType == EffectTargetType.Crop)
+           && this.target == target.target;
+  }
+  
+
 }
 
 // The ChosenEffectTarget represents an EffectTarget that has been resolved
@@ -283,7 +299,7 @@ public class Effect
     if (target.effectTargetType == EffectTargetType.Crop)
     {
       double? quantity = (target.target as Field.CropInfo)?.quantity;
-      if ( quantity != null && quantity > 0)
+      if ( quantity != null && quantity > 0 && quantity < Field.minPlantQuantity)
       {
         return quantity.Value;
       }
@@ -307,6 +323,7 @@ public class Effect
       {
         return crop.quantity;
       }
+      return 0.0;
     }
     else if (target.effectTargetType == EffectTargetType.Field)
     {

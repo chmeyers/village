@@ -69,6 +69,12 @@ public class EffectLoader : Effect
         case EffectType.KillCrop:
           newEffect = new KillCropEffect(name, effectTarget, effectType, config);
           break;
+        case EffectType.TouchCrop:
+          newEffect = new TouchCropEffect(name, effectTarget, effectType, config);
+          break;
+        case EffectType.CropSkill:
+          newEffect = new CropSkillEffect(name, effectTarget, effectType, config);
+          break;
         default:
           throw new Exception("Unknown effect type: " + effectType);
       }

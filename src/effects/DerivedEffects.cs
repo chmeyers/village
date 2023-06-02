@@ -144,6 +144,42 @@ public class SkillEffect : Effect
     }
   }
 
+  public static bool GiveSkillXP(ISkillContext person, Skill skill, double amount, int trainingLevel)
+  {
+    bool granted = false;
+    // We multiply by two here and divide later to allow a
+    // half point to give a point in lower skill levels.
+    int trainingAmount = (int)Math.Floor(2 * amount);
+    while (trainingAmount > 0 && person.GetLevel(skill) <= trainingLevel)
+    {
+      // Grant the max of trainingAmount or the amount needed to get to the next level.
+      var nextLevelXP = person.GetNextLevelXP(skill);
+      if (person.GetLevel(skill) == trainingLevel)
+      {
+        var grant = Math.Min(trainingAmount / 2, nextLevelXP);
+        if (grant == 0 || !person.GrantXP(skill, grant))
+        {
+          // We can't grant any more XP, so we are done.
+          break;
+        }
+        granted = true;
+        trainingAmount -= grant / 2;
+      }
+      else if (person.GetLevel(skill) < trainingLevel)
+      {
+        var grant = Math.Min(trainingAmount, nextLevelXP);
+        if (grant == 0 || !person.GrantXP(skill, grant))
+        {
+          // We can't grant any more XP, so we are done.
+          break;
+        }
+        granted = true;
+        trainingAmount -= grant;
+      }
+    }
+    return granted;
+  }
+
   // Apply the effect to the target.
   public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
@@ -163,32 +199,8 @@ public class SkillEffect : Effect
     // If the person is currently at level, they get one XP, if less they get two,
     // if more they get nothing.
     int trainingLevel = (int)level.GetValue(chosenEffectTarget.runningContext);
-    int trainingAmount = (int)Math.Floor(amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize);
-    while (trainingAmount > 0 && person.GetLevel(_skill!) <= trainingLevel)
-    {
-      // Grant the max of trainingAmount or the amount needed to get to the next level.
-      var nextLevelXP = person.GetNextLevelXP(_skill!);
-      if (person.GetLevel(_skill!) == trainingLevel)
-      {
-        var grant = Math.Min(trainingAmount, nextLevelXP);
-        if (!person.GrantXP(_skill!, grant))
-        {
-          // We can't grant any more XP, so we are done.
-          break;
-        }
-        trainingAmount -= grant;
-      }
-      else if (person.GetLevel(_skill!) < trainingLevel)
-      {
-        var grant = Math.Min(trainingAmount * 2, nextLevelXP);
-        if (!person.GrantXP(_skill!, grant))
-        {
-          // We can't grant any more XP, so we are done.
-          break;
-        }
-        trainingAmount -= grant / 2;
-      }
-    }
+    double trainingAmount = amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize;
+    GiveSkillXP(person, _skill!, trainingAmount, trainingLevel);
   }
 
   // Initialize should resolve the skill name to the actual skill object.

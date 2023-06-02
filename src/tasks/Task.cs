@@ -282,14 +282,14 @@ namespace Village.Tasks
       // Add any effect targets that are TargetStrings.
       foreach (var effect in this.effects)
       {
-        foreach (var target in effect.Value)
+        foreach (EffectTarget target in effect.Value)
         {
           if (EffectTarget.IsTargetString(target.target))
           {
             // If the target is already in the set, verify that it's the same target.
             if (this.targets.ContainsKey(target.target))
             {
-              if (this.targets[target.target] != target)
+              if (!this.targets[target.target].Compatible(target))
               {
                 throw new Exception("Task " + task + " has duplicate effect target with different effect types: " + target.target);
               }
