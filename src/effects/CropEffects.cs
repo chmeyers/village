@@ -232,7 +232,7 @@ public class KillCropEffect : Effect
 {
   public KillCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
-    // Target must be a crop.
+    // Target must be a crop or Field.
     if (target != EffectTargetType.Crop && target != EffectTargetType.Field)
     {
       throw new Exception("Kill Crop effect must target a crop or field: " + effect);
@@ -341,6 +341,87 @@ public class KillCropEffect : Effect
     }
     return 1.0;
   }
+}
+
+// Every time a farmer interacts with a crop, it should get the touch crop effect,
+// which will affect the crop's health positively or negatively, depending on the
+// farmer's skill.
+public class TouchCropEffect : Effect
+{
+  public TouchCropEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a crop or Field.
+    if (target != EffectTargetType.Crop && target != EffectTargetType.Field)
+    {
+      throw new Exception("Touch Crop effect must target a crop or field: " + effect);
+    }
+    if (data == null)
+    {
+      throw new Exception("Touch Crop effect must have a config dictionary: " + effect);
+    }
+    if (!data.ContainsKey("healthRate"))
+    {
+      throw new Exception("Touch Crop effect must have a healthRate: " + effect);
+    }
+    healthRate = AbilityValue.FromJson(data["healthRate"]);
+  }
+
+  private void Touch(Field.CropInfo cropInfo, ISkillContext farmer, double scaler = 1, int batchSize = 1)
+  {
+    ItemType crop = cropInfo.itemType;
+    // If the farmer has skill equal to the crop's skill level, then the crop won't
+    // be affected at all. For each level of skill above/below the crop's skill level,
+    // the crop will be affected by the healthRate.
+    double skill = farmer.GetLevel(crop.cropSettings!.cropSkill!);
+    double skillDifference = skill - crop.cropSettings!.cropSkillLevel;
+    double healthDelta = healthRate.GetScaledValue(farmer, scaler) * skillDifference * batchSize;
+    cropInfo.AddAttribute(StaticAttributes.cropHealth!, healthDelta);
+  }
+
+  private void TouchAll(Field field, ISkillContext farmer, double scaler = 1, int batchSize = 1)
+  {
+    foreach (var cropInfo in field.crops)
+    {
+      Touch(cropInfo.Value, farmer, cropInfo.Value.quantity * scaler / field.size, batchSize);
+    }
+  }
+
+  // Apply the effect to the target.
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
+  {
+    ISkillContext? farmer = chosenEffectTarget.runningContext as ISkillContext;
+    if (farmer == null)
+    {
+      // Effect is optional, so just return.
+      return;
+    }
+    if (chosenEffectTarget.target is Field field)
+    {
+      TouchAll(field, farmer, scaler, batchSize);
+      return;
+    }
+    // Get the crop from the chosen target.
+    Field.CropInfo cropInfo = (Field.CropInfo)chosenEffectTarget.target!;
+    // Make sure the crop is not null.
+    if (cropInfo == null)
+    {
+      // Effect is optional, so just return.
+      return;
+    }
+    Touch(cropInfo, farmer, scaler, batchSize);
+  }
+
+  public override bool IsOptional()
+  {
+    return true;
+  }
+
+  public override bool SupportsBatching()
+  {
+    return true;
+  }
+
+  private AbilityValue healthRate;
 }
 
 public class GrowCropEffect : Effect

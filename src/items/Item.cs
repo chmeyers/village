@@ -1,6 +1,7 @@
 using Newtonsoft.Json;
 using Village.Abilities;
 using Village.Attributes;
+using Village.Skills;
 
 namespace Village.Items;
 
@@ -71,6 +72,15 @@ public class CropSettings
       throw new Exception("Crop settings must have a cropAttribute for item type: " + itemName);
     }
     cropAttributeName = (string)cropData["cropAttribute"];
+    if (cropData.ContainsKey("cropSkill"))
+    {
+      cropSkillName = (string)cropData["cropSkill"];
+    }
+    // Get the crop skill level.
+    if (cropData.ContainsKey("cropSkillLevel"))
+    {
+      cropSkillLevel = (int)(long)cropData["cropSkillLevel"];
+    }
     // Get the minimum soil quality.
     if (cropData.ContainsKey("minSoilQuality"))
     {
@@ -234,6 +244,10 @@ public class CropSettings
   public string? cropAttributeName;
   // The crop attribute for this item type
   public AttributeType? cropAttribute;
+  public string? cropSkillName;
+  // The crop skill for this item type
+  public Skill? cropSkill;
+  public int cropSkillLevel = 0;
   public double minSoilQuality = 2.0;
   // Temps are in degrees F.
   public double minPlantingTemp = 40.0;
@@ -567,13 +581,24 @@ public class ItemType
   // Initialize is called after all effects and other types have been loaded.
   // This is used to resolve any references between items.
   public void Initialize() {
-    // Resolve the crop attribute.
-    if (cropSettings != null && cropSettings.cropAttributeName != null)
+    // Resolve the crop attribute and skill.
+    if (cropSettings != null)
     {
-      cropSettings.cropAttribute = AttributeType.Find(cropSettings.cropAttributeName);
-      if (cropSettings.cropAttribute == null)
+      if (cropSettings.cropAttributeName != null)
       {
-        throw new Exception("Crop attribute not found: " + cropSettings.cropAttributeName + " for item type: " + itemType);
+        cropSettings.cropAttribute = AttributeType.Find(cropSettings.cropAttributeName);
+        if (cropSettings.cropAttribute == null)
+        {
+          throw new Exception("Crop attribute not found: " + cropSettings.cropAttributeName + " for item type: " + itemType);
+        }
+      }
+      if (cropSettings.cropSkillName != null)
+      {
+        cropSettings.cropSkill = Skill.Find(cropSettings.cropSkillName);
+        if (cropSettings.cropSkill == null)
+        {
+          throw new Exception("Crop skill not found: " + cropSettings.cropSkillName + " for item type: " + itemType);
+        }
       }
     }
   }
