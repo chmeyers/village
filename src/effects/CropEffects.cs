@@ -401,7 +401,17 @@ public class TouchCropEffect : Effect
     }
     if (chosenEffectTarget.target is Field field)
     {
-      TouchAll(field, farmer, scaler, batchSize);
+      if (this.target == EffectTargetType.Field)
+      {
+        TouchAll(field, farmer, scaler, batchSize);
+      }
+      else if (this.target == EffectTargetType.Crop && field.lastCropPlanted != null)
+      {
+        // If the target is a field, but the effect is on a crop, then touch the last
+        // crop to be planted in the field. This will happen on planting tasks, since
+        // the crop didn't exist when the task was created.
+        Touch(field.lastCropPlanted, farmer, scaler, batchSize);
+      }
       return;
     }
     // Get the crop from the chosen target.
@@ -473,7 +483,17 @@ public class CropSkillEffect : Effect
     }
     if (chosenEffectTarget.target is Field field)
     {
-      LearnAll(field, farmer, scaler, batchSize);
+      if (this.target == EffectTargetType.Field)
+      {
+        LearnAll(field, farmer, scaler, batchSize);
+      }
+      else if (this.target == EffectTargetType.Crop && field.lastCropPlanted != null)
+      {
+        // If the target is a field, but the effect is on a crop, then learn the last
+        // crop to be planted in the field. This will happen on planting tasks, since
+        // the crop didn't exist when the task was created.
+        Learn(field.lastCropPlanted, farmer, scaler, batchSize);
+      }
       return;
     }
     // Get the crop from the chosen target.

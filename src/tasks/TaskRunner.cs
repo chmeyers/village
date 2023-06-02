@@ -110,8 +110,6 @@ public class TaskRunner
         return null;
       }
       var runningTask = new RunningTask(task, person, inputs, target, targetDict, Calendar.Ticks, scale);
-      // Start the effects.
-      runningTask.StartEffects();
       return runningTask;
     }
     return null;
@@ -121,16 +119,7 @@ public class TaskRunner
   // This will add the outputs to the inventory, and apply the effects to the targets.
   public static void FinishTask(RunningTask runningTask, bool forceSync = false)
   {
-    runningTask.ticksRemaining = 0;
-    runningTask.endTime = Calendar.Ticks;
-    // Add the outputs to the inventory.
-    foreach (var output in runningTask.task.Outputs(runningTask.owner))
-    {
-      runningTask.target.inventory.AddItem(output.Key, (int)Math.Floor(output.Value * runningTask.scale));
-    }
-
-    // Finish the effects.
-    runningTask.FinishEffects();
+    runningTask.Finish();
   }
 
   public static bool AdvanceTask(RunningTask runningTask, int ticks)
@@ -138,6 +127,10 @@ public class TaskRunner
     // TODO(chmeyers): Verify that the task is still valid. i.e. the tools
     // and buildings are still available to this person.
     // Advance the task by the given number of ticks.
+    if (!runningTask.started)
+    {
+      runningTask.Start();
+    }
     runningTask.ticksRemaining -= ticks;
     // If the task is complete, finish it.
     if (runningTask.ticksRemaining <= 0)

@@ -1,5 +1,6 @@
 
 using Village.Abilities;
+using Village.Base;
 using Village.Effects;
 using Village.Items;
 
@@ -20,6 +21,8 @@ public class RunningTask
   public int ticksRemaining;
   // What scale is the task running at?
   public double scale;
+  // Whether the task has been started.
+  public bool started { get; private set; } = false;
 
   // The inventory that the task is running against.
   public IInventoryContext target { get; private set; }
@@ -31,8 +34,10 @@ public class RunningTask
   // Used to provide refunds when the task is cancelled.
   public Dictionary<Item, int> inputs { get; private set; }
 
-  public void StartEffects()
+  public void Start()
   {
+    if (started) return;
+    started = true;
     foreach (var effect in chosenTargets)
     {
       foreach (var target in effect.Value)
@@ -42,8 +47,20 @@ public class RunningTask
     }
   }
 
-  public void FinishEffects()
+  public void Finish()
   {
+    if (!started)
+    {
+      // Don't allow skipping the start.
+      Start();
+    }
+    ticksRemaining = 0;
+    endTime = Calendar.Ticks;
+    // Add the outputs to the inventory.
+    foreach (var output in task.Outputs(owner))
+    {
+      target.inventory.AddItem(output.Key, (int)Math.Floor(output.Value * scale));
+    }
     foreach (var effect in chosenTargets)
     {
       foreach (var target in effect.Value)

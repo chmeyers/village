@@ -120,9 +120,10 @@ public class EffectTarget
   // Returns true if the two EffectTargets can point to the same target.
   public bool Compatible(EffectTarget target)
   {
-    // Fields and Crops are compatible with each other.
+    // A Crop is compatible with a previously defined Field target, 
+    // but not vice versa.
+    // This is so that effects can target a Crop that was just planted.
     return (effectTargetType == target.effectTargetType || 
-            effectTargetType == EffectTargetType.Crop && target.effectTargetType == EffectTargetType.Field || 
             effectTargetType == EffectTargetType.Field && target.effectTargetType == EffectTargetType.Crop)
            && this.target == target.target;
   }
