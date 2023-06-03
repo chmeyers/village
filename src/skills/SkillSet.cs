@@ -48,7 +48,7 @@ public class SkillSet
     }
   }
 
-  public bool GrantXP(Skill skill, int xp)
+  public bool GrantXP(Skill skill, double xp)
   {
     lock (_lock)
     {
@@ -106,7 +106,7 @@ public class SkillSet
   }
 
   // Get the current XP of the given skill.
-  public int GetXP(Skill skill)
+  public double GetXP(Skill skill)
   {
     lock (_lock)
     {
@@ -118,7 +118,7 @@ public class SkillSet
     }
   }
 
-  public int GetNextLevelXP(Skill skill)
+  public double GetNextLevelXP(Skill skill)
   {
     lock (_lock)
     {

@@ -59,9 +59,9 @@ public class CropUnitTest
   {
     // Advance to the beginning of the next year.
     uint ticksToSpring = (uint)(Calendar.ticksPerYear - Calendar.Ticks % Calendar.ticksPerYear);
-    for (int i = 0; i < ticksToSpring; i++)
+    for (int i = 0; i <= ticksToSpring/50; i++)
     {
-      Calendar.Advance(1);
+      Calendar.Advance(50);
       WeatherAttributes.AdvanceWeather();
       fields[0].Advance();
       fields[1].Advance();
@@ -135,7 +135,7 @@ public class CropUnitTest
 
     while (fields[rotation % 3].Count(crop) > 0 && fields[rotation % 3].GetUnscaledValue(crop, crop.cropSettings!.cropAttribute!) < 135)
     {
-      Calendar.Advance(1);
+      Calendar.Advance(10);
       WeatherAttributes.AdvanceWeather();
       fields[0].Advance();
       fields[1].Advance();
@@ -236,10 +236,10 @@ public class CropUnitTest
 "major_touch_crop" : { "target": "Crop", "effectType": "TouchCrop", "config": { "healthRate" : 5.0, } },
 "minor_touch_field" : { "target": "Field", "effectType": "TouchCrop", "config": { "healthRate" : 0.2, } },
 "major_touch_field" : { "target": "Field", "effectType": "TouchCrop", "config": { "healthRate" : 5.0, } },
-"minor_learn_crop" : { "target": "Crop", "effectType": "CropSkill", "config": { "amount": 1, } },
-"major_learn_crop" : { "target": "Crop", "effectType": "CropSkill", "config": { "amount": 5, } },
-"minor_learn_field" : { "target": "Field", "effectType": "CropSkill", "config": { "amount": 1, } },
-"major_learn_field" : { "target": "Field", "effectType": "CropSkill", "config": { "amount": 5, } },
+"minor_learn_crop" : { "target": "Crop", "effectType": "CropSkill", "config": { "amount": 2, } },
+"major_learn_crop" : { "target": "Crop", "effectType": "CropSkill", "config": { "amount": 20, } },
+"minor_learn_field" : { "target": "Field", "effectType": "CropSkill", "config": { "amount": 2, } },
+"major_learn_field" : { "target": "Field", "effectType": "CropSkill", "config": { "amount": 20, } },
 "degrade_1" : { "target": "Item", "effectType": "Degrade", "config": { "amount": 1 } },
 "skill_weeding_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "weeding", "level": 3} },
 "skill_harvesting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "harvesting", "level": 3, "amount": 10} },
@@ -287,7 +287,7 @@ public class CropUnitTest
       Skill.Clear();
       string json = """
 {
-  "cereals" : [ {"xp": 100, "requirements": [], "abilities": ["cereals_1"] },{"xp": 200, "requirements": [], "abilities": ["cereals_2"] },{"xp": 400, "requirements": [], "abilities": ["cereals_3"] },{"xp": 800, "requirements": [], "abilities": ["cereals_4"] },{"xp": 1600, "requirements": [], "abilities": ["cereals_5"] },{"xp": 3200, "requirements": [], "abilities": ["cereals_6"] } ],
+  "cereals" : [ {"xp": 100, "requirements": [], "abilities": ["cereals_1"] },{"xp": 200, "requirements": [], "abilities": ["cereals_2"] },{"xp": 400, "requirements": [], "abilities": ["cereals_3"] },{"xp": 800, "requirements": [], "abilities": ["cereals_4"] },{"xp": 1600, "requirements": [], "abilities": ["cereals_5"] },{"xp": 3200, "requirements": [], "abilities": ["cereals_6"] },{"xp": 3200, "requirements": [], "abilities": ["cereals_6"] },{"xp": 3200, "requirements": [], "abilities": ["cereals_6"] },{"xp": 3200, "requirements": [], "abilities": ["cereals_6"] },{"xp": 3200, "requirements": [], "abilities": ["cereals_6"] } ],
   "legumes" : [ {"xp": 100, "requirements": [], "abilities": ["legumes_1"] },{"xp": 200, "requirements": [], "abilities": ["legumes_2"] },{"xp": 400, "requirements": [], "abilities": ["legumes_3"] },{"xp": 800, "requirements": [], "abilities": ["legumes_4"] },{"xp": 1600, "requirements": [], "abilities": ["legumes_5"] },{"xp": 3200, "requirements": [], "abilities": ["legumes_6"] } ],
   "harvesting" : [ {"xp": 100, "requirements": [], "abilities": ["harvesting_1"] },{"xp": 200, "requirements": [], "abilities": ["harvesting_2"] },{"xp": 400, "requirements": [], "abilities": ["harvesting_3"] },{"xp": 800, "requirements": [], "abilities": ["harvesting_4"] },{"xp": 1600, "requirements": [], "abilities": ["harvesting_5"] },{"xp": 3200, "requirements": [], "abilities": ["harvesting_6"] } ],
   "planting" : [ {"xp": 100, "requirements": [], "abilities": ["planting_1"] },{"xp": 200, "requirements": [], "abilities": ["planting_2"] },{"xp": 400, "requirements": [], "abilities": ["planting_3"] },{"xp": 800, "requirements": [], "abilities": ["planting_4"] },{"xp": 1600, "requirements": [], "abilities": ["planting_5"] },{"xp": 3200, "requirements": [], "abilities": ["planting_6"] } ],
@@ -546,7 +546,7 @@ public class CropUnitTest
     Assert.AreEqual(18, person.GetXP(Skill.Find("harvesting")!));
     Assert.AreEqual(18, person.GetXP(Skill.Find("planting")!));
     Assert.AreEqual(40, person.GetXP(Skill.Find("plowing")!));
-    Assert.AreEqual(20, person.GetXP(Skill.Find("cereals")!));
+    Assert.AreEqual(79.2, person.GetXP(Skill.Find("cereals")!));
 
     // Test a three-field rotation over multiple years.
     Field[] fields = new Field[3];
@@ -576,69 +576,86 @@ public class CropUnitTest
 
     Run3FoldYear(fields, targetFields, person, tasks, 0);
     // Check the wheat and peas yields.
-    Assert.AreEqual(306, household.inventory[wheatItem]);
-    Assert.AreEqual(371, household.inventory[peasItem]);
+    Assert.AreEqual(308, household.inventory[wheatItem]);
+    Assert.AreEqual(370, household.inventory[peasItem]);
 
     Run3FoldYear(fields, targetFields, person, tasks, 1);
-    Assert.AreEqual(338, household.inventory[wheatItem]);
-    Assert.AreEqual(427, household.inventory[peasItem]);
+    Assert.AreEqual(364, household.inventory[wheatItem]);
+    Assert.AreEqual(430, household.inventory[peasItem]);
 
     Run3FoldYear(fields, targetFields, person, tasks, 2);
-    Assert.AreEqual(345, household.inventory[wheatItem]);
-    Assert.AreEqual(420, household.inventory[peasItem]);
+    Assert.AreEqual(361, household.inventory[wheatItem]);
+    Assert.AreEqual(452, household.inventory[peasItem]);
 
-    // Five years of rotation.
+    Assert.AreEqual(407.2, person.GetXP(Skill.Find("cereals")!));
+
+    // Five more years of rotation.
     for (int i = 0; i < 5; ++i) {
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
-    Assert.AreEqual(491, household.inventory[wheatItem]);
-    Assert.AreEqual(698, household.inventory[peasItem]);
+    Assert.AreEqual(519, household.inventory[wheatItem]);
+    Assert.AreEqual(679, household.inventory[peasItem]);
 
     Assert.AreEqual(100, person.GetXP(Skill.Find("weeding")!));
     Assert.AreEqual(338, person.GetXP(Skill.Find("harvesting")!));
     Assert.AreEqual(498, person.GetXP(Skill.Find("planting")!));
     Assert.AreEqual(1320, person.GetXP(Skill.Find("plowing")!));
-    Assert.AreEqual(434, person.GetXP(Skill.Find("cereals")!));
-    Assert.AreEqual(300, person.GetXP(Skill.Find("legumes")!));
+    Assert.AreEqual(912.2, person.GetXP(Skill.Find("cereals")!));
+    Assert.AreEqual(351, person.GetXP(Skill.Find("legumes")!));
 
     // Twenty more years of rotation.
     for (int i = 0; i < 20; ++i) {
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
-    Assert.AreEqual(1000, household.inventory[wheatItem]);
-    Assert.AreEqual(1134, household.inventory[peasItem]);
+    Assert.AreEqual(864, household.inventory[wheatItem]);
+    Assert.AreEqual(1188, household.inventory[peasItem]);
 
     Assert.AreEqual(340, person.GetXP(Skill.Find("weeding")!));
-    Assert.AreEqual(1500, person.GetXP(Skill.Find("harvesting")!));
-    Assert.AreEqual(1500, person.GetXP(Skill.Find("planting")!));
-    Assert.AreEqual(3000, person.GetXP(Skill.Find("plowing")!));
-    Assert.AreEqual(914, person.GetXP(Skill.Find("cereals")!));
-    Assert.AreEqual(300, person.GetXP(Skill.Find("legumes")!));
+    Assert.AreEqual(919, person.GetXP(Skill.Find("harvesting")!));
+    Assert.AreEqual(1199, person.GetXP(Skill.Find("planting")!));
+    Assert.AreEqual(2960, person.GetXP(Skill.Find("plowing")!));
+    Assert.AreEqual(2307.6, person.GetXP(Skill.Find("cereals")!));
+    Assert.AreEqual(791, person.GetXP(Skill.Find("legumes")!));
 
     // Forty more years of rotation.
     for (int i = 0; i < 40; ++i)
     {
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
-    Assert.AreEqual(1115, household.inventory[wheatItem]);
-    Assert.AreEqual(1137, household.inventory[peasItem]);
+    Assert.AreEqual(1106, household.inventory[wheatItem]);
+    Assert.AreEqual(1248, household.inventory[peasItem]);
 
     Assert.AreEqual(820, person.GetXP(Skill.Find("weeding")!));
-    Assert.AreEqual(1500, person.GetXP(Skill.Find("harvesting")!));
-    Assert.AreEqual(1500, person.GetXP(Skill.Find("planting")!));
-    Assert.AreEqual(3000, person.GetXP(Skill.Find("plowing")!));
-    Assert.AreEqual(3100, person.GetXP(Skill.Find("cereals")!));
-    Assert.AreEqual(300, person.GetXP(Skill.Find("legumes")!));
+    Assert.AreEqual(1609.5, person.GetXP(Skill.Find("harvesting")!));
+    Assert.AreEqual(1949.5, person.GetXP(Skill.Find("planting")!));
+    Assert.AreEqual(4580, person.GetXP(Skill.Find("plowing")!));
+    Assert.AreEqual(4013.3, person.GetXP(Skill.Find("cereals")!));
+    Assert.AreEqual(1671, person.GetXP(Skill.Find("legumes")!));
 
-    // Everything is maxed out at this point.
+    // Max out their skills
+    person.GrantLevel(Skill.Find("weeding")!, 6);
+    person.GrantLevel(Skill.Find("harvesting")!, 6);
+    person.GrantLevel(Skill.Find("planting")!, 6);
+    person.GrantLevel(Skill.Find("plowing")!, 6);
+    person.GrantLevel(Skill.Find("cereals")!, 10);
+    person.GrantLevel(Skill.Find("legumes")!, 6);
+
+    // Many more years of rotation.
+    for (int i = 0; i < 30; ++i)
+    {
+      Run3FoldYear(fields, targetFields, person, tasks, i % 3);
+    }
+    Assert.AreEqual(1388, household.inventory[wheatItem]);
+    Assert.AreEqual(1367, household.inventory[peasItem]);
+
     // Try it without rotation.
     for (int i = 0; i < 30; ++i)
     {
       Run3FoldYear(fields, targetFields, person, tasks, 0);
     }
     // Both peas and wheat fields are now nitrogen depleted.
-    Assert.AreEqual(960, household.inventory[wheatItem]);
-    Assert.AreEqual(892, household.inventory[peasItem]);
+    Assert.AreEqual(986, household.inventory[wheatItem]);
+    Assert.AreEqual(1026, household.inventory[peasItem]);
 
   }
 }

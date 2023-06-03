@@ -147,35 +147,31 @@ public class SkillEffect : Effect
   public static bool GiveSkillXP(ISkillContext person, Skill skill, double amount, int trainingLevel)
   {
     bool granted = false;
-    // We multiply by two here and divide later to allow a
-    // half point to give a point in lower skill levels.
-    int trainingAmount = (int)Math.Floor(2 * amount);
-    while (trainingAmount > 0 && person.GetLevel(skill) <= trainingLevel)
+    while (amount > 0)
     {
       // Grant the max of trainingAmount or the amount needed to get to the next level.
       var nextLevelXP = person.GetNextLevelXP(skill);
+      // By default, grant half XP.
+      double levelMultiplier = 0.5;
       if (person.GetLevel(skill) == trainingLevel)
       {
-        var grant = Math.Min(trainingAmount / 2, nextLevelXP);
-        if (grant == 0 || !person.GrantXP(skill, grant))
-        {
-          // We can't grant any more XP, so we are done.
-          break;
-        }
-        granted = true;
-        trainingAmount -= grant / 2;
+        // At level, grant full XP.
+        levelMultiplier = 1.0;
       }
       else if (person.GetLevel(skill) < trainingLevel)
       {
-        var grant = Math.Min(trainingAmount, nextLevelXP);
-        if (grant == 0 || !person.GrantXP(skill, grant))
-        {
-          // We can't grant any more XP, so we are done.
-          break;
-        }
-        granted = true;
-        trainingAmount -= grant;
+        // Below level, grant double XP.
+        levelMultiplier = 2.0;
       }
+
+      var grant = Math.Min(amount * levelMultiplier, nextLevelXP);
+      if (grant == 0 || !person.GrantXP(skill, grant))
+      {
+        // We can't grant any more XP, so we are done.
+        break;
+      }
+      granted = true;
+      amount -= grant / levelMultiplier;
     }
     return granted;
   }

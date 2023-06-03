@@ -26,7 +26,7 @@ public class SkillUnitTest
       this.skills = new SkillSet(this);
     }
 
-    public bool GrantXP(Skill skill, int xp)
+    public bool GrantXP(Skill skill, double xp)
     {
       return skills.GrantXP(skill, xp);
     }
@@ -46,12 +46,12 @@ public class SkillUnitTest
       return skills.GetLevel(skill);
     }
 
-    public int GetXP(Skill skill)
+    public double GetXP(Skill skill)
     {
       return skills.GetXP(skill);
     }
 
-    public int GetNextLevelXP(Skill skill)
+    public double GetNextLevelXP(Skill skill)
     {
       return skills.GetNextLevelXP(skill);
     }

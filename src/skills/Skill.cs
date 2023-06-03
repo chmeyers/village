@@ -229,7 +229,7 @@ public interface ISkillContext : IAbilityContext, IInventoryContext
 {
   // Grant xp to the given skill.
   // Returns true if xp was granted.
-  public bool GrantXP(Skill skill, int xp);
+  public bool GrantXP(Skill skill, double xp);
   // Grant a level to the given skill.
   // Returns true if a level was granted.
   public bool GrantLevel(Skill skill);
@@ -239,9 +239,9 @@ public interface ISkillContext : IAbilityContext, IInventoryContext
   // Get the current level of the given skill.
   public int GetLevel(Skill skill);
   // Get the current xp of the given skill.
-  public int GetXP(Skill skill);
+  public double GetXP(Skill skill);
   // Get the amount of xp required to reach the next level.
-  public int GetNextLevelXP(Skill skill);
+  public double GetNextLevelXP(Skill skill);
 }
 
 // A skill for a particular person.
@@ -252,11 +252,11 @@ public class PersonSkill
   // Current level of the skill. 1-based.
   public int level { get ; private set; }
   // XP that was required to reach the current level.
-  private int xpBase;
+  private double xpBase;
   // Current XP of the skill since the last level.
-  private int xp;
+  private double xp;
   // Total XP of the skill.
-  public int XP { get { return xpBase + xp; } }
+  public double XP { get { return xpBase + xp; } }
 
   // Context used to apply the abilities and run effects.
   private ISkillContext _context;
@@ -344,7 +344,7 @@ public class PersonSkill
   }
 
   // Grant XP to the skill.
-  public bool GrantXP(int xp)
+  public bool GrantXP(double xp)
   {
     if (xp <= 0)
     {
@@ -365,7 +365,7 @@ public class PersonSkill
       {
         return gaveXP;
       }
-      int xpToNextLevel = skill.levels[level].xp - this.xp;
+      double xpToNextLevel = skill.levels[level].xp - this.xp;
       if (xpToNextLevel <= xp)
       {
         // We have enough XP to reach the next level.
@@ -383,11 +383,11 @@ public class PersonSkill
     return true;
   }
 
-  public int GetNextLevelXP()
+  public double GetNextLevelXP()
   {
     if (level >= skill.levels.Count)
     {
-      return int.MaxValue;
+      return double.MaxValue;
     }
     return skill.levels[level].xp - xp;
   }
