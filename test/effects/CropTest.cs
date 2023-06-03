@@ -39,7 +39,7 @@ public class CropUnitTest
     }
   }
 
-  public void Advance(Field field, Person person, uint days)
+  public void Advance(Field field, Person person, uint days, bool untilIdle = false)
   {
     for (int i = 0; i < days * 10; i++)
     {
@@ -48,6 +48,10 @@ public class CropUnitTest
       field.Advance();
       TaskRunner.AdvanceTask(person);
       person.attributes.Advance();
+      if (untilIdle && person.runningTasks.Count == 0)
+      {
+        break;
+      }
     }
   }
 
@@ -121,9 +125,9 @@ public class CropUnitTest
 "major_learn_field" : { "target": "Field", "effectType": "CropSkill", "config": { "amount": 5, } },
 "degrade_1" : { "target": "Item", "effectType": "Degrade", "config": { "amount": 1 } },
 "skill_weeding_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "weeding", "level": 3} },
-"skill_harvesting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "harvesting", "level": 3} },
-"skill_planting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "planting", "level": 3} },
-"skill_plowing_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "plowing", "level": 3} },
+"skill_harvesting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "harvesting", "level": 3, "amount": 10} },
+"skill_planting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "planting", "level": 3, "amount": 10 } },
+"skill_plowing_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "plowing", "level": 3, "amount": 20 } },
       }
 """;
       EffectLoader.LoadString(json);
@@ -178,10 +182,10 @@ public class CropUnitTest
       WorkTask.Clear();
       string json = """
 {
-"weed_field": { "timeCost": {"val": 10, "min":1, "modifiers": { "weeding_1":{ "mult":0.8},"weeding_2":{ "mult":0.8}}}, "requirements": ["hoe_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["hoe_1"],"skill_weeding_3": [""],"weed": ["@1"], "minor_touch_field": ["@1"], "minor_learn_field": ["@1"]} },
-"plow_field": { "timeCost": {"val": 10, "min":1, "modifiers": { "plowing_1":{ "mult":0.8},"plowing_2":{ "mult":0.8}}}, "requirements": ["plow_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["plow_1"],"skill_plowing_3": [""],"minor_learn_field": ["@1"], "plow_under": ["@1"], "plow": ["@1"]} },
-"plant_wheat": { "timeCost": {"val": 10, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"wheat" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_wheat":["@1"], "major_touch_crop":["@1"], "major_learn_crop":["@1"]} },
-"harvest_wheat": { "timeCost": {"val": 40, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_crop":["@1"], "harvest_wheat":["@1"]} },
+"weed_field": { "timeCost": {"val": 15, "min":1, "modifiers": { "weeding_1":{ "mult":0.8},"weeding_2":{ "mult":0.8}}}, "requirements": ["hoe_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["hoe_1"],"skill_weeding_3": [""],"weed": ["@1"], "minor_touch_field": ["@1"], "minor_learn_field": ["@1"]} },
+"plow_field": { "timeCost": {"val": 15, "min":1, "modifiers": { "plowing_1":{ "mult":0.8},"plowing_2":{ "mult":0.8}}}, "requirements": ["plow_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["plow_1"],"skill_plowing_3": [""],"minor_learn_field": ["@1"], "plow_under": ["@1"], "plow": ["@1"]} },
+"plant_wheat": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"wheat" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_wheat":["@1"], "major_touch_crop":["@1"], "major_learn_crop":["@1"]} },
+"harvest_wheat": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_crop":["@1"], "harvest_wheat":["@1"]} },
 }
 """;
       // Load the tasks.
@@ -375,34 +379,34 @@ public class CropUnitTest
     Assert.IsNotNull(runningTask);
     person.EnqueueTask(runningTask, false);
 
-    // Tasks are enqueued, advance the calendar 3 days.
-    Advance(field, person, 3);
+    // Tasks are enqueued, advance the calendar 6 days.
+    Advance(field, person, 6, true);
 
     // Check that the field is planted.
     Assert.AreEqual(0.9, field.Count(wheat));
     // Check the weeds.
-    Assert.AreEqual(3, field.GetAttributeValue(weeds), 0.1);
+    Assert.AreEqual(3.2, field.GetAttributeValue(weeds), 0.1);
     // Check the crop health and yield
     Assert.AreEqual(71, field.GetValue(wheat, crop_health), 1.0);
-    Assert.AreEqual(6.7, field.GetValue(wheat, crop_yield), 0.2);
+    Assert.AreEqual(10, field.GetValue(wheat, crop_yield), 0.2);
 
     // Wait for a week and then do more weeding.
     Advance(field, person, 5);
     runningTask = TaskRunner.StartTask(person, person.household, weed, targetField, 1.0);
     Assert.IsNotNull(runningTask);
     person.EnqueueTask(runningTask, false);
-    Advance(field, person, 1);
+    Advance(field, person, 2, true);
 
     // Check the weeds, health, and yield.
-    Assert.AreEqual(7, field.GetAttributeValue(weeds), 0.1);
+    Assert.AreEqual(7.85, field.GetAttributeValue(weeds), 0.1);
     Assert.AreEqual(70.5, field.GetValue(wheat, crop_health), 0.5);
-    Assert.AreEqual(25.6, field.GetValue(wheat, crop_yield), 0.2);
+    Assert.AreEqual(30.5, field.GetValue(wheat, crop_yield), 0.2);
 
     // Run until the crop is 135 days old.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
     Assert.AreEqual(16.3, field.GetAttributeValue(weeds), 0.1);
     Assert.AreEqual(69.5, field.GetValue(wheat, crop_health), 0.5);
-    Assert.AreEqual(339, field.GetValue(wheat, crop_yield), 1.0);
+    Assert.AreEqual(341.8, field.GetValue(wheat, crop_yield), 1.0);
 
     // Harvest the crop.
     runningTask = TaskRunner.StartTask(person, person.household, harvest, targetField, 0.9);
@@ -410,15 +414,15 @@ public class CropUnitTest
     person.EnqueueTask(runningTask, false);
 
     // Advance until the harvest is complete.
-    Advance(field, person, 4);
+    Advance(field, person, 7, true);
     // Check the harvested yield.
-    Assert.AreEqual(678, household.inventory[wheatItem]);
+    Assert.AreEqual(683, household.inventory[wheatItem]);
 
     // Check the person's skills.
     Assert.AreEqual(4, person.GetXP(Skill.Find("weeding")!));
-    Assert.AreEqual(1, person.GetXP(Skill.Find("harvesting")!));
-    Assert.AreEqual(1, person.GetXP(Skill.Find("planting")!));
-    Assert.AreEqual(2, person.GetXP(Skill.Find("plowing")!));
+    Assert.AreEqual(18, person.GetXP(Skill.Find("harvesting")!));
+    Assert.AreEqual(18, person.GetXP(Skill.Find("planting")!));
+    Assert.AreEqual(40, person.GetXP(Skill.Find("plowing")!));
     Assert.AreEqual(20, person.GetXP(Skill.Find("cereals")!));
   }
 
