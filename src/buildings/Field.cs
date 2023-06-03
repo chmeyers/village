@@ -310,7 +310,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 
   // Track the last crop that was planted.
   // This is used by effects that need a crop but only have access to the field.
-  public CropInfo? lastCropPlanted { get; private set; } = null;
+  public CropInfo? lastCropPlanted = null;
 
   // The current number of crops in the field.
   public double cropCount { get; private set; } = 0;

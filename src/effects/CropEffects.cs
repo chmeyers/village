@@ -46,6 +46,22 @@ public class PlantCropEffect : Effect
     }
   }
 
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
+  {
+    // We mark our crop as the last planted in the field, again, so that any effects
+    // that run after this one can target the correct crop in cases where two crops
+    // are planted in the same field.
+    Field field = (Field)chosenEffectTarget.target!;
+    if (field.crops.ContainsKey(crop))
+    {
+      field.lastCropPlanted = field.crops[crop];
+    }
+    else
+    {
+      field.lastCropPlanted = null;
+    }
+  }
+
   public override bool IsOptional()
   {
     // plant crop effects are not optional.
