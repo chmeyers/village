@@ -219,6 +219,12 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
       // initDays, then goes to 100% at the end of the devDays or weedSusceptibleDays,
       // whichever is longer.
       // Get the current day of the crop from the cropAttribute.
+
+      // TODO(chmeyers): Reduce this by the crop health? This would allow weeds to choke out
+      // unhealthy crops and force weeding to be more important later in the season.
+      // Remember that crop health can go above 1.0, so super-healthy crops would get
+      // bonus weed reduction.
+
       var cropAttribute = itemType.cropSettings!.cropAttribute;
       var cropDay = state.GetUnscaledValue(cropAttribute!);
       var initDays = itemType.cropSettings!.initDays;
