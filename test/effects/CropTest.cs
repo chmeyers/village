@@ -55,6 +55,117 @@ public class CropUnitTest
     }
   }
 
+  private void Run3FoldYear(Field[] fields, Dictionary<string, ChosenEffectTarget>[] targetFields, Person person, List<WorkTask>[] tasks, int rotation = 0)
+  {
+    // Advance to the beginning of the next year.
+    uint ticksToSpring = (uint)(Calendar.ticksPerYear - Calendar.Ticks % Calendar.ticksPerYear);
+    for (int i = 0; i < ticksToSpring; i++)
+    {
+      Calendar.Advance(1);
+      WeatherAttributes.AdvanceWeather();
+      fields[0].Advance();
+      fields[1].Advance();
+      fields[2].Advance();
+      TaskRunner.AdvanceTask(person);
+      person.attributes.Advance();
+    }
+    // It's spring, time to plow and plant.
+    // Plow the fields.
+    for (int i = 0; i < 3; i++)
+    {
+      // Make sure they have enough to plant.
+      ItemType itemType = tasks[i][1].Inputs(person)[0].Key;
+      Item item = new Item(itemType);
+      person.household.inventory.RemoveItem(item, person.household.inventory[item]);
+      person.household.inventory.AddItem(item, 150);
+      // Plow and plant.
+      person.EnqueueTask(TaskRunner.StartTask(person, person.household, tasks[i][0], targetFields[(i + rotation)%3], 1.0)!, false);
+      person.EnqueueTask(TaskRunner.StartTask(person, person.household, tasks[i][1], targetFields[(i + rotation)%3], 1.0)!, false);
+    }
+    for (int i = 0; i < 3; i++)
+    {
+      // weed each field once.
+      person.EnqueueTask(TaskRunner.StartTask(person, person.household, tasks[i][2], targetFields[(i + rotation) % 3], 1.0)!, false);
+    }
+
+    // Advance until the person is idle.
+    while(person.runningTasks.Count > 0)
+    {
+      Calendar.Advance(1);
+      WeatherAttributes.AdvanceWeather();
+      fields[0].Advance();
+      fields[1].Advance();
+      fields[2].Advance();
+      TaskRunner.AdvanceTask(person);
+      person.attributes.Advance();
+    }
+
+    // Advance five more days.
+    for (int i = 0; i < 5; i++)
+    {
+      Calendar.Advance(10);
+      WeatherAttributes.AdvanceWeather();
+      fields[0].Advance();
+      fields[1].Advance();
+      fields[2].Advance();
+      TaskRunner.AdvanceTask(person);
+      person.attributes.Advance();
+    }
+
+    // Weed one more time.
+    for (int i = 0; i < 3; i++)
+    {
+      // weed each field once.
+      person.EnqueueTask(TaskRunner.StartTask(person, person.household, tasks[i][2], targetFields[(i + rotation) % 3], 1.0)!, false);
+    }
+    while (person.runningTasks.Count > 0)
+    {
+      Calendar.Advance(1);
+      WeatherAttributes.AdvanceWeather();
+      fields[0].Advance();
+      fields[1].Advance();
+      fields[2].Advance();
+      TaskRunner.AdvanceTask(person);
+      person.attributes.Advance();
+    }
+
+    // Now advance until the first field is ready to harvest.
+    //wheat, wheat.cropSettings!.cropAttribute!
+    ItemType crop = tasks[0][1].Inputs(person)[0].Key;
+
+    while (fields[rotation % 3].Count(crop) > 0 && fields[rotation % 3].GetUnscaledValue(crop, crop.cropSettings!.cropAttribute!) < 135)
+    {
+      Calendar.Advance(1);
+      WeatherAttributes.AdvanceWeather();
+      fields[0].Advance();
+      fields[1].Advance();
+      fields[2].Advance();
+      TaskRunner.AdvanceTask(person);
+      person.attributes.Advance();
+    }
+
+    // Harvest each field.
+    for (int i = 0; i < 3; i++)
+    {
+      // Harvest.
+      person.EnqueueTask(TaskRunner.StartTask(person, person.household, tasks[i][3], targetFields[(i + rotation) % 3], 1.0)!, false);
+    }
+    // Advance until the person is idle.
+    while (person.runningTasks.Count > 0)
+    {
+      Calendar.Advance(1);
+      WeatherAttributes.AdvanceWeather();
+      fields[0].Advance();
+      fields[1].Advance();
+      fields[2].Advance();
+      TaskRunner.AdvanceTask(person);
+      person.attributes.Advance();
+    }
+
+    // The season is over.
+    
+  }
+
   [TestMethod]
   public void TestField()
   {
@@ -80,6 +191,7 @@ public class CropUnitTest
         'planting' : { levels: 8 },
         'harvesting' : { levels: 8 },
         'cereals' : { levels: 8 },
+        'legumes' : { levels: 8 },
         'hoe' : { levels: 8 },
         'plow' : { levels: 8 },
         'sickle' : { levels: 8 },
@@ -94,6 +206,8 @@ public class CropUnitTest
   "straw": { "group": "RESOURCE"},
   "food": { "group": "FOOD"},
   "wheat": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 4, "minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.4444, "targetYieldPerAcre": 600, "seedPerAcre": 150, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
+  "hay": { "group": "FOOD", "parents" : ["food"], "weight": 1, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 1, "minSoilQuality": 0, "minPlantingTemp": 32, "frostTolerance": 20, "heatTolerance": 100, "droughtTolerance": 0.75, "weedSusceptibleDays": 10, "initDays": 10, "devDays": 15, "midDays": 75, "lateDays": 35, "kcInit": 0.4, "kcMid": 0.85, "kcEnd": 0.85, "perTickYieldGrowth": 2.963, "targetYieldPerAcre": 4000, "seedPerAcre": 10, "nitrogenPerYield": 0.019, "phosphorusPerYield": 0.0025, "potassiumPerYield": 0.018, "strawPerYield": 1, "nitrogenPerStraw": 0.006, "phosphorusPerStraw": 0, "potassiumPerStraw": 0, "nitrogenFixing": 0.8, "temperatePlantingMonths": [0,1], "harvestItems": { "hay" : 1 }, "cropAttribute": "crop_hay_growing"} },
+  "field_peas": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "legumes", "cropSkillLevel": 1, "minSoilQuality": 2, "minPlantingTemp": 40, "frostTolerance": 28, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 40, "initDays": 20, "devDays": 30, "midDays": 40, "lateDays": 25, "kcInit": 0.4, "kcMid": 1.15, "kcEnd": 0.3, "perTickYieldGrowth": 0.5739, "targetYieldPerAcre": 660, "seedPerAcre": 180, "hasHarvestableStraw": true, "nitrogenPerYield": 0.04, "phosphorusPerYield": 0.008717, "potassiumPerYield": 0.009817, "strawPerYield": 1.5, "nitrogenPerStraw": 0.008, "phosphorusPerStraw": 0.0007, "potassiumPerStraw": 0.009, "nitrogenFixing": 0.6, "temperatePlantingMonths": [0,1], "harvestItems": { "field_peas" : 1 , "straw": 1.5 }, "cropAttribute": "crop_field_peas_growing"} },
 }
 """;
       // Load the item types.
@@ -112,6 +226,9 @@ public class CropUnitTest
 "kill_crop" : { "target": "Crop", "effectType": "KillCrop", "config": {  } },
 "plant_wheat" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "wheat" } },
 "harvest_wheat" : { "target": "Crop", "effectType": "HarvestCrop", "config": { "crop" : "wheat" } },
+"plant_peas" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "field_peas" } },
+"harvest_peas" : { "target": "Crop", "effectType": "HarvestCrop", "config": { "crop" : "field_peas" } },
+"plant_hay" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "hay" } },
 "plow_under" : { "target": "Field", "effectType": "KillCrop", "config": {  } },
 "plow" : { "target": "Field", "effectType": "AttributePuller", "config": { "soil_quality" : { "target": {"val": "plowing", "add": 1 }, "amount": 0.3}, "weeds" : { "target": 0, "amount": {"val": "plowing", "add": 2, "mult": 20 }}, } },
 "weed" : { "target": "Field", "effectType": "AttributeAdder", "config": { "weeds" : { "target": { "val": "weeding", "add": -10, "mult": -0.25}, "amount": {"val": "weeding", "add": 10, "mult": 0.3 }}, } },
@@ -148,6 +265,8 @@ public class CropUnitTest
 "crop_health" : { "min": 0, "max": 100, "group": "crop" , "initial": 100, "intervals": [{"lower": 0, "abilities": []},{"lower": 10, "abilities": []}]},
 "crop_yield" : { "min": 0, "max": 100000, "group": "crop" , "initial": 0, "intervals": [{"lower": 0, "abilities": []}]},
 "crop_wheat_growing": { "min": 0, "max": 190, "changePerTick": 0.1, "initial": 0, "intervals": [{"lower": 0, "ongoing_effects": ["grow_crop"]}, {"lower": 130, "abilities": ["harvestable"], "ongoing_effects": ["grow_crop"]}, {"lower": 135, "abilities": ["harvestable"]}, {"lower": 155, "ongoing_effects": ["rotting"]}, {"lower": 185, "entry_effects": ["kill_crop"]} ]},
+"crop_field_peas_growing": { "min": 0, "max": 190, "changePerTick": 0.1, "initial": 0, "intervals": [{"lower": 0, "ongoing_effects": ["grow_crop"]}, {"lower": 110, "abilities": ["harvestable"], "ongoing_effects": ["grow_crop"]}, {"lower": 115, "abilities": ["harvestable"]}, {"lower": 155, "ongoing_effects": ["rotting"]}, {"lower": 175, "entry_effects": ["kill_crop"]} ]},
+"crop_hay_growing": { "min": 0, "max": 190, "changePerTick": 0.1, "initial": 0, "intervals": [{"lower": 0, "ongoing_effects": ["grow_crop"]}, {"lower": 130, "abilities": ["harvestable"], "ongoing_effects": ["grow_crop"]}, {"lower": 135, "abilities": ["harvestable"]}, {"lower": 155, "ongoing_effects": ["rotting"]}, {"lower": 185, "entry_effects": ["kill_crop"]} ]},
   "weekly_high" : { "min": -110, "max": 212, "group": "weather" , "initial": 60, "intervals": []},
   "weekly_low" : { "min": -110, "max": 212, "group": "weather" , "initial": 40, "intervals": [{"lower": -110, "abilities": [], "entry_effects": []}, {"lower": 33}]},
   "weekly_tick_et" : { "min": 0, "max": 0.1, "group": "weather" , "initial": 0.015, "intervals": []},
@@ -169,6 +288,7 @@ public class CropUnitTest
       string json = """
 {
   "cereals" : [ {"xp": 100, "requirements": [], "abilities": ["cereals_1"] },{"xp": 200, "requirements": [], "abilities": ["cereals_2"] },{"xp": 400, "requirements": [], "abilities": ["cereals_3"] },{"xp": 800, "requirements": [], "abilities": ["cereals_4"] },{"xp": 1600, "requirements": [], "abilities": ["cereals_5"] },{"xp": 3200, "requirements": [], "abilities": ["cereals_6"] } ],
+  "legumes" : [ {"xp": 100, "requirements": [], "abilities": ["legumes_1"] },{"xp": 200, "requirements": [], "abilities": ["legumes_2"] },{"xp": 400, "requirements": [], "abilities": ["legumes_3"] },{"xp": 800, "requirements": [], "abilities": ["legumes_4"] },{"xp": 1600, "requirements": [], "abilities": ["legumes_5"] },{"xp": 3200, "requirements": [], "abilities": ["legumes_6"] } ],
   "harvesting" : [ {"xp": 100, "requirements": [], "abilities": ["harvesting_1"] },{"xp": 200, "requirements": [], "abilities": ["harvesting_2"] },{"xp": 400, "requirements": [], "abilities": ["harvesting_3"] },{"xp": 800, "requirements": [], "abilities": ["harvesting_4"] },{"xp": 1600, "requirements": [], "abilities": ["harvesting_5"] },{"xp": 3200, "requirements": [], "abilities": ["harvesting_6"] } ],
   "planting" : [ {"xp": 100, "requirements": [], "abilities": ["planting_1"] },{"xp": 200, "requirements": [], "abilities": ["planting_2"] },{"xp": 400, "requirements": [], "abilities": ["planting_3"] },{"xp": 800, "requirements": [], "abilities": ["planting_4"] },{"xp": 1600, "requirements": [], "abilities": ["planting_5"] },{"xp": 3200, "requirements": [], "abilities": ["planting_6"] } ],
   "plowing" : [ {"xp": 200, "requirements": [], "abilities": ["plowing_1"] },{"xp": 400, "requirements": [], "abilities": ["plowing_2"] },{"xp": 800, "requirements": [], "abilities": ["plowing_3"] },{"xp": 1600, "requirements": [], "abilities": ["plowing_4"] },{"xp": 3200, "requirements": [], "abilities": ["plowing_5"] } ],
@@ -186,6 +306,9 @@ public class CropUnitTest
 "plow_field": { "timeCost": {"val": 15, "min":1, "modifiers": { "plowing_1":{ "mult":0.8},"plowing_2":{ "mult":0.8}}}, "requirements": ["plow_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["plow_1"],"skill_plowing_3": [""],"minor_learn_field": ["@1"], "plow_under": ["@1"], "plow": ["@1"]} },
 "plant_wheat": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"wheat" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_wheat":["@1"], "major_touch_crop":["@1"], "major_learn_crop":["@1"]} },
 "harvest_wheat": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_crop":["@1"], "harvest_wheat":["@1"]} },
+"plant_peas": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"field_peas" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_peas":["@1"], "major_touch_crop":["@1"], "major_learn_crop":["@1"]} },
+"harvest_peas": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_crop":["@1"], "harvest_peas":["@1"]} },
+"plant_hay": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"hay" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_hay":["@1"], "major_touch_crop":["@1"], "major_learn_crop":["@1"]} },
 }
 """;
       // Load the tasks.
@@ -424,6 +547,98 @@ public class CropUnitTest
     Assert.AreEqual(18, person.GetXP(Skill.Find("planting")!));
     Assert.AreEqual(40, person.GetXP(Skill.Find("plowing")!));
     Assert.AreEqual(20, person.GetXP(Skill.Find("cereals")!));
-  }
 
+    // Test a three-field rotation over multiple years.
+    Field[] fields = new Field[3];
+    ChosenEffectTarget[] fieldTargets = new ChosenEffectTarget[3];
+    Dictionary<string, ChosenEffectTarget>[] targetFields = new Dictionary<string, ChosenEffectTarget>[3];
+    targetField["@1"] = fieldTarget;
+    List<WorkTask>[] tasks = new List<WorkTask>[3];
+    for (int i = 0; i < 3; ++i) {
+      fields[i] = new Field(BuildingType.Find("field")!, household);
+      fieldTargets[i] = new ChosenEffectTarget(EffectTargetType.Field, fields[i], person, person);
+      targetFields[i] = new Dictionary<string, ChosenEffectTarget>();
+      targetFields[i]["@1"] = fieldTargets[i];
+      tasks[i] = new List<WorkTask>();
+      tasks[i].Add(WorkTask.tasks["plow_field"]);
+    }
+    tasks[0].Add(WorkTask.tasks["plant_wheat"]);
+    tasks[0].Add(WorkTask.tasks["weed_field"]);
+    tasks[0].Add(WorkTask.tasks["harvest_wheat"]);
+    tasks[1].Add(WorkTask.tasks["plant_peas"]);
+    tasks[1].Add(WorkTask.tasks["weed_field"]);
+    tasks[1].Add(WorkTask.tasks["harvest_peas"]);
+    tasks[2].Add(WorkTask.tasks["plant_hay"]);
+    tasks[2].Add(WorkTask.tasks["weed_field"]);
+    // Hay gets plowed under, so no harvest.
+    tasks[2].Add(WorkTask.tasks["plow_field"]);
+    Item peasItem = new Item(ItemType.Find("field_peas")!);
+
+    Run3FoldYear(fields, targetFields, person, tasks, 0);
+    // Check the wheat and peas yields.
+    Assert.AreEqual(306, household.inventory[wheatItem]);
+    Assert.AreEqual(371, household.inventory[peasItem]);
+
+    Run3FoldYear(fields, targetFields, person, tasks, 1);
+    Assert.AreEqual(338, household.inventory[wheatItem]);
+    Assert.AreEqual(427, household.inventory[peasItem]);
+
+    Run3FoldYear(fields, targetFields, person, tasks, 2);
+    Assert.AreEqual(345, household.inventory[wheatItem]);
+    Assert.AreEqual(420, household.inventory[peasItem]);
+
+    // Five years of rotation.
+    for (int i = 0; i < 5; ++i) {
+      Run3FoldYear(fields, targetFields, person, tasks, i % 3);
+    }
+    Assert.AreEqual(491, household.inventory[wheatItem]);
+    Assert.AreEqual(660, household.inventory[peasItem]);
+
+    Assert.AreEqual(100, person.GetXP(Skill.Find("weeding")!));
+    Assert.AreEqual(338, person.GetXP(Skill.Find("harvesting")!));
+    Assert.AreEqual(498, person.GetXP(Skill.Find("planting")!));
+    Assert.AreEqual(1320, person.GetXP(Skill.Find("plowing")!));
+    Assert.AreEqual(434, person.GetXP(Skill.Find("cereals")!));
+    Assert.AreEqual(300, person.GetXP(Skill.Find("legumes")!));
+
+    // Twenty more years of rotation.
+    for (int i = 0; i < 20; ++i) {
+      Run3FoldYear(fields, targetFields, person, tasks, i % 3);
+    }
+    Assert.AreEqual(1000, household.inventory[wheatItem]);
+    Assert.AreEqual(1076, household.inventory[peasItem]);
+
+    Assert.AreEqual(340, person.GetXP(Skill.Find("weeding")!));
+    Assert.AreEqual(1500, person.GetXP(Skill.Find("harvesting")!));
+    Assert.AreEqual(1500, person.GetXP(Skill.Find("planting")!));
+    Assert.AreEqual(3000, person.GetXP(Skill.Find("plowing")!));
+    Assert.AreEqual(914, person.GetXP(Skill.Find("cereals")!));
+    Assert.AreEqual(300, person.GetXP(Skill.Find("legumes")!));
+
+    // Forty more years of rotation.
+    for (int i = 0; i < 40; ++i)
+    {
+      Run3FoldYear(fields, targetFields, person, tasks, i % 3);
+    }
+    Assert.AreEqual(1060, household.inventory[wheatItem]);
+    Assert.AreEqual(1078, household.inventory[peasItem]);
+
+    Assert.AreEqual(820, person.GetXP(Skill.Find("weeding")!));
+    Assert.AreEqual(1500, person.GetXP(Skill.Find("harvesting")!));
+    Assert.AreEqual(1500, person.GetXP(Skill.Find("planting")!));
+    Assert.AreEqual(3000, person.GetXP(Skill.Find("plowing")!));
+    Assert.AreEqual(3100, person.GetXP(Skill.Find("cereals")!));
+    Assert.AreEqual(300, person.GetXP(Skill.Find("legumes")!));
+
+    // Everything is maxed out at this point.
+    // Try it without rotation.
+    for (int i = 0; i < 30; ++i)
+    {
+      Run3FoldYear(fields, targetFields, person, tasks, 0);
+    }
+    // Both peas and wheat fields are now nitrogen depleted.
+    Assert.AreEqual(960, household.inventory[wheatItem]);
+    Assert.AreEqual(863, household.inventory[peasItem]);
+
+  }
 }
