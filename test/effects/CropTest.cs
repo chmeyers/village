@@ -262,7 +262,7 @@ public class CropUnitTest
 "phosphorus" : { "min": 0, "max": 1000, "group": "field" , "initial": 150, "intervals": [{"lower": 0, "abilities": ["low_phosphorus"]},{"lower": 5, "abilities": []}]},
 "potassium" : { "min": 0, "max": 10000, "group": "field" , "initial": 5000, "intervals": [{"lower": 0, "abilities": ["low_potassium"]},{"lower": 50, "abilities": []}]},
 "weeds" : { "min": 0, "max": 100, "group": "field" , "initial": 100, "intervals": [{"lower": 0, "abilities": ["low_weeds"]},{"lower": 10, "abilities": ["mid_weeds"]},{"lower": 20, "abilities": ["high_weeds"]}]},
-"crop_health" : { "min": 0, "max": 100, "group": "crop" , "initial": 100, "intervals": [{"lower": 0, "abilities": []},{"lower": 10, "abilities": []}]},
+"crop_health" : { "min": 0, "max": 200, "group": "crop" , "initial": 100, "intervals": [{"lower": 0, "abilities": []},{"lower": 10, "abilities": []}]},
 "crop_yield" : { "min": 0, "max": 100000, "group": "crop" , "initial": 0, "intervals": [{"lower": 0, "abilities": []}]},
 "crop_wheat_growing": { "min": 0, "max": 190, "changePerTick": 0.1, "initial": 0, "intervals": [{"lower": 0, "ongoing_effects": ["grow_crop"]}, {"lower": 130, "abilities": ["harvestable"], "ongoing_effects": ["grow_crop"]}, {"lower": 135, "abilities": ["harvestable"]}, {"lower": 155, "ongoing_effects": ["rotting"]}, {"lower": 185, "entry_effects": ["kill_crop"]} ]},
 "crop_field_peas_growing": { "min": 0, "max": 190, "changePerTick": 0.1, "initial": 0, "intervals": [{"lower": 0, "ongoing_effects": ["grow_crop"]}, {"lower": 110, "abilities": ["harvestable"], "ongoing_effects": ["grow_crop"]}, {"lower": 115, "abilities": ["harvestable"]}, {"lower": 155, "ongoing_effects": ["rotting"]}, {"lower": 175, "entry_effects": ["kill_crop"]} ]},
@@ -592,7 +592,7 @@ public class CropUnitTest
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
     Assert.AreEqual(491, household.inventory[wheatItem]);
-    Assert.AreEqual(660, household.inventory[peasItem]);
+    Assert.AreEqual(698, household.inventory[peasItem]);
 
     Assert.AreEqual(100, person.GetXP(Skill.Find("weeding")!));
     Assert.AreEqual(338, person.GetXP(Skill.Find("harvesting")!));
@@ -606,7 +606,7 @@ public class CropUnitTest
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
     Assert.AreEqual(1000, household.inventory[wheatItem]);
-    Assert.AreEqual(1076, household.inventory[peasItem]);
+    Assert.AreEqual(1134, household.inventory[peasItem]);
 
     Assert.AreEqual(340, person.GetXP(Skill.Find("weeding")!));
     Assert.AreEqual(1500, person.GetXP(Skill.Find("harvesting")!));
@@ -620,8 +620,8 @@ public class CropUnitTest
     {
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
-    Assert.AreEqual(1060, household.inventory[wheatItem]);
-    Assert.AreEqual(1078, household.inventory[peasItem]);
+    Assert.AreEqual(1115, household.inventory[wheatItem]);
+    Assert.AreEqual(1137, household.inventory[peasItem]);
 
     Assert.AreEqual(820, person.GetXP(Skill.Find("weeding")!));
     Assert.AreEqual(1500, person.GetXP(Skill.Find("harvesting")!));
@@ -638,7 +638,7 @@ public class CropUnitTest
     }
     // Both peas and wheat fields are now nitrogen depleted.
     Assert.AreEqual(960, household.inventory[wheatItem]);
-    Assert.AreEqual(863, household.inventory[peasItem]);
+    Assert.AreEqual(892, household.inventory[peasItem]);
 
   }
 }
