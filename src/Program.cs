@@ -23,14 +23,20 @@ namespace Village
       ItemType.LoadFile("config/items/tools.jsonc");
       ItemType.LoadFile("config/items/item.jsonc");
       ItemType.LoadFile("config/items/food.jsonc");
+      ItemType.LoadFile("config/items/seeds.jsonc");
+      ItemType.LoadFile("config/items/crops.jsonc");
       // Load the effects. Must be done before Attributes, Tasks, and Skills.
       EffectLoader.LoadFile("config/effects/effects.jsonc");
       EffectLoader.LoadFile("config/effects/building_components.jsonc");
       EffectLoader.LoadFile("config/effects/skill_effects.jsonc");
       EffectLoader.LoadFile("config/effects/skilltree.jsonc");
+      EffectLoader.LoadFile("config/effects/crops.jsonc");
+      EffectLoader.LoadFile("config/effects/field.jsonc");
       // Load the attributes.
       AttributeType.LoadFile("config/attributes/attributes.jsonc");
       AttributeType.LoadFile("config/attributes/weather.jsonc");
+      AttributeType.LoadFile("config/attributes/crops.jsonc");
+      AttributeType.LoadFile("config/attributes/field.jsonc");
       Calendar.AddCalendarAttributes();
       // Load the tasks.
       WorkTask.LoadFile("config/tasks/gathering.jsonc");
@@ -39,6 +45,8 @@ namespace Village
       WorkTask.LoadFile("config/tasks/resources.jsonc");
       WorkTask.LoadFile("config/tasks/building.jsonc");
       WorkTask.LoadFile("config/tasks/meals.jsonc");
+      WorkTask.LoadFile("config/tasks/crops.jsonc");
+      WorkTask.LoadFile("config/tasks/field.jsonc");
       TaskSet.LoadFile("config/tasks/task_sets.jsonc");
       // Load the buildings.
       BuildingType.LoadFile("config/buildings/buildings.jsonc");

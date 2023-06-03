@@ -34,6 +34,6 @@
   "dairy": ["cheesemaking","butterchurning","milking"],
   "cleaning": ["laundrying"],
   "animal_husbandry": ["milking","shearing","teamstery","poultry","shepherding","butchering","horseriding"],
-  "horticulture": ["cereals","legumes","cash_crops","gardening","orchard_management"],
-  "fieldwork": ["harvesting","planting","plowing"],
+  "horticulture": ["brassicas","cereals","cucurbits","fiberplants","leafygreens","legumes","nightshades","oilseeds","roots","vines","orchards"],
+  "fieldwork": ["fertilizing","harvesting","planting","plowing","weeding"],
 }

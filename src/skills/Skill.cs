@@ -161,14 +161,7 @@ public class Skill
   public static void LoadFile(string filename)
   {
     var json = File.ReadAllText(filename);
-    try
-    {
-      LoadString(json);
-    }
-    catch (Exception e)
-    {
-      throw new Exception("Failed to load skills from file: " + filename + "\n" + e.Message);
-    }
+    LoadString(json);
   }
 
   // Load the parents from the given json.
