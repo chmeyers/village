@@ -337,6 +337,18 @@ public class Effect
     return 1.0;
   }
 
+  public virtual double? PreferredScale(ChosenEffectTarget target)
+  {
+    // For Crops and Fields, the default preferred scale is the max scale.
+    // For other targets, the default preferred scale is the max scale only
+    // if it is less than 1, otherwise it is null.
+    if (target.effectTargetType == EffectTargetType.Crop || target.effectTargetType == EffectTargetType.Field || MaxScale(target) < 1.0)
+    {
+      return MaxScale(target);
+    }
+    return null;
+  }
+
   // Whether this effect always targets the person performing the task.
   public virtual bool AlwaysTargetsRunner()
   {
