@@ -392,6 +392,14 @@ public class InventoryUnitTest
     Assert.AreEqual(4, inventory.Get(containing10)![child1Item]);
     Assert.AreEqual(4, inventory.Get(containing10)![child2Item]);
 
+    var maxscale1 = new Dictionary<ItemType, int> { { child1, 2 }, { parent1, 2 }, { grandparent1, 4 },  };
+    Assert.AreEqual(2.0, inventory.GetMaxScale(maxscale1), 0.0001);
 
+    var maxscale2 = new Dictionary<ItemType, int> { { child1, 2 }, { parent1, 2 }, { grandparent1, 5 } };
+    Assert.AreEqual(1.6, inventory.GetMaxScale(maxscale2), 0.0001);
+
+   // Asking for 5 of each grandparent and 2 of parent2.
+   var maxscale3 = new Dictionary<ItemType, int> { { parent2, 2 }, { grandparent2, 5 }, { grandparent1, 5 } };
+   Assert.AreEqual(2.0, inventory.GetMaxScale(maxscale3), 0.0001);
   }
 }

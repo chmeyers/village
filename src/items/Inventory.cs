@@ -121,6 +121,83 @@ public class Inventory : IInventoryContext, IAbilityCollection
     return true;
   }
 
+  // Return the largest quantity multiplier for the given item types
+  // that can be satisfied by a positive integer number of items in the inventory.
+  // For correct behavior, child types should be listed before parent types.
+  public double GetMaxScale(IEnumerable<KeyValuePair<ItemType, int>> list)
+  {
+    lock (_itemsLock)
+    {
+      bool hasParent = false;
+      int maxMultiplier = 1;
+      // for each item in the list, we have to find the max scale that works,
+      // then take the minimum of those.
+      double maxScale = double.MaxValue;
+      foreach (var itemType in list)
+      {
+        int multiplier = itemType.Value;
+        if (multiplier <= 0)
+        {
+          // If the multiplier is 0, we don't use this item type.
+          continue;
+        }
+        maxMultiplier = Math.Max(maxMultiplier, multiplier);
+        // If this item is a parent type, we need to add the multipliers of
+        // all descendant types that are in the list, so that we don't try
+        // to count the child type twice.
+        if (itemType.Key.childTypes.Count > 0)
+        {
+          hasParent = true;
+          foreach (var other in list)
+          {
+            if (other.Key.IsDescendentOf(itemType.Key))
+            {
+              multiplier += other.Value;
+            }
+          }
+        }
+        // Get the count of items of this type and divide by the multiplier.
+        maxScale = Math.Min(maxScale,_CountNoLock(itemType.Key) / (double)multiplier);
+      }
+      if (!hasParent)
+      {
+        // If there are no parent types, we can return the exact answer.
+        return maxScale;
+      }
+      // I strongly suspect that getting the exact answer with parent/child types
+      // is NP-hard, probably some version of the knapsack problem. It's made more
+      // difficult by the fact that we use integers for inventory quantities, so
+      // we can't split an item between a parent need and a child.
+      // Multiple parents are worse since we will have counted the child multiple times
+      // above for each parent.
+      // However, maxScale is a strict upper bound on the answer, so we can binary search
+      // to find the exact answer using Contains().
+
+      // First check if the exact answer works. The correct answer will always be
+      // a multiple of 1/maxMultiplier, so round down to the nearest multiple.
+      maxScale = Math.Floor(maxScale * maxMultiplier) / maxMultiplier;
+      if (_ScaledContains(list, maxScale))
+      {
+        return maxScale;
+      }
+      // Binary search. Use 1/maxMultiplier as the step size.
+      double minScale = 0;
+      while (maxScale - minScale > 1.0 / maxMultiplier)
+      {
+        double midScale = (maxScale + minScale) / 2;
+        if (_ScaledContains(list, midScale))
+        {
+          minScale = midScale;
+        }
+        else
+        {
+          maxScale = midScale;
+        }
+      }
+      return minScale;
+    }
+  }
+
   // Add an item to the inventory.
   public void AddItem(Item item, int quantity)
   {
@@ -166,6 +243,8 @@ public class Inventory : IInventoryContext, IAbilityCollection
     }
   }
 
+  // Get the a specific quantity of items of a given type.
+  // For correct behavior, child types should be listed before parent types.
   public Dictionary<Item, int>? Get(IEnumerable<KeyValuePair<ItemType, int>> itemTypes)
   {
     if (itemTypes == null || itemTypes.Count() == 0)
@@ -249,6 +328,15 @@ public class Inventory : IInventoryContext, IAbilityCollection
     }
   }
 
+  // Count the number of items of a given type in the inventory, including child types.
+  public int Count(ItemType itemType)
+  {
+    lock (_itemsLock)
+    {
+      return _CountNoLock(itemType);
+    }
+  }
+
   // Check whether a given item exists in the inventory, even if the quantity is zero.
   public bool Contains(Item item)
   {
@@ -279,6 +367,7 @@ public class Inventory : IInventoryContext, IAbilityCollection
   }
 
   // Check whether the given items exists in the inventory with at least the specified quantity.
+  // For correct behavior, child types should be listed before parent types.
   public bool Contains(IEnumerable<KeyValuePair<ItemType, int>> items)
   {
     if (items == null || items.Count() == 0)
@@ -337,6 +426,28 @@ public class Inventory : IInventoryContext, IAbilityCollection
         return new SortedDictionary<Item, int>();
       }
     }
+  }
+
+
+  // Internal function to count an itemType in the inventory with no locking.
+  // Checks both the passed type and all descendant types.
+  private int _CountNoLock(ItemType itemType)
+  {
+    int count = 0;
+    // Count the passed itemType, then if it has children, count them too.
+    if (items.ContainsKey(itemType))
+    {
+      foreach (var item in items[itemType])
+      {
+        count += item.Value;
+      }
+    }
+    // Recurse through the children.
+    foreach (var child in itemType.childTypes)
+    {
+      count += _CountNoLock(child);
+    }
+    return count;
   }
 
   private bool _RemoveAll(Item item)
@@ -595,6 +706,21 @@ public class Inventory : IInventoryContext, IAbilityCollection
       }
     }
     return contents;
+  }
+
+  private bool _ScaledContains(IEnumerable<KeyValuePair<ItemType, int>> itemTypes, double scale)
+  {
+    var contents = new Dictionary<Item, int>();
+    foreach (var itemType in itemTypes)
+    {
+      int quantity = (int)Math.Ceiling(itemType.Value * scale);
+      if (!_MergeGet(itemType.Key, ref quantity, ref contents))
+      {
+        // Don't return partial contents if we don't have enough.
+        return false;
+      }
+    }
+    return true;
   }
 
   private Dictionary<Item, int>? _GetNoLock(ItemType itemType, int quantity)
