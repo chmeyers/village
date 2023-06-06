@@ -320,6 +320,11 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     {
       return state.AddAttribute(attributeType);
     }
+
+    public double Utility(AttributeType attributeType, double delta)
+    {
+      return state.Utility(attributeType, delta);
+    }
   }
 
   private Dictionary<ItemType, CropInfo> _crops = new Dictionary<ItemType, CropInfo>();
@@ -420,5 +425,10 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   {
     Advance();
     return state.AddAttribute(attributeType);
+  }
+
+  public double Utility(AttributeType attributeType, double delta)
+  {
+    return state.Utility(attributeType, delta);
   }
 }

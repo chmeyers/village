@@ -158,16 +158,19 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   public int DesiredStockpile(ItemType itemType)
   {
     // TODO(chmeyers): Implement this.
+    return 0;
   }
 
   public double SellPrice(ItemType itemType)
   {
     // TODO(chmeyers): Implement this.
+    return 1;
   }
 
   public double BuyPrice(ItemType itemType)
   {
     // TODO(chmeyers): Implement this.
+    return 1;
   }
 
   // Item Utility

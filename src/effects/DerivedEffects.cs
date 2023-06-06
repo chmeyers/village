@@ -251,7 +251,7 @@ public class SkillEffect : Effect
     }
     int trainingLevel = (int)level.GetValue(chosenEffectTarget.runningContext);
     double trainingAmount = amount.GetScaledValue(chosenEffectTarget.runningContext, scaler);
-    return _skill!.Utility(person, trainingLevel, trainingAmount);
+    return person.Utility(_skill!, trainingLevel, trainingAmount);
   }
 
   // The name of the skill to increase.

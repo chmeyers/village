@@ -118,7 +118,7 @@ public class PlantCropEffect : Effect
     foreach (var harvestItem in crop.cropSettings!.harvestItems)
     {
       // TODO(chmeyers): Shouldn't be SellPrice, but depend on household yearly needs.
-      utility += household.household.SellPrice(harvestItem.Key, targetYield * harvestItem.Value / harvestItem.Key.weight);
+      utility += household.household.SellPrice(harvestItem.Key) * targetYield * harvestItem.Value / harvestItem.Key.weight;
     }
     return utility;
   }
@@ -632,6 +632,7 @@ public class TouchCropEffect : Effect
   public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // TODO(chmeyers): Implement.
+    return 0;
   }
 
   private AbilityValue healthRate;
@@ -719,6 +720,7 @@ public class CropSkillEffect : Effect
   public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // TODO(chmeyers): Implement.
+    return 0;
   }
 
   // Amount to increase, defaults to 1.

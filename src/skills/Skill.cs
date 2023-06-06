@@ -235,6 +235,7 @@ public interface ISkillContext : IAbilityContext, IInventoryContext
   public double GetXP(Skill skill);
   // Get the amount of xp required to reach the next level.
   public double GetNextLevelXP(Skill skill);
+  public double Utility(Skill skill, int trainingLevel, double trainingAmount);
 }
 
 // A skill for a particular person.

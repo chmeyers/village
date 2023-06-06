@@ -134,6 +134,11 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     return attributes.GetValue(attributeType);
   }
 
+  public double Utility(AttributeType attributeType, double delta)
+  {
+    return attributes.Utility(attributeType, delta);
+  }
+
   // Get the amount this person will offer for a set of items.
   // In this case the other person (the seller) is assumed to be the one initiating the trade.
   // The offer may depend on the seller, such as the buyer's relationship with the seller.
@@ -379,6 +384,12 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   public double GetNextLevelXP(Skill skill)
   {
     return skills.GetNextLevelXP(skill);
+  }
+
+  public double Utility(Skill skill, int trainingLevel, double trainingAmount)
+  {
+    // TODO(chmeyers): Implement this.
+    return 0;
   }
 
   // Take whatever stuff from the household inventory that the person needs.

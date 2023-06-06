@@ -55,6 +55,11 @@ public class SkillUnitTest
     {
       return skills.GetNextLevelXP(skill);
     }
+
+    public double Utility(Skill skill, int level, double xp)
+    {
+      return 0;
+    }
   }
 
   [TestMethod]

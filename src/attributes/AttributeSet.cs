@@ -13,6 +13,8 @@ public interface IAttributeContext
   public double AddAttribute(AttributeType attributeType, double value);
 
   public double AddAttribute(AttributeType attributeType);
+
+  public double Utility(AttributeType attributeType, double delta);
 }
 
 // An AttributeSet contains the set of attributes for a person.
@@ -276,5 +278,11 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
   {
     Add(attributeType);
     return GetValue(attributeType);
+  }
+
+  public double Utility(AttributeType attributeType, double delta)
+  {
+    // TODO(chmeyers): Implement this.
+    return 0;
   }
 }
