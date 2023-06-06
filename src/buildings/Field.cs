@@ -52,11 +52,10 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
   }
 
-  public bool Plant(ItemType itemType, double quantity)
+  public bool CanPlant(ItemType itemType, double quantity)
   {
     lock (_lock)
     {
-      Advance();
       if (itemType.cropSettings == null)
       {
         // Can't plant something that isn't a crop.
@@ -69,6 +68,20 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
       if (quantity + cropCount > size)
       {
         // Too many to plant.
+        return false;
+      }
+      return true;
+    }
+  }
+
+  public bool Plant(ItemType itemType, double quantity)
+  {
+    lock (_lock)
+    {
+      Advance();
+      if (!CanPlant(itemType, quantity))
+      {
+        // Can't plant.
         return false;
       }
       if (!_crops.ContainsKey(itemType))
