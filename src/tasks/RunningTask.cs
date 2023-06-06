@@ -57,9 +57,9 @@ public class RunningTask
     ticksRemaining = 0;
     endTime = Calendar.Ticks;
     // Add the outputs to the inventory.
-    foreach (var output in task.Outputs(owner))
+    foreach (var output in task.Outputs(owner, scale))
     {
-      target.inventory.AddItem(output.Key, (int)Math.Floor(output.Value * scale));
+      target.inventory.AddItem(output.Key, output.Value);
     }
     foreach (var effect in chosenTargets)
     {

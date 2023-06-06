@@ -449,14 +449,53 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     if (runningTasks.Count > 0) return;
     // Pick a random task from the set of available tasks.
     HashSet<WorkTask> available = AvailableHouseholdTasks.Except(blacklist).ToHashSet();
-    if (available.Count() == 0) return;
     // Eliminate any tasks that have targets.
     available.ExceptWith(available.Where(t => t.targets.Count > 0));
+    if (available.Count() == 0) return;
     // Pick a random task from the set.
     var random = available.ElementAt(randomizer.Next(available.Count()));
     // Enqueue the task as a running task.
     var runningTask = TaskRunner.StartTask(this, this.household, random, null);
     if (runningTask == null) throw new Exception("Failed to start Random task: " + random.task + " for person: " + name);
+    EnqueueTask(runningTask, false);
+  }
+
+  public void PickTask(HashSet<WorkTask> blacklist)
+  {
+    // Traders still immune to real behavior.
+    if (isTrader) return;
+    // Only pick a task if the person has no tasks.
+    if (runningTasks.Count > 0) return;
+    // Pick a task from the set of available tasks.
+    HashSet<WorkTask> available = AvailableHouseholdTasks.Except(blacklist).ToHashSet();
+    // Eliminate any tasks that have multiple targets.
+    // TODO(chmeyers): Implement multiple target task picking.
+    available.ExceptWith(available.Where(t => t.targets.Count > 1));
+    if (available.Count() == 0) return;
+    // Get a utility score for every task and pick the highest scoring task.
+    WorkTask? best = null;
+    double bestScore = 0;
+    Dictionary<string, Effects.ChosenEffectTarget>? bestTargets = null;
+    double bestScale = 1.0;
+    foreach (var task in available)
+    {
+      // Get the utility score for the task.
+      // TODO(chmeyers): Cache the utility score for each task and only recalculate when needed.
+      Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
+      double scale = 1.0;
+      double score = task.Utility(this, this.household, ref targets, ref scale);
+      if (score > bestScore)
+      {
+        best = task;
+        bestScore = score;
+        bestTargets = targets;
+        bestScale = scale;
+      }
+    }
+    if (best == null) return;
+    // Enqueue the task as a running task.
+    var runningTask = TaskRunner.StartTask(this, this.household, best, bestTargets, bestScale);
+    if (runningTask == null) throw new Exception("Failed to start Chosen task: " + best.task + " for person: " + name);
     EnqueueTask(runningTask, false);
   }
 

@@ -2,6 +2,7 @@ using Village.Abilities;
 using Village.Attributes;
 using Village.Base;
 using Village.Buildings;
+using Village.Households;
 using Village.Items;
 using Village.Persons;
 using Village.Skills;
@@ -67,6 +68,59 @@ public class PlantCropEffect : Effect
     // plant crop effects are not optional.
     // If you can't apply the effect, then you shouldn't run the task.
     return false;
+  }
+
+  const double minPlantingMoisture = 1.0;
+  const double lowMoisturePenalty = 0.5;
+  const double maxPlantingWeeds = 5.0;
+  const double highWeedsPenalty = 0.5;
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    Field field = (Field)chosenEffectTarget.target!;
+    if (field == null)
+    {
+      return double.MinValue;
+    }
+    if (!field.CanPlant(crop, scaler))
+    {
+      return double.MinValue;
+    }
+    // If it's out of season, then we don't want to plant it.
+    // TODO(chmeyers): Support non-temperate climates.
+    // TODO(chmeyers): Provide some lesser utility for shoulder seasons.
+    if (!crop.cropSettings!.temperatePlantingMonths.Contains(Calendar.Month))
+    {
+      return double.MinValue;
+    }
+    // Base utility is based on the expected yield.
+    // TODO(chmeyers): Adjust this based on the household's history with this crop.
+    double targetYield = crop.cropSettings!.targetYieldPerAcre * scaler;
+    // Reduce utility if the soil quality isn't good enough.
+    double soilQuality = field.GetUnscaledAttributeValue(StaticAttributes.soilQuality!);
+    targetYield *= GrowCropEffect.SoilQualityEffect(crop, soilQuality);
+    // TODO(chmeyers): The field should be recently plowed.
+    // The weeds should be low.
+    if (field.GetUnscaledAttributeValue(StaticAttributes.weeds!) > maxPlantingWeeds)
+    {
+      targetYield *= highWeedsPenalty;
+    }
+    // The ground should be moist.
+    if (field.GetUnscaledAttributeValue(StaticAttributes.surfaceMoisture!) < minPlantingMoisture)
+    {
+      targetYield *= lowMoisturePenalty;
+    }
+    // TODO(chmeyers): Adjust for NPK in the field compared to crop needs, so that the AI
+    // can make better decisions about what to plant.
+    // TODO(chmeyers): Discount for all the work that needs to be done prior to harvest.
+    // TODO(chmeyers): Discount for the amount of time it will take to grow.
+    double utility = 0;
+    // Add up the utilities of all the harvest items for this crop.
+    foreach (var harvestItem in crop.cropSettings!.harvestItems)
+    {
+      // TODO(chmeyers): Shouldn't be SellPrice, but depend on household yearly needs.
+      utility += household.household.SellPrice(harvestItem.Key, targetYield * harvestItem.Value / harvestItem.Key.weight);
+    }
+    return utility;
   }
 
   // The type of the crop to plant.
@@ -174,6 +228,63 @@ public class HarvestCropEffect : Effect
     return Double.MaxValue;
   }
 
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    // The utility of harvesting is dependent on the yield of the crop,
+    // discounted depending on the amount of time this field has until
+    // it starts to rot, so that the farmer will harvest the crops that
+    // are closest to rotting first.
+    Field field = (Field)chosenEffectTarget.target!;
+    if (field == null)
+    {
+      return double.MinValue;
+    }
+    // Determine how long it is until the crop is fully grown.
+    double cropDay = field.GetUnscaledValue(crop, crop.cropSettings!.cropAttribute!);
+    int totalDays = crop.cropSettings!.totalDays;
+    int lateDays = crop.cropSettings!.totalDays - crop.cropSettings!.lateDays;
+    if (cropDay < lateDays)
+    {
+      // The crop is not fully grown yet.
+      return double.MinValue;
+    }
+    double utility = 0;
+    double yield = field.GetValue(crop, StaticAttributes.cropYield!);
+    yield *= scaler / field.Count(crop);
+    // Add up the utilities of all the harvest items for this crop.
+    foreach (var harvestItem in crop.cropSettings!.harvestItems)
+    {
+      int quantity = (int)(yield * harvestItem.Value / harvestItem.Key.weight);
+      if (quantity <= 0) continue;
+      utility += household.household.Utility(runner, harvestItem.Key, quantity);
+    }
+    // If the health is low, we want to harvest the crop immediately.
+    // Discount the utility based on the time until the crop rots.
+    double cropHealth = field.GetUnscaledValue(crop, StaticAttributes.cropHealth!);
+    // Before total days, discount by the health percentage, and don't harvest yet
+    // if the health is above 50%.
+    if (cropDay < totalDays)
+    {
+      if ( cropHealth > 50)
+      {
+        return double.MinValue;
+      }
+      utility *= (1 - cropHealth / 100);
+    }
+    // After total days, discount by half the health percentage, and harvest
+    // immediately if the health is below 20%.
+    else
+    {
+      if (cropHealth < 20)
+      {
+        return utility;
+      }
+      utility *= (1 - cropHealth / 200);
+    }
+
+    return utility;
+  }
+
   // The type of the crop to harvest.
   public ItemType crop;
 }
@@ -205,6 +316,7 @@ public class RotCropEffect : Effect
     // and reduce the yield by the relative value.
     // Health will be reduced quickly and yield will be reduced slowly.
     // We don't reduce the yield to zero, for that we'd need to call KillCrop.
+    // TODO(chmeyers): High health should protect a crop from rotting until the health degrades.
     cropInfo.AddAttribute(StaticAttributes.cropHealth!, -percent * 100 * cropInfo.quantity);
     double yield = cropInfo.GetAttributeValue(StaticAttributes.cropYield!);
     double rotYield = percent * yield;
@@ -361,6 +473,72 @@ public class KillCropEffect : Effect
     }
     return 1.0;
   }
+
+  private double CropUtility(IHouseholdContext household, IAbilityContext runner, double scaler, Field.CropInfo cropInfo)
+  {
+    // TODO(chmeyers): This doesn't take into account the fertilizer benefit
+    // of plowing under a crop.
+    ItemType crop = cropInfo.itemType;
+    // The utility for a single crop.
+    double yield = cropInfo.GetAttributeValue(StaticAttributes.cropYield!);
+    double health = cropInfo.GetUnscaledAttributeValue(StaticAttributes.cropHealth!);
+    int cropDay = (int)cropInfo.GetAttributeValue(crop.cropSettings!.cropAttribute!);
+    int totalDays = crop.cropSettings!.totalDays;
+    int lateDays = crop.cropSettings!.totalDays - crop.cropSettings!.lateDays;
+
+    if (health <= 0 && yield <= 0)
+    {
+      // The crop is dead, so it's utility is 0.
+      return 0;
+    }
+
+    double utility = 0;
+    if (cropDay >= lateDays)
+    {
+      // The crop is harvestable, so it's utility is the household utility.
+      // TODO(chmeyers): This doesn't take into account the cost of harvesting,
+      // but that's probably okay as we want to discourage killing harvestable crops.
+      foreach (var harvestItem in crop.cropSettings!.harvestItems)
+      {
+        int quantity = (int)(yield * harvestItem.Value / harvestItem.Key.weight);
+        if (quantity <= 0) continue;
+        utility += household.household.Utility(runner, harvestItem.Key, quantity);
+      }
+      return utility;
+    }
+    // To early to harvest, so the utility is the max of the yield or the seed cost.
+    // This is a bit simplistic, but it really only has to be a rough estimate to avoid
+    // the AI plowing under valuable crops.
+    int minQuantity = (int)(yield / crop.weight);
+    if (health > 0) {
+      minQuantity = Math.Max(minQuantity, (int)(scaler * crop.cropSettings!.seedPerAcre));
+    }
+    return household.household.Utility(runner, crop, minQuantity);
+  }
+
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    // if the field is empty, utility is zero.
+    // otherwise it's likely negative and depends on the available yield, seed cost,
+    // and the cost of the fertilizing effect.
+    if (chosenEffectTarget.target is Field field)
+    {
+      if (field.cropCount == 0)
+      {
+        return 0;
+      }
+      double utility = 0;
+      foreach (var cropInfo in field.crops)
+      {
+        utility -= CropUtility(household, runner, scaler, cropInfo.Value);
+      }
+    }
+    else if (chosenEffectTarget.target is Field.CropInfo cropInfo)
+    {
+      return -CropUtility(household, runner, scaler, cropInfo);
+    }
+    return 0;
+  }
 }
 
 // Every time a farmer interacts with a crop, it should get the touch crop effect,
@@ -451,6 +629,11 @@ public class TouchCropEffect : Effect
     return true;
   }
 
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    // TODO(chmeyers): Implement.
+  }
+
   private AbilityValue healthRate;
 }
 
@@ -533,6 +716,11 @@ public class CropSkillEffect : Effect
     return true;
   }
 
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    // TODO(chmeyers): Implement.
+  }
+
   // Amount to increase, defaults to 1.
   public AbilityValue amount = new AbilityValue(1);
 }
@@ -558,6 +746,13 @@ public class GrowCropEffect : Effect
     {
       throw new Exception("Grow Crop effect must target a crop: " + effect);
     }
+  }
+
+  public static double SoilQualityEffect(ItemType crop, double soilQuality)
+  {
+    double minSoilQuality = crop.cropSettings!.minSoilQuality;
+    double soilQualityDeficitMultiplier = Math.Clamp(soilQuality / minSoilQuality, 0.1, 1);
+    return soilQualityDeficitMultiplier;
   }
 
   // Apply the effect to the target.
@@ -594,9 +789,8 @@ public class GrowCropEffect : Effect
     double currentHealthPercentage = cropInfo.GetUnscaledAttributeValue(StaticAttributes.cropHealth!) / 100;
     yieldGain *= currentHealthPercentage;
     // Reduce the maximum yield based on the lack of soil quality.
-    double minSoilQuality = cropInfo.itemType.cropSettings!.minSoilQuality;
     double soilQuality = cropInfo.GetUnscaledAttributeValue(StaticAttributes.soilQuality!);
-    double soilQualityDeficitMultiplier = Math.Clamp(soilQuality / minSoilQuality, 0.1, 1);
+    double soilQualityDeficitMultiplier = SoilQualityEffect(crop, soilQuality);
     yieldGain *= soilQualityDeficitMultiplier;
 
     // Weeds

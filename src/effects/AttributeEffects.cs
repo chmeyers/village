@@ -3,6 +3,7 @@ using Village.Abilities;
 using Village.Attributes;
 using Village.Base;
 using Village.Buildings;
+using Village.Households;
 using Village.Items;
 using Village.Persons;
 using Village.Skills;
@@ -54,25 +55,9 @@ public class AttributePullerEffect : Effect
 
     foreach (var puller in _pullers)
     {
-      double amount = puller.amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize;
-      if (amount == 0) continue;
-      double target = puller.target.GetScaledValue(chosenEffectTarget.runningContext, scaler);
-      // Get the attribute from the person.
-      double currentValue = attributes.GetAttributeValue(puller.type!);
-      // If the current value is within amount of the target, then set it to the target.
-      if (currentValue >= target - amount && currentValue <= target + amount)
-      {
-        attributes.SetAttribute(puller.type!, target);
-      }
-      // Otherwise, pull the attribute towards the target by amount.
-      else if (currentValue < target)
-      {
-        attributes.SetAttribute(puller.type!, currentValue + amount);
-      }
-      else
-      {
-        attributes.SetAttribute(puller.type!, currentValue - amount);
-      }
+      // TODO(chmeyers): Advance the attribute first?
+      double deltaValue = puller.GetDelta(attributes, chosenEffectTarget.runningContext, scaler, batchSize);
+      attributes.AddAttribute(puller.type!, deltaValue);
 
     }
   }
@@ -112,6 +97,22 @@ public class AttributePullerEffect : Effect
     return Double.MaxValue;
   }
 
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
+    if (attributes == null)
+    {
+      return 0.0;
+    }
+    double utility = 0.0;
+    foreach (var puller in _pullers)
+    {
+      double deltaValue = puller.GetDelta(attributes, chosenEffectTarget.runningContext, scaler);
+      utility += attributes.Utility(puller.type!, deltaValue);
+    }
+    return utility;
+  }
+
   class AttributePuller
   {
     // Constructor
@@ -120,6 +121,29 @@ public class AttributePullerEffect : Effect
       this.attribute = attribute;
       this.target = target;
       this.amount = amount;
+    }
+
+    public double GetDelta(IAttributeContext attributes, IAbilityContext? context, double scaler = 1, int batchSize = 1)
+    {
+      double amount = this.amount.GetScaledValue(context, scaler) * batchSize;
+      if (amount == 0) return 0;
+      double target = this.target.GetScaledValue(context, scaler);
+      // Get the attribute from the person.
+      double currentValue = attributes.GetAttributeValue(type!);
+      // If the current value is within amount of the target, then set it to the target.
+      if (currentValue >= target - amount && currentValue <= target + amount)
+      {
+        return target - currentValue;
+      }
+      // Otherwise, pull the attribute towards the target by amount.
+      else if (currentValue < target)
+      {
+        return amount;
+      }
+      else
+      {
+        return -amount;
+      }
     }
 
     public string attribute = "";
@@ -197,84 +221,13 @@ public class AttributeTransferEffect : Effect
 
     foreach (var transferer in _transferers)
     {
-      double amount = transferer.amount.GetScaledValue(chosenEffectTarget.runningContext, scaler)  * batchSize;
-      if (amount == 0) continue;
-      double min = transferer.sourceMin!.GetScaledValue(chosenEffectTarget.runningContext, scaler);
-      double max = transferer.destMax!.GetScaledValue(chosenEffectTarget.runningContext, scaler);
-      // Get the attribute from the person.
-      double currentValue = attributes.GetAttributeValue(transferer.type!);
-      double currentDestValue = attributes.GetAttributeValue(transferer.destType!);
-      double transferAmount = amount;
-      double destMultiplier = transferer.multiplier.GetValue(chosenEffectTarget.runningContext);
-      // Positive amounts always remove from the source and add to the destination,
-      // Never taking the source below the min or the destination above the max.
-      if (amount > 0)
-      {
-        // If the current value is less than the min, then we can't transfer anything.
-        if (currentValue <= min)
-        {
-          transferAmount = 0;
-        }
-        else if (currentValue - amount < min)
-        {
-          transferAmount = currentValue - min;
-        }
-        else
-        {
-          transferAmount = amount;
-        }
-        double destReceiveAmount = transferAmount * destMultiplier;
-        // If we are retaining overflow, then we can't transfer more than the max.
-        if (currentDestValue + destReceiveAmount > max)
-        {
-          double allowedRecieveAmount = Math.Max(max - currentDestValue, 0);
-          if (transferer.retainOverflow)
-          {
-            // Reduce the amount taken from the source by the ratio of the
-            // allowed amount to the desired amount.
-            transferAmount *= allowedRecieveAmount / destReceiveAmount;
-          }
-          destReceiveAmount = allowedRecieveAmount;
-        }
-        // Transfer the amount from the source to the destination.
-        attributes.SetAttribute(transferer.type!, currentValue - transferAmount);
-        attributes.SetAttribute(transferer.destType!, currentDestValue + destReceiveAmount);
-      }
-      // Negative amounts always remove from the destination and add to the source,
-      // Never taking the destination below the max or the source above the min.
-      else
-      {
-        // If the current value is greater than the min, then we can't transfer anything.
-        if (currentValue >= min)
-        {
-          transferAmount = 0;
-        }
-        else if (currentValue - amount > min)
-        {
-          transferAmount = currentValue - min;
-        }
-        else
-        {
-          transferAmount = amount;
-        }
-        double destRemoveAmount = transferAmount * destMultiplier;
-        // If we are retaining overflow, then we can't transfer more than the max.
-        if (currentDestValue + destRemoveAmount < max)
-        {
-          double allowedRemoveAmount = Math.Min(max - currentDestValue, 0);
-          if (transferer.retainOverflow)
-          {
-            // Reduce the amount taken from the source by the ratio of the
-            // allowed amount to the desired amount.
-            transferAmount *= allowedRemoveAmount / destRemoveAmount;
-          }
-          destRemoveAmount = allowedRemoveAmount;
-        }
-        // Transfer the amount from the source to the destination.
-        attributes.SetAttribute(transferer.type!, currentValue - transferAmount);
-        attributes.SetAttribute(transferer.destType!, currentDestValue + destRemoveAmount);
-      }
-
+      // TODO(chmeyers): Advance the attributes first?
+      double transferAmount = 0;
+      double destDeltaAmount = 0;
+      transferer.GetTransferDeltas(ref transferAmount, ref destDeltaAmount, attributes, chosenEffectTarget.runningContext, scaler, batchSize);
+      // Transfer the amount from the source to the destination.
+      attributes.AddAttribute(transferer.type!, -transferAmount);
+      attributes.AddAttribute(transferer.destType!, destDeltaAmount);
     }
   }
 
@@ -326,6 +279,27 @@ public class AttributeTransferEffect : Effect
     return Double.MaxValue;
   }
 
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    // TODO(chmeyers): Implement.
+    IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
+    if (attributes == null)
+    {
+      return 0.0;
+    }
+    double utility = 0.0;
+    foreach (var transferer in _transferers)
+    {
+      double transferAmount = 0;
+      double destDeltaAmount = 0;
+      transferer.GetTransferDeltas(ref transferAmount, ref destDeltaAmount, attributes, chosenEffectTarget.runningContext, scaler);
+      // Transfer the amount from the source to the destination.
+      utility += attributes.Utility(transferer.type!, -transferAmount);
+      utility += attributes.Utility(transferer.destType!, destDeltaAmount);
+    }
+    return utility;
+  }
+
   class AttributeTransfer
   {
     // Constructor
@@ -338,6 +312,83 @@ public class AttributeTransferEffect : Effect
       this.destMax = destMax;
       this.multiplier = multiplier;
       this.retainOverflow = retainOverflow;
+    }
+
+    public void GetTransferDeltas(ref double transferAmount, ref double destDeltaAmount, IAttributeContext attributes, IAbilityContext? context, double scaler = 1, int batchSize = 1)
+    {
+      destDeltaAmount = 0.0;
+      transferAmount = 0.0;
+      double amount = this.amount.GetScaledValue(context, scaler) * batchSize;
+      if (amount == 0) return;
+      double min = this.sourceMin!.GetScaledValue(context, scaler);
+      double max = this.destMax!.GetScaledValue(context, scaler);
+      // Get the attribute from the person.
+      double currentValue = attributes.GetAttributeValue(this.type!);
+      double currentDestValue = attributes.GetAttributeValue(this.destType!);
+      transferAmount = amount;
+      double destMultiplier = this.multiplier.GetValue(context);
+      // Positive amounts always remove from the source and add to the destination,
+      // Never taking the source below the min or the destination above the max.
+      if (amount > 0)
+      {
+        // If the current value is less than the min, then we can't transfer anything.
+        if (currentValue <= min)
+        {
+          transferAmount = 0;
+        }
+        else if (currentValue - amount < min)
+        {
+          transferAmount = currentValue - min;
+        }
+        else
+        {
+          transferAmount = amount;
+        }
+        destDeltaAmount = transferAmount * destMultiplier;
+        // If we are retaining overflow, then we can't transfer more than the max.
+        if (currentDestValue + destDeltaAmount > max)
+        {
+          double allowedRecieveAmount = Math.Max(max - currentDestValue, 0);
+          if (this.retainOverflow)
+          {
+            // Reduce the amount taken from the source by the ratio of the
+            // allowed amount to the desired amount.
+            transferAmount *= allowedRecieveAmount / destDeltaAmount;
+          }
+          destDeltaAmount = allowedRecieveAmount;
+        }
+      }
+      // Negative amounts always remove from the destination and add to the source,
+      // Never taking the destination below the max or the source above the min.
+      else
+      {
+        // If the current value is greater than the min, then we can't transfer anything.
+        if (currentValue >= min)
+        {
+          transferAmount = 0;
+        }
+        else if (currentValue - amount > min)
+        {
+          transferAmount = currentValue - min;
+        }
+        else
+        {
+          transferAmount = amount;
+        }
+        destDeltaAmount = transferAmount * destMultiplier;
+        // If we are retaining overflow, then we can't transfer more than the max.
+        if (currentDestValue + destDeltaAmount < max)
+        {
+          double allowedRemoveAmount = Math.Min(max - currentDestValue, 0);
+          if (this.retainOverflow)
+          {
+            // Reduce the amount taken from the source by the ratio of the
+            // allowed amount to the desired amount.
+            transferAmount *= allowedRemoveAmount / destDeltaAmount;
+          }
+          destDeltaAmount = allowedRemoveAmount;
+        }
+      }
     }
 
     public string attribute = "";
@@ -404,43 +455,9 @@ public class AttributeAdderEffect : Effect
 
     foreach (var adder in _adders)
     {
-      double amount = adder.amount.GetScaledValue(chosenEffectTarget.runningContext, scaler) * batchSize;
-      if (amount == 0) continue;
-      double target = adder.target.GetScaledValue(chosenEffectTarget.runningContext, scaler);
-      // Get the attribute from the person.
-      double currentValue = attributes.GetAttributeValue(adder.type!);
-      // Positive Amounts add up to the target, negative amounts subtract down to the target.
-      if (amount > 0)
-      {
-        // If we are already greater than the target, then we don't need to do anything.
-        if (currentValue >= target) continue;
-        // If the current value is within amount of the target, then set it to the target.
-        if (currentValue + amount >= target)
-        {
-          attributes.SetAttribute(adder.type!, target);
-        }
-        // Otherwise, increase the attribute by amount.
-        else
-        {
-          attributes.SetAttribute(adder.type!, currentValue + amount);
-        }
-      }
-      else
-      {
-        // If we are already less than the target, then we don't need to do anything.
-        if (currentValue <= target) continue;
-        // If the current value is within amount of the target, then set it to the target.
-        if (currentValue + amount <= target)
-        {
-          attributes.SetAttribute(adder.type!, target);
-        }
-        // Otherwise, decrease the attribute by amount.
-        else
-        {
-          attributes.SetAttribute(adder.type!, currentValue + amount);
-        }
-      }
-
+      // TODO(chmeyers): Advance the attribute first?
+      double delta = adder.GetDelta(attributes, chosenEffectTarget.runningContext, scaler, batchSize);
+      attributes.AddAttribute(adder.type!, delta);
     }
   }
 
@@ -474,6 +491,22 @@ public class AttributeAdderEffect : Effect
     return Double.MaxValue;
   }
 
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
+    if (attributes == null)
+    {
+      return 0.0;
+    }
+    double utility = 0.0;
+    foreach (var adder in _adders)
+    {
+      double deltaValue = adder.GetDelta(attributes, chosenEffectTarget.runningContext, scaler);
+      utility += attributes.Utility(adder.type!, deltaValue);
+    }
+    return utility;
+  }
+
   class AttributeAdder
   {
     // Constructor
@@ -482,6 +515,46 @@ public class AttributeAdderEffect : Effect
       this.attribute = attribute;
       this.target = target;
       this.amount = amount;
+    }
+
+    public double GetDelta(IAttributeContext attributes, IAbilityContext? context, double scaler = 1, int batchSize = 1)
+    {
+      double amount = this.amount.GetScaledValue(context, scaler) * batchSize;
+      if (amount == 0) return 0;
+      double target = this.target.GetScaledValue(context, scaler);
+      // Get the attribute from the person.
+      double currentValue = attributes.GetAttributeValue(this.type!);
+      // Positive Amounts add up to the target, negative amounts subtract down to the target.
+      if (amount > 0)
+      {
+        // If we are already greater than the target, then we don't need to do anything.
+        if (currentValue >= target) return 0;
+        // If the current value is within amount of the target, then set it to the target.
+        if (currentValue + amount >= target)
+        {
+          return target - currentValue;
+        }
+        // Otherwise, increase the attribute by amount.
+        else
+        {
+          return amount;
+        }
+      }
+      else
+      {
+        // If we are already less than the target, then we don't need to do anything.
+        if (currentValue <= target) return 0;
+        // If the current value is within amount of the target, then set it to the target.
+        if (currentValue + amount <= target)
+        {
+          return target - currentValue;
+        }
+        // Otherwise, decrease the attribute by amount.
+        else
+        {
+          return amount;
+        }
+      }
     }
 
     public string attribute = "";

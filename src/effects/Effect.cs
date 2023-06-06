@@ -354,4 +354,12 @@ public class Effect
   {
     return false;
   }
+
+  // Utility function for this effect.
+  public virtual double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    // Default utility is 0.
+    // Effects that are never called by tasks don't need to override this.
+    return 0;
+  }
 }

@@ -7,6 +7,7 @@ using Newtonsoft.Json;
 using Village.Abilities;
 using Village.Base;
 using Village.Effects;
+using Village.Households;
 using Village.Items;
 
 
@@ -379,21 +380,21 @@ namespace Village.Tasks
       return inputs;
     }
 
-    public Dictionary<ItemType, int> OutputTypes(IAbilityContext context)
+    public Dictionary<ItemType, int> OutputTypes(IAbilityContext context, double scale = 1.0)
     {
       Dictionary<ItemType, int> outputs = new Dictionary<ItemType, int>();
       foreach (var output in this.outputs)
       {
-        outputs.Add(output.Key, (int)output.Value.GetValue(context));
+        outputs.Add(output.Key, (int)Math.Floor(scale * output.Value.GetValue(context)));
       }
       return outputs;
     }
-    public Dictionary<Item, int> Outputs(IAbilityContext context)
+    public Dictionary<Item, int> Outputs(IAbilityContext context, double scale = 1.0)
     {
       Dictionary<Item, int> outputs = new Dictionary<Item, int>();
       foreach (var output in this.outputs)
       {
-        outputs.Add(new Item(output.Key, context), (int)output.Value.GetValue(context));
+        outputs.Add(new Item(output.Key, context), (int)Math.Floor(scale * output.Value.GetValue(context)));
       }
       return outputs;
     }
@@ -430,6 +431,142 @@ namespace Village.Tasks
       // Check that all the inputs are resources and there is one resource output.
       return this.inputs.Count > 0 && this.inputs.All<KeyValuePair<ItemType,AbilityValue>>(pair => pair.Key.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
     }
+
+    private double _CalcUtility(IAbilityContext runner, IHouseholdContext household, Dictionary<string, Effects.ChosenEffectTarget>? chosenTargets, ref double scale)
+    {
+      // The total utility of a task is the sum of the utility of each effect,
+      // plus the utility of the outputs, minus the utility of the inputs and time.
+
+      // To determine the utility for inputs, outputs, and time, we first
+      // must know the scale of the task, so we have to get the allowable scale
+      // range from the effects.
+      
+      Inventory inventory = household.household.inventory;
+      Household h = household.household;
+      scale = 1.0;  // Default value if we return early.
+      double utility = 0.0;
+      double minScale = 0.0;
+      double maxScale = double.MaxValue;
+      double? preferredScale = null;
+      // If the task has outputs, the scale must be a whole number >= 1.0,
+      // so we simplify things by just setting the min and max to 1.0.
+      if (this.outputs.Count > 0)
+      {
+        // TODO(chmeyers): Allow larger batches of outputs to be produced.
+        minScale = 1.0;
+        maxScale = 1.0;
+        preferredScale = 1.0;
+      }
+      if (this.inputs.Count > 0)
+      {
+        // Reduce the scale if we are limited by inputs.
+        maxScale = Math.Min(maxScale, inventory.GetMaxScale(this.Inputs(runner)));
+        if (maxScale < minScale || maxScale == 0.0)
+        {
+          // Not enough inputs, so the task has no utility.
+          return double.MinValue;
+        }
+        if (maxScale < 1.0)
+        {
+          preferredScale = maxScale;
+        }
+      }
+      foreach (var effect in this.effects)
+      {
+        foreach (var effectTarget in effect.Value)
+        {
+          ChosenEffectTarget? chosenTarget = TaskRunner.ChooseEffectTarget(effectTarget, effect.Key, chosenTargets, inventory, runner, this.task);
+          if (chosenTarget == null)
+          {
+            if (!effect.Key.IsOptional())
+            {
+              // Not a valid target, so the task has no utility.
+              return double.MinValue;
+            }
+            continue;
+          }
+          minScale = Math.Max(minScale, effect.Key.MinScale(chosenTarget));
+          maxScale = Math.Min(maxScale, effect.Key.MaxScale(chosenTarget));
+          if (maxScale < minScale || (maxScale == 0.0 && minScale == 0.0))
+          {
+            // Not a valid target, so the task has no utility.
+            return double.MinValue;
+          }
+          double? effectPreferredScale = effect.Key.PreferredScale(chosenTarget);
+          // Switch to the new preferred scale if it's not null and it's smaller
+          // than the current preferred scale. If the current preferred scale is
+          // outside the new min/max range, switch to the new max.
+          if (effectPreferredScale != null && (preferredScale == null || effectPreferredScale < preferredScale))
+          {
+            // Rescale the utility that we've already calculated.
+            // We are assuming here that effect utilities scale linearly over
+            // the typical preferred scale range.
+            double oldPreferredScale = preferredScale ?? 1.0;
+            preferredScale = Math.Clamp(effectPreferredScale.Value, minScale, maxScale);
+            utility *= (preferredScale.Value / oldPreferredScale);
+          }
+          // Determine the utility of the effect at the preferred scale.
+          utility += h.Utility(runner, effect.Key, chosenTarget, preferredScale ?? 1.0);
+        }
+      }
+      
+      // Add the utility of each output.
+      foreach (var output in this.OutputTypes(runner, preferredScale ?? 1.0))
+      {
+        utility += h.Utility(runner, output.Key, output.Value);
+      }
+      // Remove the utility of each input.
+      foreach (var input in this.Inputs(runner, preferredScale ?? 1.0))
+      {
+        // Pass a negative quantity to the utility function to indicate that
+        // we are consuming the input.
+        utility += h.Utility(runner, input.Key, -input.Value);
+      }
+      // Subtract the utility of the time cost.
+      int timeCost = (int)Math.Ceiling(this.timeCost.GetValue(runner) * (preferredScale ?? 1.0));
+      utility -= h.TimeUtility(runner, timeCost);
+      scale = preferredScale ?? 1.0;
+      return utility;
+    }
+
+    // Get the Utility score for this task, returning the best choice of targets and scale.
+    public double Utility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    {
+      // If the task as targets, we have to calculate the utility for each target,
+      // and then choose the best one.
+      // TODO(chmeyers): Support multiple targets.
+      if (this.targets.Count > 1) return double.MinValue;
+      if (this.targets.Count == 0)
+      {
+        return _CalcUtility(runner, household, null, ref scale);
+      }
+      // Get a list of all the possible targets for the task.
+      List<ChosenEffectTarget> possibleTargets = household.household.GetPossibleTargets(runner, this.targets.First().Value.effectTargetType);
+      // If there are no possible targets, return the minimum utility.
+      if (possibleTargets.Count == 0) return double.MinValue;
+      // If there is only one possible target, use that target.
+      if (possibleTargets.Count == 1)
+      {
+        targets.Add(this.targets.First().Key, possibleTargets.First());
+        return _CalcUtility(runner, household, targets, ref scale);
+      }
+      // If there are multiple possible targets, calculate the utility for each one,
+      // and return the best one.
+      double bestUtility = double.MinValue;
+      foreach (ChosenEffectTarget target in possibleTargets)
+      {
+        Dictionary<string, ChosenEffectTarget> targetDict = new Dictionary<string, ChosenEffectTarget>();
+        targetDict.Add(this.targets.First().Key, target);
+        double utility = _CalcUtility(runner, household, targetDict, ref scale);
+        if (utility > bestUtility)
+        {
+          bestUtility = utility;
+          targets = targetDict;
+        }
+      }
+      return bestUtility;
+    }
+    
 
     // The name of the task.
     public string task;

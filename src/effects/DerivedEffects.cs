@@ -3,6 +3,7 @@ using Village.Abilities;
 using Village.Attributes;
 using Village.Base;
 using Village.Buildings;
+using Village.Households;
 using Village.Items;
 using Village.Persons;
 using Village.Skills;
@@ -113,6 +114,18 @@ public class DegradeEffect : Effect
     // This max scale will degrade the item completely.
     double amount = this.amount.GetValue(target.runningContext);
     return amount == 0 ? Double.MaxValue : (target.target! as Item)!.quality / amount;
+  }
+
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    // Degrade has a negative utility equal to the degradation percentage of the buy price
+    // of the item.
+    int degradeAmount = (int)Math.Ceiling(amount.GetScaledValue(chosenEffectTarget.runningContext, scaler));
+    Item item = (Item)chosenEffectTarget.target!;
+    // We always assume a base quality item, as that is what the buy price is based on.
+    int defaultQuality = (int)item.itemType.craftQuality.GetBaseValue();
+    double buyPrice = household.household.BuyPrice(item.itemType);
+    return -buyPrice * degradeAmount / defaultQuality;
   }
 
   // The amount to degrade the item by.
@@ -228,6 +241,19 @@ public class SkillEffect : Effect
     return Double.MaxValue;
   }
 
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
+    if (person == null)
+    {
+      // We ignore this effect if the person is null.
+      return 0.0;
+    }
+    int trainingLevel = (int)level.GetValue(chosenEffectTarget.runningContext);
+    double trainingAmount = amount.GetScaledValue(chosenEffectTarget.runningContext, scaler);
+    return _skill!.Utility(person, trainingLevel, trainingAmount);
+  }
+
   // The name of the skill to increase.
   public string skill;
   // Cached Skill object.
@@ -313,6 +339,13 @@ public class BuildingComponentEffect : Effect
     builtComponent.builtComponent = specificComponent;
     components.Add(builtComponent);
     return components;
+  }
+
+  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    // TODO(chmeyers): Choose an appropriate utility value.
+    // Finishing buildings should be important, but not override eating, surviving, etc.
+    return 10000.0;
   }
 
   // The name of the building component to construct.

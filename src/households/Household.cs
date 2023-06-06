@@ -7,6 +7,7 @@
 
 using Village.Abilities;
 using Village.Buildings;
+using Village.Effects;
 using Village.Items;
 
 namespace Village.Households;
@@ -74,6 +75,144 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     }
   }
 
+  // Return a list of possible effect targets of the given type
+  // for a person running a task for this household.
+  // Note that the person is not required to be in the household.
+  public List<ChosenEffectTarget> GetPossibleTargets(IAbilityContext context, EffectTargetType targetType)
+  {
+    List<ChosenEffectTarget> targets = new List<ChosenEffectTarget>();
+    // Person, Item, Building, Field, and Crop currently supported.
+    switch (targetType)
+    {
+      case EffectTargetType.Building:
+        foreach (var building in buildings)
+        {
+          targets.Add(new ChosenEffectTarget(targetType, building, this, context));
+        }
+        break;
+      case EffectTargetType.Field:
+        foreach (var building in buildings)
+        {
+          if (building is Field field)
+          {
+            targets.Add(new ChosenEffectTarget(targetType, field, this, context));
+          }
+        }
+        break;
+      case EffectTargetType.Crop:
+        foreach (var building in buildings)
+        {
+          if (building is Field field)
+          {
+            foreach (var crop in field.crops)
+            {
+              targets.Add(new ChosenEffectTarget(targetType, crop.Value, this, context));
+            }
+          }
+        }
+        break;
+      case EffectTargetType.Item:
+        // Can target either the household inventory or the person's inventory.
+        foreach (var item in inventory.items)
+        {
+          targets.Add(new ChosenEffectTarget(targetType, item, this, context));
+        }
+        if (context != this && context is IInventoryContext inventoryContext)
+        {
+          foreach (var item in inventoryContext.inventory.items)
+          {
+            targets.Add(new ChosenEffectTarget(targetType, item, this, context));
+          }
+        }
+        break;
+      case EffectTargetType.Person:
+        // Can target either the household people or the person,
+        // but make sure not to target the person twice.
+        targets.Add(new ChosenEffectTarget(targetType, context, this, context));
+        foreach (var person in Persons.Person.global_persons[household])
+        {
+          if (person != context)
+          {
+            targets.Add(new ChosenEffectTarget(targetType, person, this, context));
+          }
+        }
+        break;
+    }
+    return targets;
+  }
+
+  // Functions for determining Utility scores for this household.
+
+  // Effect Utility
+  public double Utility(IAbilityContext runner, Effect effect, ChosenEffectTarget chosenTarget, double scale)
+  {
+    // TODO(chmeyers): This currently assumes that the chosenTarget and runner
+    // belong to the household. Once we have effects that can target other households,
+    // run by people not in the household, or hired people, this will need to be updated,
+    // as those effects aren't useful for this household. They should instead be taken
+    // into account by the price of the labor, rent, etc.
+
+    return effect.Utility(household, runner, chosenTarget, scale);
+  }
+
+  public int DesiredStockpile(ItemType itemType)
+  {
+    // TODO(chmeyers): Implement this.
+  }
+
+  public double SellPrice(ItemType itemType)
+  {
+    // TODO(chmeyers): Implement this.
+  }
+
+  public double BuyPrice(ItemType itemType)
+  {
+    // TODO(chmeyers): Implement this.
+  }
+
+  // Item Utility
+  // Negative Quantities are for removing items.
+  public double Utility(IAbilityContext runner, ItemType itemType, int quantity)
+  {
+    int count = inventory.Count(itemType);
+    // TODO(chmeyers): Does the desired stockpile vary based on whether the household
+    // wants to produce this itemType itself? i.e. should the sign of the quantity
+    // cause the desired stockpile to be different?
+    int desired = DesiredStockpile(itemType);
+    if (quantity < 0)
+    {
+      // If the quantity is negative, then we are removing items.
+      // This is only useful if we have more than the desired amount.
+      int excess = Math.Max(count - desired, 0);
+      // Split the quantity into the amount that is covered by the excess,
+      // and the amount that is not.
+      int covered = Math.Min(-quantity, excess);
+      int uncovered = -quantity - covered;
+      // The covered amount is worth the sell price.
+      // The uncovered amount is worth the replacement cost.
+      return covered * SellPrice(itemType) + uncovered * BuyPrice(itemType);
+    }
+    else
+    {
+      int deficit = Math.Max(desired - count, 0);
+      // Split the quantity into the amount that is covered by the deficit,
+      // and the amount that is not.
+      int covered = Math.Min(quantity, deficit);
+      int uncovered = quantity - covered;
+      // The covered amount is worth the replacement cost.
+      // The uncovered amount is worth the sell price.
+      return covered * BuyPrice(itemType) + uncovered * SellPrice(itemType);
+    }
+  }
+
+  // Time Utility
+  public double TimeUtility(IAbilityContext runner, int time)
+  {
+    // The time cost is either the opportunity cost of the runner, or the
+    // wage they are paid, depending on what their role is.
+    // TODO(chmeyers): This should be configurable.
+    return 100.0 * time;
+  }
 
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
