@@ -442,7 +442,6 @@ public class Attribute : IAbilityCollection
     this._currentUtilityLower = interval.utilityLower;
     this._currentUtilityUpper = interval.utilityUpper;
     this._currentUtilityType = interval.utilityType;
-    this._currentUtility = _Utility(this.value);
     this.target = effectTarget;
     this.targetContext = targetContext;
     this.abilityContext = abilityContext;
@@ -455,6 +454,7 @@ public class Attribute : IAbilityCollection
     _scaledMaxValue = attributeType.maxValue * scale;
     _scaledMinValue = attributeType.minValue * scale;
     _scaledChangePerTick = attributeType.changePerTick * scale;
+    this._currentUtility = _Utility(this.value);
   }
 
   public HashSet<AbilityType> Abilities
