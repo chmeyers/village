@@ -282,7 +282,17 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
 
   public double Utility(AttributeType attributeType, double delta)
   {
-    // TODO(chmeyers): Implement this.
-    return 0;
+    lock (_lock)
+    {
+      Attribute? attribute = _GetScopedAttribute(attributeType);
+      if (attribute == null)
+      {
+        // Technically this should be the utility of the change from the initial value,
+        // but in practice callers should call AddAttribute first,
+        // so we don't bother to calculate it.
+        return 0; 
+      }
+      return attribute.Utility(delta);
+    }
   }
 }

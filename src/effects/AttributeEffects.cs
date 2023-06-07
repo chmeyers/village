@@ -281,7 +281,6 @@ public class AttributeTransferEffect : Effect
 
   public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
-    // TODO(chmeyers): Implement.
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
     if (attributes == null)
     {

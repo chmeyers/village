@@ -11,6 +11,14 @@ using Village.Items;
 
 namespace Village.Attributes;
 
+public enum AttributeUtility
+{
+  None,
+  Linear,
+  Step,
+  Sigmoid
+}
+
 public class AttributeInterval : IAbilityProvider
 {
   // The lower limit of the interval, inclusive.
@@ -27,6 +35,13 @@ public class AttributeInterval : IAbilityProvider
   // The effects that will be applied for every tick that the attribute is in this interval.
   // These effects must be batchable, as we won't actually run them every tick.
   public List<Effect> ongoingEffects = new List<Effect>();
+
+  // The utility function to use for this interval.
+  public AttributeUtility utilityType = AttributeUtility.None;
+  // The utility of the lower limit of this interval.
+  public double utilityLower = 0;
+  // The utility of the upper limit of this interval.
+  public double utilityUpper = 0;
 }
 
 public class AttributeType
@@ -113,6 +128,13 @@ public class AttributeType
         {
           a.changePerTick = (long)attribute.Value["changePerTick"];
         }
+      }
+      AttributeUtility defaultUtility = AttributeUtility.None;
+      if (attribute.Value.ContainsKey("utilityType"))
+      {
+        // Read the default utility function type and convert it to the enum.
+        string utilityType = (string)attribute.Value["utilityType"];
+        defaultUtility = (AttributeUtility)Enum.Parse(typeof(AttributeUtility), utilityType);
       }
       // Cast the intervals to a newtonsoft JArray and check for null.
       var intervalArray = (Newtonsoft.Json.Linq.JArray)attribute.Value["intervals"];
@@ -227,6 +249,44 @@ public class AttributeType
           }
         }
 
+        if (intervalData.ContainsKey("utilityType"))
+        {
+          string utilityType = (string)intervalData["utilityType"];
+          attributeInterval.utilityType = (AttributeUtility)Enum.Parse(typeof(AttributeUtility), utilityType);
+        }
+        else
+        {
+          attributeInterval.utilityType = defaultUtility;
+        }
+        if (intervalData.ContainsKey("utility"))
+        {
+          attributeInterval.utilityLower = _Double(intervalData["utility"]);
+          // If they didn't specify a utility type, throw.
+          if (attributeInterval.utilityType == AttributeUtility.None)
+          {
+            throw new Exception("Utility type must be specified for attribute: " + attribute.Key);
+          }
+          if (intervalData.ContainsKey("utilityUpper"))
+          {
+            attributeInterval.utilityUpper = _Double(intervalData["utilityUpper"]);
+          }
+          else if (attributeInterval.utilityType == AttributeUtility.Step)
+          {
+            attributeInterval.utilityUpper = attributeInterval.utilityLower;
+          }
+          else if (intervals.IndexOf(interval) < intervals.Count - 1)
+          {
+            // If they didn't specify an upper bound, use the lower bound of the next interval.
+            attributeInterval.utilityUpper = _Double(intervals[intervals.IndexOf(interval) + 1]["utility"]);
+          }
+          else
+          {
+            // Final fallback for the last interval, the upper bound is assumed to have the same
+            // difference from the lower bound as the previous interval.
+            attributeInterval.utilityUpper = attributeInterval.utilityLower + (attributeInterval.utilityLower - _Double(intervals[intervals.IndexOf(interval) - 1]["utility"]));
+          }
+        }
+
         a.intervals.Add(lower, attributeInterval);
       }
       types.Add(attribute.Key, a);
@@ -338,6 +398,10 @@ public class Attribute : IAbilityCollection
   private double _scaledMaxValue = 0;
   private double _scaledMinValue = 0;
   private double _scaledChangePerTick = 0;
+  private AttributeUtility _currentUtilityType = AttributeUtility.None;
+  private double _currentUtilityLower = 0;
+  private double _currentUtilityUpper = 0;
+  private double _currentUtility = 0;
   // Cached index of the interval the attribute is currently in.
   private int intervalIndex;
   // The attribute type.
@@ -375,6 +439,10 @@ public class Attribute : IAbilityCollection
     var interval = attributeType.intervals.GetValueAtIndex(this.intervalIndex);
     this.rangeMin = interval.lower;
     this.rangeMax = interval.upper;
+    this._currentUtilityLower = interval.utilityLower;
+    this._currentUtilityUpper = interval.utilityUpper;
+    this._currentUtilityType = interval.utilityType;
+    this._currentUtility = _Utility(this.value);
     this.target = effectTarget;
     this.targetContext = targetContext;
     this.abilityContext = abilityContext;
@@ -499,6 +567,9 @@ public class Attribute : IAbilityCollection
       value = _scaledMaxValue - maxEpsilon;
     }
 
+    // Cache the utility value.
+    this._currentUtility = _Utility(value);
+
     // if value is still inside the current range, we don't need to update the range
     if (value >= rangeMin && value < rangeMax) return value;
 
@@ -516,6 +587,9 @@ public class Attribute : IAbilityCollection
       intervalIndex = newIntervalIndex;
       rangeMin = newInterval.lower * scale;
       rangeMax = newInterval.upper * scale;
+      this._currentUtilityLower = newInterval.utilityLower;
+      this._currentUtilityUpper = newInterval.utilityUpper;
+      this._currentUtilityType = newInterval.utilityType;
       // Run entry effects on the new interval, if we have a target and context.
       if (targetContext != null && abilityContext != null)
       {
@@ -594,6 +668,64 @@ public class Attribute : IAbilityCollection
   // In case you need the unscaled value of the attribute
   public double GetUnscaled()
   {
-    return abilityValue.baseValue;
+    return abilityValue.GetValue(abilityContext);
+  }
+
+  private double _Utility(double value)
+  {
+    value = Math.Clamp(value, _scaledMinValue, _scaledMaxValue - maxEpsilon);
+    AttributeUtility utilityType = _currentUtilityType;
+    double utilityLower = _currentUtilityLower;
+    double utilityUpper = _currentUtilityUpper;
+    int intervalIndex = this.intervalIndex;
+    if (value < rangeMin || value >= rangeMax)
+    {
+      intervalIndex = attributeType.FindIntervalIndex(value / scale);
+      var newInterval = attributeType.intervals.GetValueAtIndex(intervalIndex);
+      utilityLower = newInterval.utilityLower;
+      utilityUpper = newInterval.utilityUpper;
+      utilityType = newInterval.utilityType;
+    }
+
+    if (utilityType == AttributeUtility.None) return 0;
+    double fractionOfRange = (value - rangeMin) / (rangeMax - rangeMin);
+    if (utilityType == AttributeUtility.Step)
+    {
+      return utilityLower;
+    }
+    if (utilityType == AttributeUtility.Linear)
+    {
+      return utilityLower + fractionOfRange * (utilityUpper - utilityLower);
+    }
+    if (utilityType == AttributeUtility.Sigmoid)
+    {
+      // We want a sigmoid step at the lower and upper and of the ranges,
+      // with a linear transition in the middle.
+      // So we add together two sigmoids.
+      double rangeWidth = rangeMax - rangeMin;
+      // Multiplier chosen such that the sigmoid reaches 0.45 at ~20% of the range.
+      double sigmoidMult = 15 / rangeWidth;
+      // Starts at 0
+      // 0.5 at rangeWidth / 2
+      // 1.0 at rangeWidth
+      double sigmoidStart = value - rangeMin;
+      // Sigmoid for the left side of the range. If we are at the leftmost interval,
+      // we don't want a sigmoid, so we set it to 1.
+      double leftSigmoid = intervalIndex == 0 ? 1 : (1 / (1 + Math.Exp(-sigmoidStart * sigmoidMult)));
+      // Sigmoid for the right side of the range. If we are at the rightmost interval,
+      // we don't want a sigmoid, so we set it to 0.
+      double rightSigmoid = intervalIndex == attributeType.intervals.Count - 1 ? 0 : (1 / (1 + Math.Exp((-sigmoidStart * sigmoidMult + sigmoidMult * rangeWidth))));
+      // Subtract a half so that the sigmoid starts at 0 at the lower bound of the range.
+      double sigmoid = leftSigmoid + rightSigmoid - 0.5;
+      return utilityLower + sigmoid * (utilityUpper - utilityLower);
+    }
+    return 0;
+  }
+
+  public double Utility(double delta)
+  {
+    if (delta == 0) return 0;
+    if (_currentUtilityType == AttributeUtility.None) return 0;
+    return _Utility(value + delta) - this._currentUtility;
   }
 }
