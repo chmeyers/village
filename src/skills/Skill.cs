@@ -379,7 +379,7 @@ public class PersonSkill
 
   public double GetNextLevelXP()
   {
-    if (level >= skill.levels.Count)
+    if (level >= skill.levels.Count || !meetsRequirements(skill.levels[level]))
     {
       return double.MaxValue;
     }

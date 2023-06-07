@@ -147,6 +147,35 @@ public class SkillSet
     }
   }
 
+  const double utilityPerXP = 10;
+  const double utilityPerLevelPercent = 50;
+  const double utilityPerLevel = 2000;
+  public double Utility(Skill skill, int trainingLevel, double trainingAmount)
+  {
+    lock (_lock)
+    {
+      double xpToNextLevel = GetNextLevelXP(skill);
+      if (xpToNextLevel == double.MaxValue)
+      {
+        // This skill is maxed out.
+        return 0;
+      }
+      int currentLevel = GetLevel(skill);
+      double currentLevelSize = skill.levels[currentLevel].xp;
+      if (trainingLevel > currentLevel) trainingAmount *= 2;
+      if (trainingLevel < currentLevel) trainingAmount *= 0.5;
+      double utility = trainingAmount * utilityPerXP;
+      utility += 100 * utilityPerLevelPercent * trainingAmount / currentLevelSize;
+      if (trainingAmount > xpToNextLevel)
+      {
+        // Note that we don't bother looping through all the levels here.
+        // Even just one level should be enough to incentivize training.
+        utility += utilityPerLevel;
+      }
+      return utility;
+    }
+  }
+
 
 
 }

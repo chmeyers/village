@@ -388,8 +388,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
 
   public double Utility(Skill skill, int trainingLevel, double trainingAmount)
   {
-    // TODO(chmeyers): Implement this.
-    return 0;
+    // TODO(chmeyers): Multiply by the importance of the skill to the person's job.
+    return skills.Utility(skill, trainingLevel, trainingAmount);
   }
 
   // Take whatever stuff from the household inventory that the person needs.
