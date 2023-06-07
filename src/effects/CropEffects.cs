@@ -26,6 +26,18 @@ public class PlantCropEffect : Effect
     string cropName = (string)data["crop"];
     // Get the crop type from the name.
     crop = ItemType.Find(cropName) ?? throw new Exception("Unknown crop: " + cropName + " in effect: " + effect);
+
+    chainedEffects = new List<Effect>();
+    // Load the list of chained effects that run after this effect.
+    if (data.ContainsKey("chainedEffects"))
+    {
+      var chainedEffectNames = ((Newtonsoft.Json.Linq.JArray)data["chainedEffects"]).ToObject<List<string>>();
+      foreach (var chainedEffectName in chainedEffectNames!)
+      {
+        var chainedEffect = Effect.Find((string)chainedEffectName) ?? throw new Exception("Unknown chained effect: " + chainedEffectName + " in effect: " + effect);
+        chainedEffects.Add(chainedEffect);
+      }
+    }
   }
 
   // Apply the effect to the target.
@@ -45,21 +57,37 @@ public class PlantCropEffect : Effect
       // This effect should never be called without a valid target field.
       throw new Exception("Unable to plant crop in plant crop effect: " + effect);
     }
+    if (chainedEffects.Count == 0 || !field.crops.ContainsKey(crop))
+    {
+      // If there are no chained effects or no crop, then we are done.
+      return;
+    }
+    // Create a new effect target for the chained effect.
+    ChosenEffectTarget chainedEffectTarget = new ChosenEffectTarget(EffectTargetType.Crop, field.crops[crop], chosenEffectTarget.targetContext, chosenEffectTarget.runningContext);
+    // Run the chained effects with the crop as the target.
+    foreach (var chainedEffect in chainedEffects)
+    {
+      // Run the chained effect.
+      chainedEffect.StartSync(chainedEffectTarget, scaler, batchSize);
+    }
   }
 
   public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
-    // We mark our crop as the last planted in the field, again, so that any effects
-    // that run after this one can target the correct crop in cases where two crops
-    // are planted in the same field.
+    // Finalize any chained effects.
     Field field = (Field)chosenEffectTarget.target!;
-    if (field.crops.ContainsKey(crop))
+    if (chainedEffects.Count == 0 || !field.crops.ContainsKey(crop))
     {
-      field.lastCropPlanted = field.crops[crop];
+      // If there are no chained effects or no crop, then we are done.
+      return;
     }
-    else
+    // Create a new effect target for the chained effect.
+    ChosenEffectTarget chainedEffectTarget = new ChosenEffectTarget(EffectTargetType.Crop, field.crops[crop], chosenEffectTarget.targetContext, chosenEffectTarget.runningContext);
+    // Run the chained effects with the crop as the target.
+    foreach (var chainedEffect in chainedEffects)
     {
-      field.lastCropPlanted = null;
+      // Run the chained effect.
+      chainedEffect.FinishSync(chainedEffectTarget, scaler, batchSize);
     }
   }
 
@@ -125,6 +153,8 @@ public class PlantCropEffect : Effect
 
   // The type of the crop to plant.
   public ItemType crop;
+  // Effects to run on the crop created by planting this crop.
+  private List<Effect> chainedEffects;
 }
 
 public class HarvestCropEffect : Effect
@@ -153,13 +183,7 @@ public class HarvestCropEffect : Effect
   public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // TODO(chmeyers): Verify that the field has a crop to harvest here.
-    Field field = (Field)chosenEffectTarget.target!;
-    // Make sure the field is not null.
-    if (field == null)
-    {
-      // This effect should never be called without a valid target field.
-      throw new Exception("Field is null in harvest crop effect: " + effect);
-    }
+    Field field = (chosenEffectTarget.target as Field) ?? (chosenEffectTarget.target as Field.CropInfo)?.field ?? throw new Exception("Field is null in harvest crop effect: " + effect);
     // Advance the field before starting the harvest.
     field.Advance();
   }
@@ -168,13 +192,7 @@ public class HarvestCropEffect : Effect
   public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
     // Get the field from the chosen target.
-    Field field = (Field)chosenEffectTarget.target!;
-    // Make sure the field is not null.
-    if (field == null)
-    {
-      // This effect should never be called without a valid target field.
-      throw new Exception("Field is null in harvest crop effect: " + effect);
-    }
+    Field field = (chosenEffectTarget.target as Field) ?? (chosenEffectTarget.target as Field.CropInfo)?.field ?? throw new Exception("Field is null in harvest crop effect: " + effect);
     // Determine the yield.
     double yield = 0;
     yield = field.GetValue(crop, StaticAttributes.cropYield!);
@@ -595,17 +613,7 @@ public class TouchCropEffect : Effect
     }
     if (chosenEffectTarget.target is Field field)
     {
-      if (this.target == EffectTargetType.Field)
-      {
-        TouchAll(field, farmer, scaler, batchSize);
-      }
-      else if (this.target == EffectTargetType.Crop && field.lastCropPlanted != null)
-      {
-        // If the target is a field, but the effect is on a crop, then touch the last
-        // crop to be planted in the field. This will happen on planting tasks, since
-        // the crop didn't exist when the task was created.
-        Touch(field.lastCropPlanted, farmer, scaler, batchSize);
-      }
+      TouchAll(field, farmer, scaler, batchSize);
       return;
     }
     // Get the crop from the chosen target.
@@ -683,17 +691,7 @@ public class CropSkillEffect : Effect
     }
     if (chosenEffectTarget.target is Field field)
     {
-      if (this.target == EffectTargetType.Field)
-      {
-        LearnAll(field, farmer, scaler, batchSize);
-      }
-      else if (this.target == EffectTargetType.Crop && field.lastCropPlanted != null)
-      {
-        // If the target is a field, but the effect is on a crop, then learn the last
-        // crop to be planted in the field. This will happen on planting tasks, since
-        // the crop didn't exist when the task was created.
-        Learn(field.lastCropPlanted, farmer, scaler, batchSize);
-      }
+      LearnAll(field, farmer, scaler, batchSize);
       return;
     }
     // Get the crop from the chosen target.

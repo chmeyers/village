@@ -221,17 +221,6 @@ public class CropUnitTest
 "drain_update" : { "target": "Field", "effectType": "AttributeTransfer", "config": { "surface_moisture" : { "sourceMin":1, "amount": {"val": "drainage", "prescaled": true}, "dest": "deep_moisture", "destMax": { "val": "soil_quality", "prescaled": true}}, } },
 "field_changes" : { "target": "Field", "effectType": "AttributeAdder", "config": { "soil_quality" : { "amount": 0.0001}, "nitrogen" : { "amount": { "val": "soil_quality", "add": 2.5, "mult": 0.00052, "prescaled": true} }, "phosphorus" : { "amount": 0.000972 }, "potassium" : { "amount": { "val": "soil_quality", "mult": 0.000925, "prescaled": true} } } },
 "field_maintenance" : { "target": "Field", "effectType": "FieldMaintenance", "config": {  } },
-"grow_crop" : { "target": "Crop", "effectType": "GrowCrop", "config": {  } },
-"rotting" : { "target": "Crop", "effectType": "RotCrop", "config": { "rotRate" : { "val": 0.003, "modifiers": {"wet_surface_soil": {"mult": 2}}}, } },
-"kill_crop" : { "target": "Crop", "effectType": "KillCrop", "config": {  } },
-"plant_wheat" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "wheat" } },
-"harvest_wheat" : { "target": "Crop", "effectType": "HarvestCrop", "config": { "crop" : "wheat" } },
-"plant_peas" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "field_peas" } },
-"harvest_peas" : { "target": "Crop", "effectType": "HarvestCrop", "config": { "crop" : "field_peas" } },
-"plant_hay" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "hay" } },
-"plow_under" : { "target": "Field", "effectType": "KillCrop", "config": {  } },
-"plow" : { "target": "Field", "effectType": "AttributePuller", "config": { "soil_quality" : { "target": {"val": "plowing", "add": 1 }, "amount": 0.3}, "weeds" : { "target": 0, "amount": {"val": "plowing", "add": 2, "mult": 20 }}, } },
-"weed" : { "target": "Field", "effectType": "AttributeAdder", "config": { "weeds" : { "target": { "val": "weeding", "add": -10, "mult": -0.25}, "amount": {"val": "weeding", "add": 10, "mult": 0.3 }}, } },
 "minor_touch_crop" : { "target": "Crop", "effectType": "TouchCrop", "config": { "healthRate" : 0.2, } },
 "major_touch_crop" : { "target": "Crop", "effectType": "TouchCrop", "config": { "healthRate" : 5.0, } },
 "minor_touch_field" : { "target": "Field", "effectType": "TouchCrop", "config": { "healthRate" : 0.2, } },
@@ -240,6 +229,19 @@ public class CropUnitTest
 "major_learn_crop" : { "target": "Crop", "effectType": "CropSkill", "config": { "amount": 20, } },
 "minor_learn_field" : { "target": "Field", "effectType": "CropSkill", "config": { "amount": 2, } },
 "major_learn_field" : { "target": "Field", "effectType": "CropSkill", "config": { "amount": 20, } },
+"grow_crop" : { "target": "Crop", "effectType": "GrowCrop", "config": {  } },
+"rotting" : { "target": "Crop", "effectType": "RotCrop", "config": { "rotRate" : { "val": 0.003, "modifiers": {"wet_surface_soil": {"mult": 2}}}, } },
+"kill_crop" : { "target": "Crop", "effectType": "KillCrop", "config": {  } },
+"plant_wheat" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "wheat", "chainedEffects": ["major_touch_crop", "major_learn_crop"] } },
+"harvest_wheat" : { "target": "Crop", "effectType": "HarvestCrop", "config": { "crop" : "wheat" } },
+"harvest_wheat_field" : { "target": "Field", "effectType": "HarvestCrop", "config": { "crop" : "wheat" } },
+"plant_peas" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "field_peas", "chainedEffects": ["major_touch_crop", "major_learn_crop"] } },
+"harvest_peas" : { "target": "Crop", "effectType": "HarvestCrop", "config": { "crop" : "field_peas" } },
+"harvest_peas_field" : { "target": "Field", "effectType": "HarvestCrop", "config": { "crop" : "field_peas" } },
+"plant_hay" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "hay", "chainedEffects": ["major_touch_crop", "major_learn_crop"] } },
+"plow_under" : { "target": "Field", "effectType": "KillCrop", "config": {  } },
+"plow" : { "target": "Field", "effectType": "AttributePuller", "config": { "soil_quality" : { "target": {"val": "plowing", "add": 1 }, "amount": 0.3}, "weeds" : { "target": 0, "amount": {"val": "plowing", "add": 2, "mult": 20 }}, } },
+"weed" : { "target": "Field", "effectType": "AttributeAdder", "config": { "weeds" : { "target": { "val": "weeding", "add": -10, "mult": -0.25}, "amount": {"val": "weeding", "add": 10, "mult": 0.3 }}, } },
 "degrade_1" : { "target": "Item", "effectType": "Degrade", "config": { "amount": 1 } },
 "skill_weeding_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "weeding", "level": 3} },
 "skill_harvesting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "harvesting", "level": 3, "amount": 10} },
@@ -304,11 +306,12 @@ public class CropUnitTest
 {
 "weed_field": { "timeCost": {"val": 15, "min":1, "modifiers": { "weeding_1":{ "mult":0.8},"weeding_2":{ "mult":0.8}}}, "requirements": ["hoe_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["hoe_1"],"skill_weeding_3": [""],"weed": ["@1"], "minor_touch_field": ["@1"], "minor_learn_field": ["@1"]} },
 "plow_field": { "timeCost": {"val": 15, "min":1, "modifiers": { "plowing_1":{ "mult":0.8},"plowing_2":{ "mult":0.8}}}, "requirements": ["plow_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["plow_1"],"skill_plowing_3": [""],"minor_learn_field": ["@1"], "plow_under": ["@1"], "plow": ["@1"]} },
-"plant_wheat": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"wheat" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_wheat":["@1"], "major_touch_crop":["@1"], "major_learn_crop":["@1"]} },
+"plant_wheat": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"wheat" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_wheat":["@1"]} },
 "harvest_wheat": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_crop":["@1"], "harvest_wheat":["@1"]} },
-"plant_peas": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"field_peas" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_peas":["@1"], "major_touch_crop":["@1"], "major_learn_crop":["@1"]} },
-"harvest_peas": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_crop":["@1"], "harvest_peas":["@1"]} },
-"plant_hay": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"hay" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_hay":["@1"], "major_touch_crop":["@1"], "major_learn_crop":["@1"]} },
+"harvest_wheat_field": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_field":["@1"], "harvest_wheat_field":["@1"]} },
+"plant_peas": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"field_peas" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_peas":["@1"]} },
+"harvest_peas": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_field":["@1"], "harvest_peas_field":["@1"]} },
+"plant_hay": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"hay" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_hay":["@1"]} },
 }
 """;
       // Load the tasks.
@@ -486,6 +489,9 @@ public class CropUnitTest
     WorkTask harvest = WorkTask.tasks["harvest_wheat"];
     Dictionary<string, ChosenEffectTarget> targetField = new Dictionary<string, ChosenEffectTarget>();
     targetField["@1"] = fieldTarget;
+    Dictionary<string, ChosenEffectTarget> targetCrop = new Dictionary<string, ChosenEffectTarget>();
+
+    Assert.AreEqual(0, person.GetXP(Skill.Find("cereals")!));
 
     // Plow the field
     var runningTask = TaskRunner.StartTask(person, person.household, plow, targetField, 1.0);
@@ -505,6 +511,8 @@ public class CropUnitTest
     // Tasks are enqueued, advance the calendar 6 days.
     Advance(field, person, 6, true);
 
+    Assert.AreEqual(39.6, person.GetXP(Skill.Find("cereals")!));
+
     // Check that the field is planted.
     Assert.AreEqual(0.9, field.Count(wheat));
     // Check the weeds.
@@ -520,6 +528,8 @@ public class CropUnitTest
     person.EnqueueTask(runningTask, false);
     Advance(field, person, 2, true);
 
+    Assert.AreEqual(43.2, person.GetXP(Skill.Find("cereals")!));
+
     // Check the weeds, health, and yield.
     Assert.AreEqual(7.85, field.GetAttributeValue(weeds), 0.1);
     Assert.AreEqual(70.5, field.GetValue(wheat, crop_health), 0.5);
@@ -532,7 +542,8 @@ public class CropUnitTest
     Assert.AreEqual(341.8, field.GetValue(wheat, crop_yield), 1.0);
 
     // Harvest the crop.
-    runningTask = TaskRunner.StartTask(person, person.household, harvest, targetField, 0.9);
+    targetCrop["@1"] = new ChosenEffectTarget(EffectTargetType.Crop, field.crops[wheat], person, person);
+    runningTask = TaskRunner.StartTask(person, person.household, harvest, targetCrop, 0.9);
     Assert.IsNotNull(runningTask);
     person.EnqueueTask(runningTask, false);
 
@@ -564,7 +575,9 @@ public class CropUnitTest
     }
     tasks[0].Add(WorkTask.tasks["plant_wheat"]);
     tasks[0].Add(WorkTask.tasks["weed_field"]);
-    tasks[0].Add(WorkTask.tasks["harvest_wheat"]);
+    // Using the field version of harvest wheat and peas for compatibility
+    // with the plow_field task for hay.
+    tasks[0].Add(WorkTask.tasks["harvest_wheat_field"]);
     tasks[1].Add(WorkTask.tasks["plant_peas"]);
     tasks[1].Add(WorkTask.tasks["weed_field"]);
     tasks[1].Add(WorkTask.tasks["harvest_peas"]);

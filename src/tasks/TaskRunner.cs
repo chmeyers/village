@@ -32,6 +32,11 @@ public class TaskRunner
         return null;
       }
       chosenTarget = chosenTargets[effectTarget.target];
+      // throw if it's the wrong type.
+      if (chosenTarget.effectTargetType != effectTarget.effectTargetType)
+      {
+        throw new Exception("Invalid effect target: " + effectTarget + " for effect: " + effect + " in task: " + taskName + " (type mismatch) : (" + chosenTarget.effectTargetType + " vs " + effectTarget.effectTargetType + ")");
+      }
     }
     else
     {

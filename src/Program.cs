@@ -30,8 +30,8 @@ namespace Village
       EffectLoader.LoadFile("config/effects/building_components.jsonc");
       EffectLoader.LoadFile("config/effects/skill_effects.jsonc");
       EffectLoader.LoadFile("config/effects/skilltree.jsonc");
-      EffectLoader.LoadFile("config/effects/crops.jsonc");
       EffectLoader.LoadFile("config/effects/field.jsonc");
+      EffectLoader.LoadFile("config/effects/crops.jsonc");
       // Load the attributes.
       AttributeType.LoadFile("config/attributes/attributes.jsonc");
       AttributeType.LoadFile("config/attributes/weather.jsonc");

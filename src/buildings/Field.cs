@@ -92,7 +92,6 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
       {
         _crops[itemType].quantity += quantity;
       }
-      lastCropPlanted = _crops[itemType];
       cropCount += quantity;
       return true;
     }
@@ -112,10 +111,6 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
       if (_crops[itemType].quantity - quantity <= 0)
       {
         // Remove the crop.
-        if (lastCropPlanted == _crops[itemType])
-        {
-          lastCropPlanted = null;
-        }
         _crops.Remove(itemType);
         return true;
       }
@@ -130,7 +125,6 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     lock (_lock)
     {
       _crops.Clear();
-      lastCropPlanted = null;
       cropCount = 0;
     }
   }
@@ -331,10 +325,6 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
 
   // Readonly accessor for the crops.
   public IReadOnlyDictionary<ItemType, CropInfo> crops { get { return _crops; } }
-
-  // Track the last crop that was planted.
-  // This is used by effects that need a crop but only have access to the field.
-  public CropInfo? lastCropPlanted = null;
 
   // The current number of crops in the field.
   public double cropCount { get; private set; } = 0;

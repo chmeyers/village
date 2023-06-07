@@ -290,7 +290,7 @@ namespace Village.Tasks
             // If the target is already in the set, verify that it's the same target.
             if (this.targets.ContainsKey(target.target))
             {
-              if (!this.targets[target.target].Compatible(target))
+              if (!this.targets[target.target].Equals(target))
               {
                 throw new Exception("Task " + task + " has duplicate effect target with different effect types: " + target.target);
               }
