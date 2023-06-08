@@ -139,7 +139,7 @@ public class Calendar
     return global_calendar.attributes.Abilities;
   }
 
-  public static IAbilityCollection CalendarAbilityCollection()
+  public static AttributeSet CalendarAttributes()
   {
     return global_calendar.attributes;
   }

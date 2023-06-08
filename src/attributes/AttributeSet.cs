@@ -71,6 +71,12 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     lock (_lock)
     {
       _scopedSets.Add(set);
+      // Add the abilities from the scoped set.
+      set.AbilitiesChanged += UpdateAbilities;
+      if (set.Abilities.Count > 0)
+      {
+        UpdateAbilities(set, set.Abilities, null, null);
+      }
     }
   }
 

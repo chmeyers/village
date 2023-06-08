@@ -202,6 +202,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     // Target and Context for Attribute effects point back at this Person.
     this.attributes = new AttributeSet(this, this, this);
     attributes.AbilitiesChanged += UpdateAbilities;
+    // Add the Calendar attributes as a scoped attribute set.
+    attributes.AddScopedSet(Calendar.CalendarAttributes());
     this.skills = new SkillSet(this);
     // If household is null, create a new household for the person.
     if (household == null && role != null && role != Role.HeadOfHousehold)
@@ -218,9 +220,6 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     }
     // Watch for changes to the inventory.
     this.inventory.AbilitiesChanged += UpdateAbilities;
-    // Watch for changes to the global Calendar abilities.
-    Calendar.AbilitiesChanged += UpdateAbilities;
-    PopulateAbilities(Calendar.CalendarAbilityCollection());
     // Add the person to the registry.
     if (global_persons.ContainsKey(this.household))
     {
@@ -299,6 +298,9 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
 
   public HashSet<AbilityType> Abilities { get { return _abilities; } }
 
+  // TODO(chmeyers): Unregister from events when the person is destroyed.
+  // Same for all the other classes that have events, otherwise garbage
+  // collection will be blocked.
   public event AbilitiesChanged? AbilitiesChanged;
 
   public void GrantAbility(AbilityType ability)
