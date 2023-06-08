@@ -401,7 +401,7 @@ public class Attribute : IAbilityCollection
   private AttributeUtility _currentUtilityType = AttributeUtility.None;
   private double _currentUtilityLower = 0;
   private double _currentUtilityUpper = 0;
-  private double _currentUtility = 0;
+  public double currentUtility { get; private set; } = 0;
   // Cached index of the interval the attribute is currently in.
   private int intervalIndex;
   // The attribute type.
@@ -454,7 +454,7 @@ public class Attribute : IAbilityCollection
     _scaledMaxValue = attributeType.maxValue * scale;
     _scaledMinValue = attributeType.minValue * scale;
     _scaledChangePerTick = attributeType.changePerTick * scale;
-    this._currentUtility = _Utility(this.value);
+    this.currentUtility = _Utility(this.value);
   }
 
   public HashSet<AbilityType> Abilities
@@ -567,45 +567,45 @@ public class Attribute : IAbilityCollection
       value = _scaledMaxValue - maxEpsilon;
     }
 
-    // Cache the utility value.
-    this._currentUtility = _Utility(value);
-
     // if value is still inside the current range, we don't need to update the range
-    if (value >= rangeMin && value < rangeMax) return value;
-
-    // Use a binary search to find the interval that the new value is in.
-    // We find the key of the interval that is just less than the new value.
-    // The interval that the new value is in is the interval that starts at
-    // the key we found.
-    int newIntervalIndex = attributeType.FindIntervalIndex(value / scale);
-    if (newIntervalIndex != intervalIndex)
+    if (value < rangeMin || value >= rangeMax)
     {
-      // Check whether the new intervals' abilities are different from
-      // the current intervals' abilities.
-      var newInterval = attributeType.intervals.GetValueAtIndex(newIntervalIndex);
-      var oldInterval = attributeType.intervals.GetValueAtIndex(intervalIndex);
-      intervalIndex = newIntervalIndex;
-      rangeMin = newInterval.lower * scale;
-      rangeMax = newInterval.upper * scale;
-      this._currentUtilityLower = newInterval.utilityLower;
-      this._currentUtilityUpper = newInterval.utilityUpper;
-      this._currentUtilityType = newInterval.utilityType;
-      // Run entry effects on the new interval, if we have a target and context.
-      if (targetContext != null && abilityContext != null)
+      // Use a binary search to find the interval that the new value is in.
+      // We find the key of the interval that is just less than the new value.
+      // The interval that the new value is in is the interval that starts at
+      // the key we found.
+      int newIntervalIndex = attributeType.FindIntervalIndex(value / scale);
+      if (newIntervalIndex != intervalIndex)
       {
-        foreach (var effect in newInterval.entryEffects)
+        // Check whether the new intervals' abilities are different from
+        // the current intervals' abilities.
+        var newInterval = attributeType.intervals.GetValueAtIndex(newIntervalIndex);
+        var oldInterval = attributeType.intervals.GetValueAtIndex(intervalIndex);
+        intervalIndex = newIntervalIndex;
+        rangeMin = newInterval.lower * scale;
+        rangeMax = newInterval.upper * scale;
+        this._currentUtilityLower = newInterval.utilityLower;
+        this._currentUtilityUpper = newInterval.utilityUpper;
+        this._currentUtilityType = newInterval.utilityType;
+        // Run entry effects on the new interval, if we have a target and context.
+        if (targetContext != null && abilityContext != null)
         {
-          // Apply the effect, the target is always one specified when creating the attribute,
-          // typically the owner of the attribute.
-          effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext), effectMultiplier);
+          foreach (var effect in newInterval.entryEffects)
+          {
+            // Apply the effect, the target is always one specified when creating the attribute,
+            // typically the owner of the attribute.
+            effect.Apply(new ChosenEffectTarget(effect.target, target, targetContext, abilityContext), effectMultiplier);
+          }
         }
-      }
-      if (!newInterval.Abilities.SetEquals(oldInterval.Abilities))
-      {
-        AbilitiesChanged?.Invoke(this, newInterval.Abilities, this, oldInterval.Abilities);
+        if (!newInterval.Abilities.SetEquals(oldInterval.Abilities))
+        {
+          AbilitiesChanged?.Invoke(this, newInterval.Abilities, this, oldInterval.Abilities);
+        }
       }
     }
 
+    // Cache the utility value.
+    this.currentUtility = _Utility(value);
     return value;
   }
 
@@ -678,6 +678,8 @@ public class Attribute : IAbilityCollection
     double utilityLower = _currentUtilityLower;
     double utilityUpper = _currentUtilityUpper;
     int intervalIndex = this.intervalIndex;
+    double rangeMin = this.rangeMin;
+    double rangeMax = this.rangeMax;
     if (value < rangeMin || value >= rangeMax)
     {
       intervalIndex = attributeType.FindIntervalIndex(value / scale);
@@ -685,6 +687,8 @@ public class Attribute : IAbilityCollection
       utilityLower = newInterval.utilityLower;
       utilityUpper = newInterval.utilityUpper;
       utilityType = newInterval.utilityType;
+      rangeMin = newInterval.lower * scale;
+      rangeMax = newInterval.upper * scale;
     }
 
     if (utilityType == AttributeUtility.None) return 0;
@@ -726,6 +730,6 @@ public class Attribute : IAbilityCollection
   {
     if (delta == 0) return 0;
     if (_currentUtilityType == AttributeUtility.None) return 0;
-    return _Utility(value + delta) - this._currentUtility;
+    return _Utility(value + delta) - this.currentUtility;
   }
 }

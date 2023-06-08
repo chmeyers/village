@@ -244,17 +244,32 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     }
   }
 
+  const string _utilityName = "utility:";
   public double? GetNamedValue(string name)
   {
     lock (_lock)
     {
-      // Lookup the attribute type.
-      var attributeType = AttributeType.Find(name);
-      if (attributeType == null)
+      // If the name starts with "utility:" then take the
+      // rest of the name as an attribute type and return
+      // the utility of that attribute.
+      if (name.StartsWith(_utilityName))
       {
-        return null;
+        var attributeType = AttributeType.Find(name.Substring(_utilityName.Length));
+        if (attributeType == null)
+        {
+          return null;
+        }
+        return Utility(attributeType);
       }
-      return GetValue(attributeType);
+      else {
+        // Lookup the attribute type.
+        var attributeType = AttributeType.Find(name);
+        if (attributeType == null)
+        {
+          return null;
+        }
+        return GetValue(attributeType);
+      }
     }
   }
 
@@ -293,6 +308,20 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
         return 0; 
       }
       return attribute.Utility(delta);
+    }
+  }
+
+  public double Utility(AttributeType attributeType)
+  {
+    lock (_lock)
+    {
+      Attribute? attribute = _GetScopedAttribute(attributeType);
+      if (attribute == null)
+      {
+        // Technically this should be the utility of the initial value,
+        return 0;
+      }
+      return attribute.currentUtility;
     }
   }
 }

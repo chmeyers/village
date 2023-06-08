@@ -43,11 +43,13 @@ public class AttributeUnitTest
       AbilityType.LoadString(@"{ 'plus' : { 'levels': 3 } }");
     }
     AttributeType.Clear();
-    string json = @"{ 'strength' : { 'min': 0, 'max': 11, 'initial': {'val': 2, 'modifiers': {'plus_1': {'add': 3}, 'plus_2': { 'add': 3 } }}, 'intervals':
-      [{'lower': 0, 'abilities': ['weak_1']},
-       {'lower': 3},
-       {'lower': 6, 'abilities': ['strong_1']},
-       {'lower': 9, 'abilities': ['strong_2']}
+    string json = @"{ 'strength' : { 'min': 0, 'max': 11, 'initial': {'val': 2, 'modifiers': {'plus_1': {'add': 3}, 'plus_2': { 'add': 3 } }},
+     'utilityType': 'Sigmoid',
+     'intervals':
+      [{'lower': 0, 'abilities': ['weak_1'], 'utility': 0},
+       {'lower': 3, 'utility': 1, 'utilityType': 'Linear'},
+       {'lower': 6, 'abilities': ['strong_1'], 'utility': 2},
+       {'lower': 9, 'abilities': ['strong_2'], 'utility': 3, 'utilityUpper': 4}
       ] },
       'strength_mod' : { 'min': 0, 'max': 3, 'initial': 0, 'intervals': [{'lower': 1, 'abilities': ['plus_1']}, {'lower': 2, 'abilities': ['plus_2']}] } }";
     // Load the attribute types.
@@ -77,9 +79,10 @@ public class AttributeUnitTest
 
     Person person = new Person("bob", "Bob");
     // Create an attribute.
-    person.AddAttribute(AttributeType.Find("strength")!);
+    AttributeType strength = AttributeType.Find("strength")!;
+    person.AddAttribute(strength);
     
-    Attribute a = person.attributes.attributes[AttributeType.Find("strength")!];
+    Attribute a = person.attributes.attributes[strength];
     // Check that the attribute was created correctly.
     Assert.AreEqual(2, a.value);
     Assert.AreEqual(0, a.rangeMin);
@@ -173,9 +176,52 @@ public class AttributeUnitTest
     sas.set.AddScopedSet(person.attributes);
     Assert.AreEqual(7.25, av.GetValue(sas));
     // Explicitly override the attribute in sas.
-    sas.set.Add(AttributeType.Find("strength")!);
+    sas.set.Add(strength);
     Assert.AreEqual(2, av.GetValue(sas));
 
+    // Reset strength_mod to zero.
+    Assert.AreEqual(0, person.attributes.attributes[AttributeType.Find("strength_mod")!].SetValue(0));
+
+    // Check utility for values of strength.
+    // The utility for values 0-3 should be a sigmoid from 0 to 1,
+    // but since it's the first interval, the sigmoid will bottom
+    // out at 0.5.
+    Assert.AreEqual(0, a.SetValue(0));
+    Assert.AreEqual(0.5, a.currentUtility, 0.0001);
+
+    Assert.AreEqual(2.4, a.SetValue(2.4));
+    Assert.AreEqual(0.55, a.currentUtility, 0.05);
+
+    Assert.AreEqual(2.99, a.SetValue(2.99));
+    Assert.AreEqual(0.99, a.currentUtility, 0.01);
+
+    Assert.AreEqual(3, a.SetValue(3));
+    Assert.AreEqual(1.0, a.currentUtility, 0.01);
+
+    Assert.AreEqual(5.4, a.SetValue(3+2.4));
+    Assert.AreEqual(1.8, a.currentUtility, 0.01);
+
+    Assert.AreEqual(6, a.SetValue(6));
+    Assert.AreEqual(2.0, a.currentUtility, 0.01);
+
+    Assert.AreEqual(6.6, a.SetValue(9 - 2.4));
+    Assert.AreEqual(2.45, a.currentUtility, 0.01);
+
+    Assert.AreEqual(8.4, a.SetValue(6 + 2.4));
+    Assert.AreEqual(2.55, a.currentUtility, 0.01);
+
+    Assert.AreEqual(9, a.SetValue(9));
+    Assert.AreEqual(3.0, a.currentUtility, 0.01);
+
+    // Top interval is only 2 wide, so the sigmoid hits 0.45
+    // at 0.4 from the bottom.
+    Assert.AreEqual(9.4, a.SetValue(9.4));
+    Assert.AreEqual(3.45, a.currentUtility, 0.01);
+
+    Assert.AreEqual(10.99, a.SetValue(11));
+    Assert.AreEqual(3.5, a.currentUtility, 0.001);
+
+    Assert.AreEqual(3.5, (double)person.GetNamedValue("utility:strength")!, 0.001);
 
   }
 
