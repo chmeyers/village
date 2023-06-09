@@ -219,6 +219,7 @@ public interface IAbilityContext : IAbilityCollection
 
 public class ConcreteAbilityContext: IAbilityContext
 {
+  public static ConcreteAbilityContext voidContext = new ConcreteAbilityContext(new HashSet<AbilityType>());
   private HashSet<AbilityType> _abilities = new HashSet<AbilityType>();
 
   
