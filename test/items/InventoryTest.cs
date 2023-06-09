@@ -11,8 +11,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -62,8 +62,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -119,8 +119,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -174,8 +174,8 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null);
-    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null, null);
+    ItemType itemType2 = new("type2", ItemGroup.CURRENCY, null, 0, 0, false, 0.5, 1.0, null, null, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType2);
@@ -218,7 +218,7 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types.
-    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 100, 0, false, 0.5, 1.0, null, null, null, null);
+    ItemType itemType = new("type1", ItemGroup.CURRENCY, null, 100, 0, false, 0.5, 1.0, null, null, null, null, null);
     // Create some items.
     Item item = new(itemType);
     Item item2 = new(itemType);
@@ -282,12 +282,12 @@ public class InventoryUnitTest
     // Create an inventory.
     Inventory inventory = new();
     // Create item types, with a chain of parent types.
-    ItemType grandparent1 = new("grandparent1", ItemGroup.CURRENCY, null, 100, 0, false, 0.5, 1.0, null, null, null, null);
-    ItemType grandparent2 = new("grandparent2", ItemGroup.CURRENCY, null, 100, 0, false, 0.5, 1.0, null, null, null, null);
-    ItemType parent1 = new("parent1", ItemGroup.CURRENCY, new List<ItemType> {grandparent1, grandparent2}, 100, 0, false, 0.5, 1.0, null, null, null, null);
-    ItemType parent2 = new("parent2", ItemGroup.CURRENCY, null, 100, 0, false, 0.5, 1.0, null, null, null, null);
-    ItemType child1 = new("child1", ItemGroup.CURRENCY, new List<ItemType> {parent1, parent2}, 100, 0, false, 0.5, 1.0, null, null, null, null);
-    ItemType child2 = new("child2", ItemGroup.CURRENCY, new List<ItemType> {parent1, parent2}, 100, 0, false, 0.5, 1.0, null, null, null, null);
+    ItemType grandparent1 = new("grandparent1", ItemGroup.CURRENCY, null, 100, 0, false, 0.5, 1.0, null, null, null, null, null);
+    ItemType grandparent2 = new("grandparent2", ItemGroup.CURRENCY, null, 100, 0, false, 0.5, 1.0, null, null, null, null, null);
+    ItemType parent1 = new("parent1", ItemGroup.CURRENCY, new List<ItemType> {grandparent1, grandparent2}, 100, 0, false, 0.5, 1.0, null, null, null, null, null);
+    ItemType parent2 = new("parent2", ItemGroup.CURRENCY, null, 100, 0, false, 0.5, 1.0, null, null, null, null, null);
+    ItemType child1 = new("child1", ItemGroup.CURRENCY, new List<ItemType> {parent1, parent2}, 100, 0, false, 0.5, 1.0, null, null, null, null, null);
+    ItemType child2 = new("child2", ItemGroup.CURRENCY, new List<ItemType> {parent1, parent2}, 100, 0, false, 0.5, 1.0, null, null, null, null, null);
     // Create some items.
     Item grandparent1Item = new(grandparent1);
     Item grandparent2Item = new(grandparent2);

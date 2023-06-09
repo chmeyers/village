@@ -334,6 +334,13 @@ public class CropSettings
   public double nitrogenFixing = 0.0;
 }
 
+public class StockpileUtilities
+{
+  public AbilityValue? perHousehold;
+  public AbilityValue? perPerson;
+  public AbilityValue? utility;
+}
+
 // A ItemType describes a general item and stores information
 // related to all items of that type.
 public class ItemType
@@ -486,8 +493,50 @@ public class ItemType
         cropSettings = new CropSettings(name, itemData["cropSettings"]);
       }
 
+      // Get the list of stockpile utilities.
+      List<StockpileUtilities>? stockpileUtilities = null;
+      if (itemData.ContainsKey("stockpile"))
+      {
+        stockpileUtilities = new List<StockpileUtilities>();
+        // Check that the desires are a list.
+        if (!(itemData["stockpile"] is Newtonsoft.Json.Linq.JArray))
+        {
+          throw new Exception("Stockpile must be a list for item type: " + name);
+        }
+        var stockpileArray = (Newtonsoft.Json.Linq.JArray)itemData["stockpile"];
+        if (stockpileArray == null)
+        {
+          throw new Exception("Failed to load stockpile array for item: " + name);
+        }
+        // Convert the list to a list of dictionaries.
+        var stockpileDicts = stockpileArray.ToObject<List<Dictionary<string, object>>>();
+        if (stockpileDicts == null)
+        {
+          throw new Exception("Failed to load stockpile dict array for item: " + name);
+        }
+        foreach (var stockpileDict in stockpileDicts)
+        {
+          StockpileUtilities desire = new StockpileUtilities();
+          if (stockpileDict.ContainsKey("perPerson"))
+          {
+            desire.perPerson = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)stockpileDict["perPerson"]);
+          }
+          if (stockpileDict.ContainsKey("perHousehold"))
+          {
+            desire.perHousehold = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)stockpileDict["perHousehold"]);
+          }
+          // At least one of perPerson or perHousehold must be set.
+          if (desire.perPerson == null && desire.perHousehold == null)
+          {
+            throw new Exception("Desired must have at least one of perPerson or perHousehold set for item type: " + name);
+          }
+          desire.utility = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)stockpileDict["utility"]);
+          stockpileUtilities.Add(desire);
+        }
+      }
+
       // Create the item type.
-      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, weight, bulk, scrapItems, craftQuality, abilitySet, cropSettings);
+      ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, weight, bulk, scrapItems, craftQuality, abilitySet, cropSettings, stockpileUtilities);
       // Add the item type to the dictionary.
       _itemTypes.Add(name, itemType);
     }
@@ -513,7 +562,7 @@ public class ItemType
 
 
   // Constructor
-  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, double weight, double bulk, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities, CropSettings? cropSettings)
+  public ItemType(string name, ItemGroup group, List<ItemType>? parents, int spoilTime, double lossRate, bool flammable, double weight, double bulk, Dictionary<ItemType, int>? scrapItems, AbilityValue? craftQuality, HashSet<AbilityType>? abilities, CropSettings? cropSettings, List<StockpileUtilities>? stockpileUtilities)
   {
     itemType = name;
     itemGroup = group;
@@ -570,7 +619,12 @@ public class ItemType
         }
       }
     }
-    
+
+    if (stockpileUtilities != null)
+    {
+      this.stockpileUtilities = stockpileUtilities;
+    }
+
     // Add this item type to the parent's child types.
     foreach (var parent in parentTypes)
     {
@@ -580,7 +634,8 @@ public class ItemType
 
   // Initialize is called after all effects and other types have been loaded.
   // This is used to resolve any references between items.
-  public void Initialize() {
+  public void Initialize()
+  {
     // Resolve the crop attribute and skill.
     if (cropSettings != null)
     {
@@ -662,6 +717,9 @@ public class ItemType
   // For example, unfired pottery is difficult to ship.
   public readonly double bulk;
 
+  // The number of units of this item that a household should want.
+  public readonly List<StockpileUtilities>? stockpileUtilities;
+
   public override bool Equals(object? obj)
   {
     // Check equality of the itemType only.
@@ -704,6 +762,36 @@ public class ItemType
       descendents.UnionWith(child.GetAllDescendants());
     }
     return descendents;
+  }
+
+  public SortedDictionary<double, int> GetUtilityQuantities(IAbilityContext context, double householdSize)
+  {
+    // Get the desirability of this item type.
+    SortedDictionary<double, int> quantityByUtility = new SortedDictionary<double, int>();
+    if (stockpileUtilities == null)
+    {
+      return quantityByUtility;
+    }
+    
+    foreach (var stockpileUtility in stockpileUtilities)
+    {
+      double perPerson = stockpileUtility.perPerson?.GetValue(context) ?? 0;
+      double perHousehold = stockpileUtility.perHousehold?.GetValue(context) ?? 0;
+      int quantity = (int)Math.Ceiling(perPerson * householdSize + perHousehold);
+      if (quantity == 0) continue;
+
+      double utility = stockpileUtility.utility!.GetValue(context);
+      if (quantityByUtility.ContainsKey(utility))
+      {
+        quantityByUtility[utility] += quantity;
+      }
+      else
+      {
+        quantityByUtility[utility] = quantity;
+      }
+    }
+
+    return quantityByUtility;
   }
 }
 
