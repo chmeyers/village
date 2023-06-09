@@ -279,6 +279,49 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
     }
   }
 
+  public const string calendarAttributeGroup = "calendar";
+  public bool IsSeasonalValue(string name)
+  {
+    lock (_lock)
+    {
+      // To be seasonal, it must be a utility value for a calendar attribute.
+      if (name.StartsWith(_utilityName))
+      {
+        var attributeType = AttributeType.Find(name.Substring(_utilityName.Length));
+        if (attributeType == null)
+        {
+          return false;
+        }
+        return attributeType.group == calendarAttributeGroup;
+      }
+      return false;
+    }
+  }
+
+  public double? GetSeasonalValue(string name, int daysInFuture)
+  {
+    lock (_lock)
+    {
+      // To be seasonal, it must be a utility value for a calendar attribute.
+      if (name.StartsWith(_utilityName))
+      {
+        var attributeType = AttributeType.Find(name.Substring(_utilityName.Length));
+        if (attributeType == null)
+        {
+          return null;
+        }
+        if (attributeType.group != calendarAttributeGroup)
+        {
+          return null;
+        }
+        long futureDayOfYear = (Calendar.DayOfYear + daysInFuture) % Calendar.daysPerYear;
+        long dayOfYearDelta = futureDayOfYear - Calendar.DayOfYear;
+        return Utility(attributeType) + Utility(attributeType, dayOfYearDelta);
+      }
+      return null;
+    }
+  } 
+
   // IAttributeContext implementation
   public double SetAttribute(AttributeType attributeType, double value)
   {

@@ -200,15 +200,13 @@ public class AbilityValue
     }
     return ((context.GetNamedValue(namedValue) ?? 0) + baseValue + namedAdd) * namedMult;
   }
-  // Return the value of the AbilityValue.
-  public double GetValue(IAbilityContext? context)
+
+  private double _AddAbilitiesToValue(IAbilityContext? context, double value)
   {
-    double namedValue = GetNamedValue(context);
     if (context == null || context.Abilities.Count == 0 || (addAbilities.Count == 0 && multAbilities.Count == 0))
     {
-      return namedValue;
+      return value;
     }
-    double value = namedValue;
     // Modify the base value for any abilities that are present in the context.
     // First do all the additions, then do all the multiplications.
     foreach (var ability in addAbilities)
@@ -228,6 +226,23 @@ public class AbilityValue
     // The return value is gated on the min and max values
     // and converted to an int.
     return Math.Clamp(value, min, max);
+  }
+  // Return the value of the AbilityValue.
+  public double GetValue(IAbilityContext? context)
+  {
+    double value = GetNamedValue(context);
+    return _AddAbilitiesToValue(context, value);
+  }
+
+  public double GetSeasonalValue(IAbilityContext? context, int daysInFuture)
+  {
+    // Only named values that use a calendar attribute can be seasonal.
+    if (daysInFuture == 0 || namedValue == null || context == null || !context.IsSeasonalValue(namedValue))
+    {
+      return GetValue(context);
+    }
+    double value = ((context.GetSeasonalValue(namedValue, daysInFuture) ?? 0) + baseValue + namedAdd) * namedMult;
+    return _AddAbilitiesToValue(context, value);
   }
 
   // GetScaledValue returns the value of the AbilityValue, scaled by the quantity.

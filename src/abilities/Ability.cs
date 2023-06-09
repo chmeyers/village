@@ -215,6 +215,8 @@ public interface IAbilityContext : IAbilityCollection
 {
   public void GrantAbility(AbilityType ability);
   public double? GetNamedValue(string name);
+  public bool IsSeasonalValue(string name) { return false; }
+  public double? GetSeasonalValue(string name, int daysInFuture) { return GetNamedValue(name); }
 }
 
 public class ConcreteAbilityContext: IAbilityContext

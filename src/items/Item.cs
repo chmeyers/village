@@ -764,7 +764,7 @@ public class ItemType
     return descendents;
   }
 
-  public SortedDictionary<double, int> GetUtilityQuantities(IAbilityContext context, double householdSize)
+  public SortedDictionary<double, int> GetUtilityQuantities(IAbilityContext context, double householdSize, int daysInFuture = 0)
   {
     // Get the desirability of this item type.
     SortedDictionary<double, int> quantityByUtility = new SortedDictionary<double, int>();
@@ -775,12 +775,12 @@ public class ItemType
     
     foreach (var stockpileUtility in stockpileUtilities)
     {
-      double perPerson = stockpileUtility.perPerson?.GetValue(context) ?? 0;
-      double perHousehold = stockpileUtility.perHousehold?.GetValue(context) ?? 0;
+      double perPerson = stockpileUtility.perPerson?.GetSeasonalValue(context, daysInFuture) ?? 0;
+      double perHousehold = stockpileUtility.perHousehold?.GetSeasonalValue(context, daysInFuture) ?? 0;
       int quantity = (int)Math.Ceiling(perPerson * householdSize + perHousehold);
       if (quantity == 0) continue;
 
-      double utility = stockpileUtility.utility!.GetValue(context);
+      double utility = stockpileUtility.utility!.GetSeasonalValue(context, daysInFuture);
       if (quantityByUtility.ContainsKey(utility))
       {
         quantityByUtility[utility] += quantity;

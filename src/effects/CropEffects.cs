@@ -145,8 +145,12 @@ public class PlantCropEffect : Effect
     // Add up the utilities of all the harvest items for this crop.
     foreach (var harvestItem in crop.cropSettings!.harvestItems)
     {
-      // TODO(chmeyers): Shouldn't be SellPrice, but depend on household yearly needs.
-      utility += household.household.SellPrice(harvestItem.Key) * targetYield * harvestItem.Value / harvestItem.Key.weight;
+      utility += household.household.FutureUtility(runner, harvestItem.Key, (int)(targetYield * harvestItem.Value / harvestItem.Key.weight), crop.cropSettings!.totalDays);
+    }
+    // Add the utility of the chained effects.
+    foreach (var chainedEffect in chainedEffects)
+    {
+      utility += chainedEffect.Utility(household, runner, chosenEffectTarget, scaler);
     }
     return utility;
   }
@@ -582,7 +586,7 @@ public class TouchCropEffect : Effect
     healthRate = AbilityValue.FromJson(data["healthRate"]);
   }
 
-  private void Touch(Field.CropInfo cropInfo, ISkillContext farmer, double scaler = 1, int batchSize = 1)
+  private double Touch(Field.CropInfo cropInfo, ISkillContext farmer, double scaler = 1, int batchSize = 1)
   {
     ItemType crop = cropInfo.itemType;
     // If the farmer has skill equal to the crop's skill level, then the crop won't
@@ -591,14 +595,15 @@ public class TouchCropEffect : Effect
     double skill = farmer.GetLevel(crop.cropSettings!.cropSkill!);
     double skillDifference = skill - crop.cropSettings!.cropSkillLevel;
     double healthDelta = healthRate.GetScaledValue(farmer, scaler) * skillDifference * batchSize;
-    cropInfo.AddAttribute(StaticAttributes.cropHealth!, healthDelta);
+    return healthDelta;
   }
 
   private void TouchAll(Field field, ISkillContext farmer, double scaler = 1, int batchSize = 1)
   {
     foreach (var cropInfo in field.crops)
     {
-      Touch(cropInfo.Value, farmer, cropInfo.Value.quantity * scaler / field.size, batchSize);
+      double delta = Touch(cropInfo.Value, farmer, cropInfo.Value.quantity * scaler / field.size, batchSize);
+      cropInfo.Value.AddAttribute(StaticAttributes.cropHealth!, delta);
     }
   }
 
@@ -624,7 +629,8 @@ public class TouchCropEffect : Effect
       // Effect is optional, so just return.
       return;
     }
-    Touch(cropInfo, farmer, scaler, batchSize);
+    double delta = Touch(cropInfo, farmer, scaler, batchSize);
+    cropInfo.AddAttribute(StaticAttributes.cropHealth!, delta);
   }
 
   public override bool IsOptional()
@@ -637,10 +643,55 @@ public class TouchCropEffect : Effect
     return true;
   }
 
+  private double Utility(IHouseholdContext household, Field.CropInfo cropInfo, ISkillContext farmer, double scaler = 1)
+  {
+    double delta = Touch(cropInfo, farmer, scaler);
+    // Changes to crop health affect future yield changes, but not existing yield,
+    // so we calculate the utility based on the number of days until the crop is
+    // mature.
+    int cropDay = (int)cropInfo.GetAttributeValue(cropInfo.itemType.cropSettings!.cropAttribute!);
+    int totalDays = cropInfo.itemType.cropSettings!.totalDays;
+    if (cropDay >= totalDays)
+    {
+      // Crop is already mature, so the utility is zero.
+      return 0;
+    }
+    double dailyYield = cropInfo.itemType.cropSettings!.perTickYieldGrowth * Calendar.ticksPerDay;
+    double futureYield = dailyYield * (totalDays - cropDay);
+    // Delta is scaled to an acre already and has the appropriate sign,
+    // so we just have to treat it as a percentage.
+    double futureYieldDelta = delta * futureYield / 100;
+    return household.household.FutureUtility(farmer, cropInfo.itemType, (int)futureYieldDelta, totalDays - cropDay);
+  
+  }
+
   public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
-    // TODO(chmeyers): Implement.
-    return 0;
+    // We could delegate the calculation here to the Attribute, but since this is
+    // the main/only crop health effect initiated by a task, we'll just do it here
+    // for more control.
+    ISkillContext? farmer = chosenEffectTarget.runningContext as ISkillContext;
+    if (farmer == null)
+    {
+      return 0;
+    }
+    double utility = 0;
+    if (chosenEffectTarget.target is Field field)
+    {
+      foreach (var crop in field.crops)
+      {
+        utility += Utility(household, crop.Value, farmer, scaler);
+      }
+      return utility;
+    }
+    // Get the crop from the chosen target.
+    Field.CropInfo cropInfo = (Field.CropInfo)chosenEffectTarget.target!;
+    // Make sure the crop is not null.
+    if (cropInfo == null)
+    {
+      return 0;
+    }
+    return Utility(household, cropInfo, farmer, scaler);
   }
 
   private AbilityValue healthRate;
@@ -715,10 +766,37 @@ public class CropSkillEffect : Effect
     return true;
   }
 
+  private double Utility(ItemType crop, ISkillContext farmer, double scaler = 1)
+  {
+    int trainingLevel = crop.cropSettings!.cropSkillLevel;
+    double amount = this.amount.GetScaledValue(farmer, scaler);
+    return farmer.Utility(crop.cropSettings!.cropSkill!, trainingLevel, amount);
+  }
   public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
-    // TODO(chmeyers): Implement.
-    return 0;
+    ISkillContext farmer = (ISkillContext)chosenEffectTarget.target!;
+    if (farmer == null)
+    {
+      return 0.0;
+    }
+    
+    if (chosenEffectTarget.target is Field field)
+    {
+      double utility = 0;
+      foreach (var crop in field.crops)
+      {
+        utility += Utility(crop.Value.itemType, farmer, scaler);
+      }
+      return utility;
+    }
+    // Get the crop from the chosen target.
+    Field.CropInfo? cropInfo = chosenEffectTarget.target as Field.CropInfo;
+    // Make sure the crop is not null.
+    if (cropInfo == null)
+    {
+      return 0.0;
+    }
+    return Utility(cropInfo.itemType, farmer, scaler);
   }
 
   // Amount to increase, defaults to 1.

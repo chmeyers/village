@@ -21,6 +21,7 @@ public class Calendar
   public const uint ticksPerWeek = 50;
   public const uint ticksPerMonth = 300;
   public const uint ticksPerYear = 3600;
+  public const uint daysPerYear = 360;
 
   // Singleton instance of the calendar.
   private static Calendar global_calendar = new Calendar();
@@ -156,7 +157,7 @@ public class Calendar
     attributes.Add(attributeType);
   }
 
-  private const string calendarAttributeGroup = "calendar";
+  public const string calendarAttributeGroup = "calendar";
   // Go through all the attributes and add the calendar attributes.
   public static void AddCalendarAttributes()
   {

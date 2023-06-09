@@ -229,6 +229,8 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
     {
       global_persons.Add(this.household, new HashSet<Person>() { this });
     }
+    // Register with the household.
+    this.household.AddPerson(this, this.householdRole);
   }
 
   // Unique ID for the person.
@@ -322,6 +324,16 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   {
     // Resolved from attributes first then skills.
     return attributes.GetNamedValue(name) ?? skills.GetNamedValue(name);
+  }
+
+  public bool IsSeasonalValue(string name)
+  {
+    return attributes.IsSeasonalValue(name);
+  }
+
+  public double? GetSeasonalValue(string name, int daysInFuture)
+  {
+    return attributes.GetSeasonalValue(name, daysInFuture);
   }
 
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
