@@ -285,6 +285,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       SortedDictionary<double, int> quantityByUtility = itemType.GetUtilityQuantities(defaultContext, householdSize, daysInFuture);
       // TODO(chmeyers): Add in seed corn needed for next year.
       // TODO(chmeyers): Add tools that household members need.
+      // TODO(chmeyers): Add vendor stock w/ BuyPrice+Profit Utility.
       // Recurse and merge the parent items' desired stockpile.
       foreach (var parent in itemType.parentTypes)
       {

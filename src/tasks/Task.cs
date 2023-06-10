@@ -432,7 +432,7 @@ namespace Village.Tasks
       return this.inputs.Count > 0 && this.inputs.All<KeyValuePair<ItemType,AbilityValue>>(pair => pair.Key.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
     }
 
-    private double _CalcUtility(IAbilityContext runner, IHouseholdContext household, Dictionary<string, Effects.ChosenEffectTarget>? chosenTargets, ref double scale)
+    private double _CalcUtility(IAbilityContext runner, IHouseholdContext household, Dictionary<string, Effects.ChosenEffectTarget>? chosenTargets, ref double scale, bool evalOutputs = false, bool evalInputs = false, bool evalTime = false)
     {
       // The total utility of a task is the sum of the utility of each effect,
       // plus the utility of the outputs, minus the utility of the inputs and time.
@@ -457,7 +457,15 @@ namespace Village.Tasks
         maxScale = 1.0;
         preferredScale = 1.0;
       }
-      if (this.inputs.Count > 0)
+      if (evalInputs || evalOutputs || evalTime)
+      {
+        // If we are evaluation inputs/outputs, we don't look at the inventory,
+        // so cap the scale at 1.
+        minScale = Math.Max(minScale, 0.0);  // Still let effects set a min scale.
+        maxScale = 1.0;
+        preferredScale = 1.0;
+      }
+      else if (this.inputs.Count > 0)
       {
         // Reduce the scale if we are limited by inputs.
         maxScale = Math.Min(maxScale, inventory.GetMaxScale(this.Inputs(runner)));
@@ -510,27 +518,36 @@ namespace Village.Tasks
         }
       }
       
-      // Add the utility of each output.
-      foreach (var output in this.OutputTypes(runner, preferredScale ?? 1.0))
+      if (!evalOutputs)
       {
-        utility += h.Utility(runner, output.Key, output.Value);
+        // Add the utility of each output, unless we are evaluating the outputs.
+        foreach (var output in this.OutputTypes(runner, preferredScale ?? 1.0))
+        {
+          utility += h.Utility(runner, output.Key, output.Value);
+        }
       }
-      // Remove the utility of each input.
-      foreach (var input in this.Inputs(runner, preferredScale ?? 1.0))
+      if (!evalInputs)
       {
-        // Pass a negative quantity to the utility function to indicate that
-        // we are consuming the input.
-        utility += h.Utility(runner, input.Key, -input.Value);
+        // Remove the utility of each input.
+        foreach (var input in this.Inputs(runner, preferredScale ?? 1.0))
+        {
+          // Pass a negative quantity to the utility function to indicate that
+          // we are consuming the input.
+          utility += h.Utility(runner, input.Key, -input.Value);
+        }
       }
-      // Subtract the utility of the time cost.
-      int timeCost = (int)Math.Ceiling(this.timeCost.GetValue(runner) * (preferredScale ?? 1.0));
-      utility -= h.TimeUtility(runner, timeCost);
+      if (!evalTime)
+      {
+        // Subtract the utility of the time cost.
+        int timeCost = (int)Math.Ceiling(this.timeCost.GetValue(runner) * (preferredScale ?? 1.0));
+        utility -= h.TimeUtility(runner, timeCost);
+      }
       scale = preferredScale ?? 1.0;
       return utility;
     }
 
     // Get the Utility score for this task, returning the best choice of targets and scale.
-    public double Utility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    public double _Utility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale, bool evalOutputs = false, bool evalInputs = false, bool evalTime = false)
     {
       // If the task as targets, we have to calculate the utility for each target,
       // and then choose the best one.
@@ -538,7 +555,7 @@ namespace Village.Tasks
       if (this.targets.Count > 1) return double.MinValue;
       if (this.targets.Count == 0)
       {
-        return _CalcUtility(runner, household, null, ref scale);
+        return _CalcUtility(runner, household, null, ref scale, evalOutputs, evalInputs, evalTime);
       }
       // Get a list of all the possible targets for the task.
       List<ChosenEffectTarget> possibleTargets = household.household.GetPossibleTargets(runner, this.targets.First().Value.effectTargetType);
@@ -548,7 +565,7 @@ namespace Village.Tasks
       if (possibleTargets.Count == 1)
       {
         targets.Add(this.targets.First().Key, possibleTargets.First());
-        return _CalcUtility(runner, household, targets, ref scale);
+        return _CalcUtility(runner, household, targets, ref scale, evalOutputs, evalInputs, evalTime);
       }
       // If there are multiple possible targets, calculate the utility for each one,
       // and return the best one.
@@ -557,7 +574,7 @@ namespace Village.Tasks
       {
         Dictionary<string, ChosenEffectTarget> targetDict = new Dictionary<string, ChosenEffectTarget>();
         targetDict.Add(this.targets.First().Key, target);
-        double utility = _CalcUtility(runner, household, targetDict, ref scale);
+        double utility = _CalcUtility(runner, household, targetDict, ref scale, evalOutputs, evalInputs, evalTime);
         if (utility > bestUtility)
         {
           bestUtility = utility;
@@ -565,6 +582,29 @@ namespace Village.Tasks
         }
       }
       return bestUtility;
+    }
+
+    public double Utility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    {
+      return _Utility(runner, household, ref targets, ref scale);
+    }
+
+    // Get the potential utility the outputs created from running this task.
+    public double PotentialOutputUtility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    {
+      return _Utility(runner, household, ref targets, ref scale, true);
+    }
+
+    // Get the potential utility the inputs created from running this task.
+    public double PotentialInputUtility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    {
+      return _Utility(runner, household, ref targets, ref scale, false, true);
+    }
+
+    // Get the potential utility the runner's time creates from running this task.
+    public double PotentialTimeUtility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    {
+      return _Utility(runner, household, ref targets, ref scale, false, false, true);
     }
     
 
