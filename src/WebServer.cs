@@ -252,7 +252,7 @@ public class GameServer
       Console.WriteLine($"Item {itemName} not in inventory!");
       return;
     }
-    int price = trader!.GetOffer(items, person);
+    int price = (int)Math.Ceiling(trader!.GetOffer(items, person));
     Item coin = new Item(ItemType.Find("coin")!);
     // Create a dictionary of price number of coin.
     Dictionary<Item, int> priceDict = new Dictionary<Item, int>();
@@ -283,7 +283,7 @@ public class GameServer
       Console.WriteLine($"Item {itemName} not in inventory!");
       return;
     }
-    int price = trader.GetPrice(items, person!);
+    int price = (int)Math.Ceiling(trader.GetPrice(items, person!));
     Item coin = new Item(ItemType.Find("coin")!);
     // Create a dictionary of price number of coin.
     Dictionary<Item, int> priceDict = new Dictionary<Item, int>();
@@ -407,7 +407,7 @@ public class GameServer
       }
       // Get the default sale price for the item.
       var singleItem = inventory.Get(itemtype.Key, 1);
-      int price = trader!.GetOffer(singleItem!, person!);
+      int price = (int)Math.Ceiling(trader!.GetOffer(singleItem!, person!));
       sb.Append($"<tr><td>{itemtype.Key.itemType}</td><td>{quantity}</td><td>{minQuality}</td><td>{price}</td>");
       // Add buttons to sell 1, 100 or all of the item. Diable the buttons if the price is zero.
       sb.Append($"<td><form action=\"sell\" method=\"get\"><input type=\"hidden\" name=\"item\" value=\"{itemtype.Key.itemType}\" /><input type=\"hidden\" name=\"quantity\" value=\"1\" /><input type=\"hidden\" name=\"personal\" value={personal}><input type=\"submit\" value=\"Sell 1\" ");
@@ -448,7 +448,7 @@ public class GameServer
     {
       // Get the default purchase price for the item.
       var singleItem = trader.inventory.Get(itemtype.Key, 1);
-      int price = trader.GetPrice(singleItem!, person!);
+      int price = (int)Math.Ceiling(trader.GetPrice(singleItem!, person!));
       sb.Append($"<tr><td>{itemtype.Key.itemType}</td><td>{price}</td>");
       // Add buttons to buy 1 or 100 of the item.
       sb.Append($"<td><form action=\"buy\" method=\"get\"><input type=\"hidden\" name=\"item\" value=\"{itemtype.Key.itemType}\" /><input type=\"hidden\" name=\"quantity\" value=\"1\" /><input type=\"submit\" value=\"Buy\" /></form></td>");

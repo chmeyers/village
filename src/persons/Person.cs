@@ -168,12 +168,12 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   // Get the amount this person will offer for a set of items.
   // In this case the other person (the seller) is assumed to be the one initiating the trade.
   // The offer may depend on the seller, such as the buyer's relationship with the seller.
-  public int GetOffer(IDictionary<Item, int> items, Person seller)
+  public double GetOffer(IDictionary<Item, int> items, Person seller)
   {
     // TODO(chmeyers): Implement buyer/seller relationships.
     // TODO(chmeyers): Implement non-linear quantities.
     // Look up the items in the price list.
-    int offer = 0;
+    double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
       offer += priceList.BuyPrice(item.Key) * item.Value;
@@ -184,12 +184,12 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   // Get the price this person wants for a set of items.
   // In this case the other person (the buyer) is assumed to be the one initiating the trade.
   // The offer may depend on the buyer, such as the buyer's relationship with the seller.
-  public int GetPrice(IDictionary<Item, int> items, Person buyer)
+  public double GetPrice(IDictionary<Item, int> items, Person buyer)
   {
     // TODO(chmeyers): Implement buyer/seller relationships.
     // TODO(chmeyers): Implement non-linear quantities.
     // Look up the items in the price list.
-    int offer = 0;
+    double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
       offer += priceList.SellPrice(item.Key) * item.Value;
@@ -210,8 +210,8 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       throw new System.ArgumentException("Cannot trade with self.");
     }
     // Check that the offer value is >= the price value.
-    int offerValue = otherPerson.GetOffer(offer, this);
-    int priceValue = otherPerson.GetPrice(price, this);
+    double offerValue = otherPerson.GetOffer(offer, this);
+    double priceValue = otherPerson.GetPrice(price, this);
     if (offerValue < priceValue)
     {
       return false;
@@ -511,21 +511,22 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     EnqueueTask(runningTask, false);
   }
 
-  public void PickTask(HashSet<WorkTask> blacklist)
+  public WorkTask? PickTask(HashSet<WorkTask> blacklist, out Dictionary<string, Effects.ChosenEffectTarget>? bestTargets, out double bestScale)
   {
+    bestScale = 1.0;
+    bestTargets = null;
     // Only pick a task if the person has no tasks.
-    if (runningTasks.Count > 0) return;
+    if (runningTasks.Count > 0) return null;
     // Pick a task from the set of available tasks.
     HashSet<WorkTask> available = AvailableHouseholdTasks.Except(blacklist).ToHashSet();
     // Eliminate any tasks that have multiple targets.
     // TODO(chmeyers): Implement multiple target task picking.
     available.ExceptWith(available.Where(t => t.targets.Count > 1));
-    if (available.Count() == 0) return;
+    if (available.Count() == 0) return null;
     // Get a utility score for every task and pick the highest scoring task.
     WorkTask? best = null;
     double bestScore = 0;
-    Dictionary<string, Effects.ChosenEffectTarget>? bestTargets = null;
-    double bestScale = 1.0;
+    
     foreach (var task in available)
     {
       // Get the utility score for the task.
@@ -543,10 +544,24 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
         bestScale = scale;
       }
     }
-    if (best == null) return;
+    if (best == null)
+    {
+      // No task was found, re-evaluate our time utility, but do not re-pick a task.
+      // TODO(chmeyers): We should have a set of last-ditch tasks that we can do if
+      // we have nothing else to do. Perhaps training?
+      DetermineTimeUtility(true);
+      return null;
+    }
+    return best;
+  }
+
+  public void PickAndEnqueueTask(HashSet<WorkTask> blacklist)
+  {
+    WorkTask? task = PickTask(blacklist, out Dictionary<string, Effects.ChosenEffectTarget>? bestTargets, out double bestScale);
+    if (task == null) return;
     // Enqueue the task as a running task.
-    var runningTask = TaskRunner.StartTask(this, this.household, best, bestTargets, bestScale);
-    if (runningTask == null) throw new Exception("Failed to start Chosen task: " + best.task + " for person: " + name);
+    var runningTask = TaskRunner.StartTask(this, this.household, task, bestTargets, bestScale);
+    if (runningTask == null) throw new Exception("Failed to start Chosen task: " + task.task + " for person: " + name);
     EnqueueTask(runningTask, false);
   }
 

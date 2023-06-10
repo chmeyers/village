@@ -60,15 +60,17 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // The default context for the household will typically be the head of household.
   // If there is no head of household, it will be a void context.
   public IAbilityContext defaultContext { get; private set; } = ConcreteAbilityContext.voidContext;
-  public double householdSize { get; private set; } = 0;
+  // list of people in the household.
+  public HashSet<ITaskRunner> people { get; private set; } = new HashSet<ITaskRunner>();
+  public double householdSize { get { return people.Count; } }
 
-  public void AddPerson(IAbilityContext person, Role role)
+  public void AddPerson(ITaskRunner person, Role role)
   {
     if (role == Role.HeadOfHousehold)
     {
       defaultContext = person;
     }
-    householdSize += 1;
+    people.Add(person);
   }
 
   public void AddBuilding(BuildingType buildingType)
@@ -332,8 +334,16 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // costs and a desired profit.
   public double SellPrice(ItemType itemType)
   {
-    // TODO(chmeyers): Implement.
-    return 0;
+    // TODO(chmeyers): Use a market instead of a price list.
+    IPriceList priceList = ConfigPriceList.Default;
+    double marketPrice = priceList.BuyPrice(itemType);
+    // See if any people in the household can beat the market price.
+    double bestPrice = marketPrice;
+    foreach (var person in people)
+    {
+      bestPrice = Math.Max(bestPrice, person.WorthAsInput(itemType));
+    }
+    return bestPrice;
   }
 
   // The actual price of the item on the local market not
@@ -349,8 +359,16 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // TODO(chmeyers): Make sure we are dealing correctly with vendor "overstock".
   public double BuyPrice(ItemType itemType)
   {
-    // TODO(chmeyers): Implement.
-    return 0;
+    // TODO(chmeyers): Use a market instead of a price list.
+    IPriceList priceList = ConfigPriceList.Default;
+    double marketPrice = priceList.SellPrice(itemType);
+    // See if any people in the household can beat the market price.
+    double bestPrice = marketPrice;
+    foreach (var person in people)
+    {
+      bestPrice = Math.Min(bestPrice, person.ProductionCost(itemType));
+    }
+    return bestPrice;
   }
 
   // Item Utility
@@ -392,11 +410,9 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   {
     // The time cost is either the opportunity cost of the runner, or the
     // wage they are paid, depending on what their role is.
-    // TODO(chmeyers): This should be configurable.
-    // TODO(chmeyers): This should probably adjust itself based on how much
-    // stuff the person/household has to do, and also seasonally. Theoretically,
-    // it could drop to zero if the person has no tasks with positive utility.
-    return 100.0 * time;
+    // TODO(chmeyers): If the runner isn't a member of this household, then
+    // replace this with the cost of hiring them.
+    return runner.TimeUtility() * time;
   }
 
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)

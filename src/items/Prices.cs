@@ -6,10 +6,12 @@ namespace Village.Items;
 public interface IPriceList
 {
   // Given an item, return the price they are willing to pay for the item.
-  int BuyPrice(Item item);
+  double BuyPrice(Item item);
+  double BuyPrice(ItemType itemType);
 
   // Given an item, return the price they are willing to sell the item for.
-  int SellPrice(Item item);
+  double SellPrice(Item item);
+  double SellPrice(ItemType itemType);
 }
 
 
@@ -42,6 +44,12 @@ public class ConfigPriceList : IPriceList
     Default = Load(filename);
   }
 
+  public static void LoadDefaultFromString(string json)
+  {
+    var prices = Newtonsoft.Json.JsonConvert.DeserializeObject<Dictionary<string, ConfigItemPrice>>(json);
+    Default = new ConfigPriceList(prices!);
+  }
+
   // Load a price list from a JSON file.
   public static ConfigPriceList Load(string filename)
   {
@@ -50,23 +58,27 @@ public class ConfigPriceList : IPriceList
   }
 
   // Given an item type, return the price they are willing to pay for the item.
-  public int BuyPrice(Item item)
+  public double BuyPrice(ItemType itemType)
   {
-    if (_prices.ContainsKey(item.itemType))
+    if (_prices.ContainsKey(itemType))
     {
-      return _prices[item.itemType].buy;
+      return _prices[itemType].buy;
     }
     return 0;
   }
 
+  public double BuyPrice(Item item) => BuyPrice(item.itemType);
+
   // Given an item, return the price they are willing to sell the item for.
-  public int SellPrice(Item item)
+  public double SellPrice(ItemType itemType)
   {
-    if (_prices.ContainsKey(item.itemType))
+    if (_prices.ContainsKey(itemType))
     {
-      return _prices[item.itemType].sell;
+      return _prices[itemType].sell;
     }
     return int.MaxValue;
   }
+
+  public double SellPrice(Item item) => SellPrice(item.itemType);
 }
 
