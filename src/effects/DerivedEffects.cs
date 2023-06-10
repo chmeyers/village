@@ -7,6 +7,7 @@ using Village.Households;
 using Village.Items;
 using Village.Persons;
 using Village.Skills;
+using Village.Tasks;
 
 namespace Village.Effects;
 
@@ -116,7 +117,7 @@ public class DegradeEffect : Effect
     return amount == 0 ? Double.MaxValue : (target.target! as Item)!.quality / amount;
   }
 
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // Degrade has a negative utility equal to the degradation percentage of the buy price
     // of the item.
@@ -241,7 +242,7 @@ public class SkillEffect : Effect
     return Double.MaxValue;
   }
 
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     ISkillContext person = (ISkillContext)chosenEffectTarget.target!;
     if (person == null)
@@ -341,7 +342,7 @@ public class BuildingComponentEffect : Effect
     return components;
   }
 
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // TODO(chmeyers): Choose an appropriate utility value.
     // Finishing buildings should be important, but not override eating, surviving, etc.

@@ -15,7 +15,7 @@ using Village.Tasks;
 namespace Village.Persons;
 
 
-public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseholdContext, IAttributeContext
+public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryContext, IHouseholdContext, IAttributeContext
 {
   // Registry of all the persons, keyed on what household they are in.
   public static Dictionary<Household, HashSet<Person>> global_persons = new Dictionary<Household, HashSet<Person>>();
@@ -644,7 +644,9 @@ public class Person : ISkillContext, IAbilityContext, IInventoryContext, IHouseh
   }
 
   // How much is this person's time worth?
-  public double salaryRate { get { return DetermineTimeUtility(); } }
+  public double TimeUtility() {
+    return DetermineTimeUtility();
+  }
 
   // How many tasks should have positive time utility.
   private const int determine_time_kth = 5;

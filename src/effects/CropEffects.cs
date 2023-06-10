@@ -6,6 +6,7 @@ using Village.Households;
 using Village.Items;
 using Village.Persons;
 using Village.Skills;
+using Village.Tasks;
 
 namespace Village.Effects;
 
@@ -102,7 +103,7 @@ public class PlantCropEffect : Effect
   const double lowMoisturePenalty = 0.5;
   const double maxPlantingWeeds = 5.0;
   const double highWeedsPenalty = 0.5;
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     Field field = (Field)chosenEffectTarget.target!;
     if (field == null)
@@ -250,7 +251,7 @@ public class HarvestCropEffect : Effect
     return Double.MaxValue;
   }
 
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // The utility of harvesting is dependent on the yield of the crop,
     // discounted depending on the amount of time this field has until
@@ -496,7 +497,7 @@ public class KillCropEffect : Effect
     return 1.0;
   }
 
-  private double CropUtility(IHouseholdContext household, IAbilityContext runner, double scaler, Field.CropInfo cropInfo)
+  private double CropUtility(IHouseholdContext household, ITaskRunner runner, double scaler, Field.CropInfo cropInfo)
   {
     // TODO(chmeyers): This doesn't take into account the fertilizer benefit
     // of plowing under a crop.
@@ -538,7 +539,7 @@ public class KillCropEffect : Effect
     return household.household.Utility(runner, crop, minQuantity);
   }
 
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // if the field is empty, utility is zero.
     // otherwise it's likely negative and depends on the available yield, seed cost,
@@ -643,7 +644,7 @@ public class TouchCropEffect : Effect
     return true;
   }
 
-  private double Utility(IHouseholdContext household, Field.CropInfo cropInfo, ISkillContext farmer, double scaler = 1)
+  private double Utility(IHouseholdContext household, Field.CropInfo cropInfo, ITaskRunner farmer, double scaler = 1)
   {
     double delta = Touch(cropInfo, farmer, scaler);
     // Changes to crop health affect future yield changes, but not existing yield,
@@ -665,12 +666,12 @@ public class TouchCropEffect : Effect
   
   }
 
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // We could delegate the calculation here to the Attribute, but since this is
     // the main/only crop health effect initiated by a task, we'll just do it here
     // for more control.
-    ISkillContext? farmer = chosenEffectTarget.runningContext as ISkillContext;
+    ITaskRunner? farmer = chosenEffectTarget.runningContext as ITaskRunner;
     if (farmer == null)
     {
       return 0;
@@ -772,7 +773,7 @@ public class CropSkillEffect : Effect
     double amount = this.amount.GetScaledValue(farmer, scaler);
     return farmer.Utility(crop.cropSettings!.cropSkill!, trainingLevel, amount);
   }
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     ISkillContext farmer = (ISkillContext)chosenEffectTarget.target!;
     if (farmer == null)

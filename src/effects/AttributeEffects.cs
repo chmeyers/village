@@ -7,6 +7,7 @@ using Village.Households;
 using Village.Items;
 using Village.Persons;
 using Village.Skills;
+using Village.Tasks;
 
 namespace Village.Effects;
 
@@ -97,7 +98,7 @@ public class AttributePullerEffect : Effect
     return Double.MaxValue;
   }
 
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
     if (attributes == null)
@@ -279,7 +280,7 @@ public class AttributeTransferEffect : Effect
     return Double.MaxValue;
   }
 
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
     if (attributes == null)
@@ -490,7 +491,7 @@ public class AttributeAdderEffect : Effect
     return Double.MaxValue;
   }
 
-  public override double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     IAttributeContext attributes = (IAttributeContext)chosenEffectTarget.target!;
     if (attributes == null)

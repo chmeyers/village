@@ -10,6 +10,7 @@ using Village.Base;
 using Village.Buildings;
 using Village.Effects;
 using Village.Items;
+using Village.Tasks;
 
 namespace Village.Households;
 
@@ -159,7 +160,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // Functions for determining Utility scores for this household.
 
   // Effect Utility
-  public double Utility(IAbilityContext runner, Effect effect, ChosenEffectTarget chosenTarget, double scale)
+  public double Utility(ITaskRunner runner, Effect effect, ChosenEffectTarget chosenTarget, double scale)
   {
     // TODO(chmeyers): This currently assumes that the chosenTarget and runner
     // belong to the household. Once we have effects that can target other households,
@@ -357,7 +358,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // Returned units are in currency.
   // Note that this household should be willing to buy items
   // for it's utility value minus epsilon, and sell them for plus epsilon.
-  public double Utility(IAbilityContext runner, ItemType itemType, int quantity)
+  public double Utility(ITaskRunner runner, ItemType itemType, int quantity)
   {
     double utility = _MarginalUtility(DesiredStockpile(itemType), inventory.Count(itemType), quantity, SellPrice(itemType));
     // Add in the utility for the parents/ancestors of this item, as it can
@@ -370,7 +371,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   }
 
   // Utility of a quantity of an item expected to be produced in the future.
-  public double FutureUtility(IAbilityContext runner, ItemType itemType, int quantity, int days)
+  public double FutureUtility(ITaskRunner runner, ItemType itemType, int quantity, int days)
   {
     // TODO(chmeyers): Do we need to track seasonal market prices? Currently this is looking
     // at future stockpile utility, but assuming static market prices.
@@ -387,7 +388,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   }
 
   // Time Utility
-  public double TimeUtility(IAbilityContext runner, int time)
+  public double TimeUtility(ITaskRunner runner, int time)
   {
     // The time cost is either the opportunity cost of the runner, or the
     // wage they are paid, depending on what their role is.

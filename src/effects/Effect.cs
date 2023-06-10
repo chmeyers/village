@@ -6,6 +6,7 @@ using Village.Base;
 using Village.Buildings;
 using Village.Households;
 using Village.Items;
+using Village.Tasks;
 
 namespace Village.Effects;
 
@@ -352,7 +353,7 @@ public class Effect
   }
 
   // Utility function for this effect.
-  public virtual double Utility(IHouseholdContext household, IAbilityContext runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  public virtual double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // Default utility is 0.
     // Effects that are never called by tasks don't need to override this.

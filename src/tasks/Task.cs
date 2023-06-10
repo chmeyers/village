@@ -9,11 +9,23 @@ using Village.Base;
 using Village.Effects;
 using Village.Households;
 using Village.Items;
+using Village.Skills;
 
 
 
 namespace Village.Tasks
 {
+  // Interface for objects capable of running tasks, typically a person.
+  public interface ITaskRunner : ISkillContext, IAbilityContext
+  {
+    // How much is this runner's time worth?
+    public double TimeUtility();
+    // How much does it cost this runner to produce the given item?
+    public double ProductionCost(ItemType itemType);
+    // How much is this item worth to the runner as input.
+    public double WorthAsInput(ItemType itemType);
+  }
+
   // Named WorkTask instead of Task to avoid conflict with System.Task
   public class WorkTask
   {
@@ -432,7 +444,7 @@ namespace Village.Tasks
       return this.inputs.Count > 0 && this.inputs.All<KeyValuePair<ItemType,AbilityValue>>(pair => pair.Key.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
     }
 
-    private double _CalcUtility(IAbilityContext runner, IHouseholdContext household, Dictionary<string, Effects.ChosenEffectTarget>? chosenTargets, ref double scale, bool evalOutputs = false, bool evalInputs = false, bool evalTime = false)
+    private double _CalcUtility(ITaskRunner runner, IHouseholdContext household, Dictionary<string, Effects.ChosenEffectTarget>? chosenTargets, ref double scale, bool evalOutputs = false, bool evalInputs = false, bool evalTime = false)
     {
       // The total utility of a task is the sum of the utility of each effect,
       // plus the utility of the outputs, minus the utility of the inputs and time.
@@ -547,7 +559,7 @@ namespace Village.Tasks
     }
 
     // Get the Utility score for this task, returning the best choice of targets and scale.
-    public double _Utility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale, bool evalOutputs = false, bool evalInputs = false, bool evalTime = false)
+    public double _Utility(ITaskRunner runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale, bool evalOutputs = false, bool evalInputs = false, bool evalTime = false)
     {
       // If the task as targets, we have to calculate the utility for each target,
       // and then choose the best one.
@@ -584,25 +596,25 @@ namespace Village.Tasks
       return bestUtility;
     }
 
-    public double Utility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    public double Utility(ITaskRunner runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
     {
       return _Utility(runner, household, ref targets, ref scale);
     }
 
     // Get the potential utility the outputs created from running this task.
-    public double PotentialOutputUtility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    public double PotentialOutputUtility(ITaskRunner runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
     {
       return _Utility(runner, household, ref targets, ref scale, true);
     }
 
     // Get the potential utility the inputs created from running this task.
-    public double PotentialInputUtility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    public double PotentialInputUtility(ITaskRunner runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
     {
       return _Utility(runner, household, ref targets, ref scale, false, true);
     }
 
     // Get the potential utility the runner's time creates from running this task.
-    public double PotentialTimeUtility(IAbilityContext runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
+    public double PotentialTimeUtility(ITaskRunner runner, IHouseholdContext household, ref Dictionary<string, ChosenEffectTarget> targets, ref double scale)
     {
       return _Utility(runner, household, ref targets, ref scale, false, false, true);
     }
