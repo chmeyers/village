@@ -95,7 +95,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   }
 
   // Set of available tasks, filtered by the person's household inventory.
-  public HashSet<WorkTask> AvailableHouseholdTasks
+  public HashSet<WorkTask> AvailableTasks
   {
     get
     {
@@ -479,7 +479,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   public void PickTaskFromSet(HashSet<WorkTask> taskset, bool prioritize = false)
   {
     // Filter the taskset to only tasks that the person can do.
-    var available = AvailableHouseholdTasks.Intersect(taskset);
+    var available = AvailableTasks.Intersect(taskset);
     if (available.Count() == 0) return;
     // Pick the best task from the set.
     // TODO(chmeyers): Implement an intelligent picking algorithm.
@@ -499,7 +499,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     // Only pick a task if the person has no tasks.
     if (runningTasks.Count > 0) return;
     // Pick a random task from the set of available tasks.
-    HashSet<WorkTask> available = AvailableHouseholdTasks.Except(blacklist).ToHashSet();
+    HashSet<WorkTask> available = AvailableTasks.Except(blacklist).ToHashSet();
     // Eliminate any tasks that have targets.
     available.ExceptWith(available.Where(t => t.targets.Count > 0));
     if (available.Count() == 0) return;
@@ -511,14 +511,14 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     EnqueueTask(runningTask, false);
   }
 
-  public WorkTask? PickTask(HashSet<WorkTask> blacklist, out Dictionary<string, Effects.ChosenEffectTarget>? bestTargets, out double bestScale)
+  private WorkTask? _PickTask(HashSet<WorkTask> blacklist, out Dictionary<string, Effects.ChosenEffectTarget>? bestTargets, out double bestScale)
   {
     bestScale = 1.0;
     bestTargets = null;
     // Only pick a task if the person has no tasks.
     if (runningTasks.Count > 0) return null;
     // Pick a task from the set of available tasks.
-    HashSet<WorkTask> available = AvailableHouseholdTasks.Except(blacklist).ToHashSet();
+    HashSet<WorkTask> available = AvailableTasks.Except(blacklist).ToHashSet();
     // Eliminate any tasks that have multiple targets.
     // TODO(chmeyers): Implement multiple target task picking.
     available.ExceptWith(available.Where(t => t.targets.Count > 1));
@@ -526,7 +526,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     // Get a utility score for every task and pick the highest scoring task.
     WorkTask? best = null;
     double bestScore = 0;
-    
+
     foreach (var task in available)
     {
       // Get the utility score for the task.
@@ -555,14 +555,15 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     return best;
   }
 
-  public void PickAndEnqueueTask(HashSet<WorkTask> blacklist)
+  public WorkTask? PickTask(HashSet<WorkTask> blacklist)
   {
-    WorkTask? task = PickTask(blacklist, out Dictionary<string, Effects.ChosenEffectTarget>? bestTargets, out double bestScale);
-    if (task == null) return;
+    WorkTask? task = _PickTask(blacklist, out Dictionary<string, Effects.ChosenEffectTarget>? bestTargets, out double bestScale);
+    if (task == null) return null;
     // Enqueue the task as a running task.
     var runningTask = TaskRunner.StartTask(this, this.household, task, bestTargets, bestScale);
     if (runningTask == null) throw new Exception("Failed to start Chosen task: " + task.task + " for person: " + name);
     EnqueueTask(runningTask, false);
+    return task;
   }
 
   public void BuildAllUnownedBuildings()
@@ -587,39 +588,44 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   // What does it cost for this person to produce the given item?
   public double ProductionCost(ItemType itemType)
   {
-    if (_costCache.TryGetValue(itemType, out var costPair))
+    lock (_cacheLock)
     {
-      if (costPair.Key >= Calendar.Ticks) return costPair.Value;
-    }
-    // Calls here shouldn't result in recursion loops, but just in case, we'll set a cache value
-    // before calling any other functions.
-    _costCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks, double.MaxValue);
-
-    double cost = double.MaxValue;
-    foreach (var task in validTasksByOutput[itemType])
-    {
-      Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
-      double scale = 1.0;
-      double score = task.PotentialOutputUtility(this, this.household, ref targets, ref scale);
-      // score should be negative, as it is the cost, so invert it.
-      // In theory, the utility of the effects could be so large that the cost is negative,
-      // leading to a negative price. (Maybe when the person is able to level up from the task.)
-      score *= -1;
-      double numOutputs = 0;
-      double thisOutput = 0;
-      foreach (var output in task.OutputTypes(this, scale))
+      if (_costCache.TryGetValue(itemType, out var costPair))
       {
-        if (output.Key == itemType) thisOutput += output.Value;
-        numOutputs += output.Value;
+        if (costPair.Key >= Calendar.Ticks) return costPair.Value;
       }
-      if (thisOutput == 0) continue;
-      // partition the score evenly among all outputs.
-      cost = Math.Min(cost, score / numOutputs);
+      // Calls here shouldn't result in recursion loops, but just in case, we'll set a cache value
+      // before calling any other functions.
+      _costCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks, double.MaxValue);
+
+      CalculateValidTasks();
+      if (!validTasksByOutput.ContainsKey(itemType)) return double.MaxValue;
+      double cost = double.MaxValue;
+      foreach (var task in validTasksByOutput[itemType])
+      {
+        Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
+        double scale = 1.0;
+        double score = task.PotentialOutputUtility(this, this.household, ref targets, ref scale);
+        // score should be negative, as it is the cost, so invert it.
+        // In theory, the utility of the effects could be so large that the cost is negative,
+        // leading to a negative price. (Maybe when the person is able to level up from the task.)
+        score *= -1;
+        double numOutputs = 0;
+        double thisOutput = 0;
+        foreach (var output in task.OutputTypes(this, scale))
+        {
+          if (output.Key == itemType) thisOutput += output.Value;
+          numOutputs += output.Value;
+        }
+        if (thisOutput == 0) continue;
+        // partition the score evenly among all outputs.
+        cost = Math.Min(cost, score / numOutputs);
+      }
+      // Cache the cost, unless it's negative, as those are probably temporary due to one-time
+      // effect benefits.
+      if (cost >= 0) _costCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks + cost_cache_duration, cost);
+      return cost;
     }
-    // Cache the cost, unless it's negative, as those are probably temporary due to one-time
-    // effect benefits.
-    if (cost >= 0) _costCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks + cost_cache_duration, cost);
-    return cost;
   }
 
   // This person's cache of item worth. Value is a pair of (cache expiry, worth).
@@ -628,84 +634,112 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   // How much is this item worth as an input to further production?
   public double WorthAsInput(ItemType itemType)
   {
-    // Check the cache.
-    if (_worthCache.TryGetValue(itemType, out var worthPair))
+    lock (_cacheLock)
     {
-      if (worthPair.Key >= Calendar.Ticks) return worthPair.Value;
-    }
-    // Set the cache to a zero value, to ensure that recursive calls don't loop forever.
-    _worthCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks, 0);
-
-    double worth = 0;
-    foreach (var task in validTasksByInput[itemType])
-    {
-      Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
-      double scale = 1.0;
-      double score = task.PotentialInputUtility(this, this.household, ref targets, ref scale);
-      double numInputs = 0;
-      double thisInput = 0;
-      foreach (var input in task.Inputs(this, scale))
+      // Check the cache.
+      if (_worthCache.TryGetValue(itemType, out var worthPair))
       {
-        if (input.Key == itemType) thisInput += input.Value;
-        numInputs += input.Value;
+        if (worthPair.Key >= Calendar.Ticks) return worthPair.Value;
       }
-      if (thisInput == 0) continue;
-      // partition the score evenly among all inputs.
-      worth = Math.Max(worth, score / numInputs);
+      // Set the cache to a zero value, to ensure that recursive calls don't loop forever.
+      _worthCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks, 0);
+
+      CalculateValidTasks();
+      if (!validTasksByInput.ContainsKey(itemType)) return 0;
+      double worth = 0;
+      foreach (var task in validTasksByInput[itemType])
+      {
+        Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
+        double scale = 1.0;
+        double score = task.PotentialInputUtility(this, this.household, ref targets, ref scale);
+        double numInputs = 0;
+        double thisInput = 0;
+        foreach (var input in task.Inputs(this, scale))
+        {
+          if (input.Key == itemType) thisInput += input.Value;
+          numInputs += input.Value;
+        }
+        if (thisInput == 0) continue;
+        // partition the score evenly among all inputs.
+        worth = Math.Max(worth, score / numInputs);
+      }
+      // Cache the worth.
+      _worthCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks + worth_cache_duration, worth);
+      return worth;
     }
-    // Cache the worth.
-    _worthCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks + worth_cache_duration, worth);
-    return worth;
   }
 
   // How much is this person's time worth?
-  public double TimeUtility() {
+  public double TimeUtility()
+  {
     return DetermineTimeUtility();
   }
 
   // How many tasks should have positive time utility.
-  private const int determine_time_kth = 5;
+  private const int determine_time_kth = 6;
   // How much less should the person's salary be than the kth task.
   private const double salary_buffer = 1.0;
+  private const double max_salary_increase = 20.0;
   private const long salary_cache_duration = Calendar.ticksPerWeek;
-  private KeyValuePair<long, double> _salaryCache = new KeyValuePair<long, double>(0, 0);
+  private KeyValuePair<long, double> _salaryCache = new KeyValuePair<long, double>(-1, 100);
   public double DetermineTimeUtility(bool forceRefresh = false)
   {
-    // Check the cache.
-    if (!forceRefresh && _salaryCache.Key >= Calendar.Ticks) return _salaryCache.Value;
-    // Loop through all the valid tasks and pick the kth best one.
-    // store the k highest scores, sorted by score.
-    SortedList<double, WorkTask> bestTasks = new SortedList<double, WorkTask>();
-    
-    foreach (var task in validTasks)
+    lock (_cacheLock)
     {
-      // Get the utility score for the task.
-      Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
-      double scale = 1.0;
-      double score = task.PotentialTimeUtility(this, this.household, ref targets, ref scale);
-      int time = (int)Math.Ceiling(task.timeCost.GetValue(this) * scale);
-      score /= time;
-      // If the list is not full, add the task.
-      if (bestTasks.Count < determine_time_kth)
+      // Check the cache.
+      if (!forceRefresh && _salaryCache.Key >= Calendar.Ticks) return _salaryCache.Value;
+      // Set the cache to the old value for the rest of the tick, to limit recursion.
+      _salaryCache = new KeyValuePair<long, double>(Calendar.Ticks, _salaryCache.Value);
+      // Loop through all the valid tasks and pick the kth best one.
+      // store the k highest scores, sorted by score.
+      List<double> bestTasks = new List<double>();
+
+      double bestAvailableTask = 0;
+      // Note here that we're checking Potential Tasks, not Available Tasks.
+      // It's possible that they can't actually run any of these due to lack of inputs.
+      foreach (var task in PotentialTasks)
       {
-        bestTasks.Add(score, task);
+        double rawTime = task.timeCost.GetValue(this);
+        if (rawTime <= 0) continue;
+        // Get the utility score for the task.
+        Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
+        double scale = 1.0;
+        double score = task.PotentialTimeUtility(this, this.household, ref targets, ref scale);
+        int time = (int)Math.Ceiling(rawTime * scale);
+        score /= time;
+        // If the list is not full, add the task.
+        if (bestTasks.Count < determine_time_kth)
+        {
+          bestTasks.Add(score);
+          bestTasks.Sort();
+        }
+        // If the list is full, and the score is better than the worst score, add the task.
+        else if (score > bestTasks[0])
+        {
+          bestTasks.Add(score);
+          // Remove the worst score.
+          bestTasks.RemoveAt(0);
+          bestTasks.Sort();
+        }
+        // We also track the best available task, to ensure that they can actually do
+        // at least one task.
+        if (score > bestAvailableTask && AvailableTasks.Contains(task))
+        {
+          bestAvailableTask = score;
+        }
       }
-      // If the list is full, and the score is better than the worst score, add the task.
-      else if (score > bestTasks.Keys[0])
-      {
-        bestTasks.Add(score, task);
-        // Remove the worst score.
-        bestTasks.RemoveAt(0);
-      }
+      // If there were no tasks, return 0.
+      if (bestTasks.Count == 0) return 0;
+
+      // Take the kth score, or lowest score if there are less than k tasks.
+      double salary = Math.Max(bestTasks[0] - salary_buffer, 0);
+      salary = Math.Min(salary, bestAvailableTask);
+      // cap increases, but not decreases.
+      salary = Math.Min(salary, _salaryCache.Value + max_salary_increase);
+      // Cache the salary.
+      _salaryCache = new KeyValuePair<long, double>(Calendar.Ticks + salary_cache_duration, salary);
+      return salary;
     }
-    // If there were no tasks, return 0.
-    if (bestTasks.Count == 0) return 0;
-    
-    // Take the kth score, or lowest score if there are less than k tasks.
-    double salary = Math.Max(bestTasks.Keys[0] - salary_buffer, 0);
-    // Cache the salary.
-    _salaryCache = new KeyValuePair<long, double>(Calendar.Ticks + salary_cache_duration, salary);
-    return salary;
   }
 
 

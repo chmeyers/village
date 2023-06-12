@@ -69,7 +69,7 @@ public class GameServer
     person = new Person("protagonist", "Protagonist", household, Role.HeadOfHousehold);
     trader = StockTrader();
   }
-  
+
   // Start the web server.
   public static void Start()
   {
@@ -82,7 +82,7 @@ public class GameServer
     }
     // Add the prefixes.
     listener.Prefixes.Add($"http://localhost:{port}/");
-    
+
     // Start the listener.
     listener.Start();
     Console.WriteLine($"Listening on port {port}...");
@@ -156,7 +156,7 @@ public class GameServer
   private static void PerformTask(string taskName, bool personal, int? target)
   {
     // Get the lists of tasks.
-    HashSet<WorkTask> tasks = personal ? person!.AvailablePersonalTasks : person!.AvailableHouseholdTasks;
+    HashSet<WorkTask> tasks = personal ? person!.AvailablePersonalTasks : person!.AvailableTasks;
     WorkTask? task = WorkTask.Find(taskName);
     // If the task is not valid, return.
     if (task == null)
@@ -185,10 +185,10 @@ public class GameServer
         return;
       }
       targets = new Dictionary<string, ChosenEffectTarget>();
-      
+
       targets[task.targets.First().Key] = new ChosenEffectTarget(task.targets.First().Value.effectTargetType, person.household.buildings[target!.Value], person.household, person);
     }
-    
+
     // Perform the task using the TaskRunner
     var runningTask = TaskRunner.StartTask(person, (personal ? person : person.household), task, targets);
     if (runningTask != null)
@@ -333,7 +333,7 @@ public class GameServer
       {
         sb.Append($"<p>Current Task: {runningTask.task.task}</p>");
       }
-      else 
+      else
       {
         sb.Append($"<p>Current Task: None</p>");
       }
@@ -526,7 +526,7 @@ public class GameServer
   private static string GetTasksTable(bool personal)
   {
     // Get the set of tasks.
-    HashSet<WorkTask> tasks = personal ? person!.AvailablePersonalTasks : person!.AvailableHouseholdTasks;
+    HashSet<WorkTask> tasks = personal ? person!.AvailablePersonalTasks : person!.AvailableTasks;
     StringBuilder sb = new StringBuilder();
     sb.Append("<table>");
     sb.Append("<tr><th>Task</th></tr>");
@@ -549,7 +549,7 @@ public class GameServer
     sb.Append("<table>");
     sb.Append("<tr><th>Tool</th></tr>");
     // Print the tasks.
-    foreach (var task in person!.AvailableHouseholdTasks)
+    foreach (var task in person!.AvailableTasks)
     {
       if (!task.IsToolCraftingTask())
       {
@@ -572,7 +572,7 @@ public class GameServer
     sb.Append("<table>");
     sb.Append("<tr><th>Resource</th></tr>");
     // Print the tasks.
-    foreach (var task in person!.AvailableHouseholdTasks)
+    foreach (var task in person!.AvailableTasks)
     {
       if (!task.IsGatheringTask())
       {
@@ -595,7 +595,7 @@ public class GameServer
     sb.Append("<table>");
     sb.Append("<tr><th>Resource</th></tr>");
     // Print the tasks.
-    foreach (var task in person!.AvailableHouseholdTasks)
+    foreach (var task in person!.AvailableTasks)
     {
       if (!task.IsResourceProcessingTask())
       {
@@ -618,7 +618,7 @@ public class GameServer
     sb.Append("<table>");
     sb.Append("<tr><th>Building Component</th></tr>");
     // Print the tasks.
-    foreach (var task in person!.AvailableHouseholdTasks)
+    foreach (var task in person!.AvailableTasks)
     {
       if (task.BuildingComponents().Count == 0)
       {
@@ -667,7 +667,7 @@ public class GameServer
     sb.Append("<table>");
     sb.Append("<tr><th>Task</th></tr>");
     // Print the tasks.
-    foreach (var task in person!.AvailableHouseholdTasks)
+    foreach (var task in person!.AvailableTasks)
     {
       if (task.IsToolCraftingTask() || task.IsGatheringTask() || task.IsResourceProcessingTask() || task.BuildingComponents().Count > 0)
       {

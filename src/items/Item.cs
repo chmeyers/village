@@ -471,7 +471,7 @@ public class ItemType
       if (itemData.ContainsKey("craftQuality"))
       {
         // Load craft quality as an AbilityValue.
-        craftQuality = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)itemData["craftQuality"]);
+        craftQuality = AbilityValue.FromJson(itemData["craftQuality"]);
       }
 
       // Get the weight and bulk.
@@ -519,18 +519,18 @@ public class ItemType
           StockpileUtilities desire = new StockpileUtilities();
           if (stockpileDict.ContainsKey("perPerson"))
           {
-            desire.perPerson = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)stockpileDict["perPerson"]);
+            desire.perPerson = AbilityValue.FromJson(stockpileDict["perPerson"]);
           }
           if (stockpileDict.ContainsKey("perHousehold"))
           {
-            desire.perHousehold = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)stockpileDict["perHousehold"]);
+            desire.perHousehold = AbilityValue.FromJson(stockpileDict["perHousehold"]);
           }
           // At least one of perPerson or perHousehold must be set.
           if (desire.perPerson == null && desire.perHousehold == null)
           {
             throw new Exception("Desired must have at least one of perPerson or perHousehold set for item type: " + name);
           }
-          desire.utility = AbilityValue.FromJson((Newtonsoft.Json.Linq.JObject)stockpileDict["utility"]);
+          desire.utility = AbilityValue.FromJson(stockpileDict["utility"]);
           stockpileUtilities.Add(desire);
         }
       }

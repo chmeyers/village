@@ -89,7 +89,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     foreach (var building in buildings)
     {
       // Currently only fields need to be advanced.
-      ((Field)building)?.Advance();
+      (building as Field)?.Advance();
     }
   }
 

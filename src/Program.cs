@@ -67,11 +67,11 @@ namespace Village
     {
       // Print the inventory.
       Console.WriteLine("Inventory:");
-      foreach(var itemtype in inventory.items)
+      foreach (var itemtype in inventory.items)
       {
         // Sum up the quantities of the itemtype.
         int quantity = 0;
-        foreach(var item in itemtype.Value)
+        foreach (var item in itemtype.Value)
         {
           quantity += item.Value;
         }
@@ -83,7 +83,7 @@ namespace Village
     {
       // Print and enumerate the buildings.
       Console.WriteLine("Buildings:");
-      for(int i = 0; i < household.buildings.Count; i++)
+      for (int i = 0; i < household.buildings.Count; i++)
       {
         Console.WriteLine(i + ": " + household.buildings[i].buildingType.name);
       }
@@ -101,14 +101,14 @@ namespace Village
           PrintBuildings(person.household);
           // Get the input.
           string? input = Console.ReadLine();
-          if(input == null)
+          if (input == null)
           {
             return null;
           }
           // Convert the input to an int.
           int choice = int.Parse(input);
           // Check if the choice is valid.
-          if(choice < 0 || choice >= person.household.buildings.Count)
+          if (choice < 0 || choice >= person.household.buildings.Count)
           {
             Console.WriteLine("Invalid choice.");
             return null;
@@ -125,24 +125,24 @@ namespace Village
     public static void PerformTask(Person person, bool personal)
     {
       // Get the set of tasks.
-      HashSet<WorkTask> tasks = personal ? person.AvailablePersonalTasks : person.AvailableHouseholdTasks;
+      HashSet<WorkTask> tasks = personal ? person.AvailablePersonalTasks : person.AvailableTasks;
       // Convert the set to a list.
       List<WorkTask> taskList = new List<WorkTask>(tasks);
       // Print the tasks.
-      for(int i = 0; i < taskList.Count; i++)
+      for (int i = 0; i < taskList.Count; i++)
       {
         Console.WriteLine(i + ". " + taskList[i].task);
       }
       // Get the input.
       string? input = Console.ReadLine();
-      if(input == null)
+      if (input == null)
       {
         return;
       }
       // Convert the input to an int.
       int choice = int.Parse(input);
       // Check if the choice is valid.
-      if(choice < 0 || choice >= taskList.Count)
+      if (choice < 0 || choice >= taskList.Count)
       {
         Console.WriteLine("Invalid choice.");
         return;
@@ -168,11 +168,11 @@ namespace Village
           // Add the target to the dictionary.
           targets.Add(target.Key, chosenTarget);
         }
-        
+
       }
       // Perform the task using the TaskRunner
-      bool result = TaskRunner.PerformTask(person, (personal ? person: person.household), task, targets);
-      if(result)
+      bool result = TaskRunner.PerformTask(person, (personal ? person : person.household), task, targets);
+      if (result)
       {
         Console.WriteLine("Task completed successfully.");
       }
@@ -187,20 +187,20 @@ namespace Village
       // Print the person's available buildings.
       Console.WriteLine("Available buildings:");
       List<BuildingType> availableBuildings = new List<BuildingType>(person.AvailableBuildings);
-      for(int i = 0; i < availableBuildings.Count; i++)
+      for (int i = 0; i < availableBuildings.Count; i++)
       {
         Console.WriteLine(i + ". " + availableBuildings[i].name);
       }
       // Get the input.
       string? input = Console.ReadLine();
-      if(input == null)
+      if (input == null)
       {
         return;
       }
       // Convert the input to an int.
       int choice = int.Parse(input);
       // Check if the choice is valid.
-      if(choice < 0 || choice >= availableBuildings.Count)
+      if (choice < 0 || choice >= availableBuildings.Count)
       {
         Console.WriteLine("Invalid choice.");
         return;
@@ -219,7 +219,7 @@ namespace Village
       household.isPlayerHousehold = true;
       // Create a single person.
       Person person = new Person("bob", "Bob", household, Role.HeadOfHousehold);
-      while(true)
+      while (true)
       {
         // Print Options
         Console.WriteLine("1. See Personal Inventory.");
@@ -236,7 +236,7 @@ namespace Village
 
         // Get Input
         string? input = Console.ReadLine();
-        if(input == null)
+        if (input == null)
         {
           // Exit the game.
           break;
@@ -244,7 +244,7 @@ namespace Village
         // Convert input to an int.
         int choice = int.Parse(input);
         // Switch on the choice.
-        switch(choice)
+        switch (choice)
         {
           case 1:
             // Print the personal inventory.
@@ -262,7 +262,7 @@ namespace Village
             // Get the dictionary of the person's skills.
             Dictionary<Skill, PersonSkill> skills = person.skills.skills;
             // Print the skills.
-            foreach(var skill in skills)
+            foreach (var skill in skills)
             {
               Console.WriteLine(skill.Key.id + ": " + skill.Value.level + " (" + skill.Value.XP + " xp)");
             }
@@ -271,7 +271,7 @@ namespace Village
             // Get the dictionary of the person's attributes.
             Dictionary<AttributeType, Attributes.Attribute> attributes = person.attributes.attributes;
             // Print the attributes.
-            foreach(var attribute in attributes)
+            foreach (var attribute in attributes)
             {
               Console.WriteLine(attribute.Key.name + ": " + attribute.Value.value);
             }
@@ -280,7 +280,7 @@ namespace Village
             // Get a list of the person's abilities.
             List<AbilityType> abilities = new List<AbilityType>(person.Abilities);
             // Print the abilities.
-            for(int i = 0; i < abilities.Count; i++)
+            for (int i = 0; i < abilities.Count; i++)
             {
               Console.WriteLine(i + ". " + abilities[i].abilityType);
             }
@@ -317,7 +317,7 @@ namespace Village
       Console.WriteLine("Village Entry Point");
       //Load configs
       LoadConfig();
-      
+
       // Create a new GameLoop
       GameLoop gameLoop = new GameLoop();
       // Start the GameLoop in it's own thread.
