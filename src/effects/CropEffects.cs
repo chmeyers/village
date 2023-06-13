@@ -257,7 +257,7 @@ public class HarvestCropEffect : Effect
     // discounted depending on the amount of time this field has until
     // it starts to rot, so that the farmer will harvest the crops that
     // are closest to rotting first.
-    Field field = (Field)chosenEffectTarget.target!;
+    Field? field = chosenEffectTarget.target as Field;
     if (field == null)
     {
       return double.MinValue;
@@ -775,7 +775,9 @@ public class CropSkillEffect : Effect
   }
   public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
-    ISkillContext farmer = (ISkillContext)chosenEffectTarget.target!;
+    // The runner should be the same as the runningContext, but we use the runningContext
+    // since this is a skill effect and could theoretically be run by a teacher on a student.
+    ISkillContext? farmer = chosenEffectTarget.runningContext as ISkillContext;
     if (farmer == null)
     {
       return 0.0;
