@@ -213,6 +213,10 @@ public class CropSettings
     {
       nitrogenFixing = _Double(cropData["nitrogenFixing"]);
     }
+    if (cropData.ContainsKey("fieldCrop"))
+    {
+      isFieldCrop = (bool)cropData["fieldCrop"];
+    }
     // Read the harvest Items.
     // Harvest Items quantities are in pounds per yield.
     // To convert to inventory quantities, divide by the item weight.
@@ -332,6 +336,7 @@ public class CropSettings
   // used by the crop is fixed from the air. It doesn't actually go back into the
   // soil unless the crop is plowed under.
   public double nitrogenFixing = 0.0;
+  public bool isFieldCrop = false;
 }
 
 public class StockpileUtilities
@@ -351,10 +356,14 @@ public class ItemType
   // This is used to look up item types by name.
   private static Dictionary<string, ItemType> _itemTypes = new Dictionary<string, ItemType>();
 
+  // Items that are considered field crops.
+  public static List<ItemType> fieldCrops = new List<ItemType>();
+
   // Clear the item types dictionary.
   public static void Clear()
   {
     _itemTypes.Clear();
+    fieldCrops.Clear();
   }
   // Readonly Accessor for the item types dictionary.
   public static IReadOnlyDictionary<string, ItemType> itemTypes
@@ -539,6 +548,10 @@ public class ItemType
       ItemType itemType = new ItemType(name, group, parents, spoilTime, lossRate, flammable, weight, bulk, scrapItems, craftQuality, abilitySet, cropSettings, stockpileUtilities);
       // Add the item type to the dictionary.
       _itemTypes.Add(name, itemType);
+      if (cropSettings != null && cropSettings.isFieldCrop)
+      {
+        fieldCrops.Add(itemType);
+      }
     }
   }
   // Loader function to load all item types from a JSON string.
