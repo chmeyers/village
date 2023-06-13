@@ -35,6 +35,8 @@ public class StaticAttributes
   public static AttributeType? soilQuality;
   public const string weedsName = "weeds";
   public static AttributeType? weeds;
+  public const string fieldName = "field";
+  public static AttributeType? field;
 
   public static void Initialize(bool forgiving = false)
   {
@@ -56,5 +58,6 @@ public class StaticAttributes
     deepMoisture = AttributeType.Find(deepMoistureName) ?? (forgiving ? null : throw new Exception($"Attribute {deepMoistureName} not found."));
     soilQuality = AttributeType.Find(soilQualityName) ?? (forgiving ? null : throw new Exception($"Attribute {soilQualityName} not found."));
     weeds = AttributeType.Find(weedsName) ?? (forgiving ? null : throw new Exception($"Attribute {weedsName} not found."));
+    field = AttributeType.Find(fieldName) ?? (forgiving ? null : throw new Exception($"Attribute {weedsName} not found."));
   }
 }

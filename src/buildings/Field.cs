@@ -34,6 +34,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     // Add the weather as a scoped set.
     state.AddScopedSet(WeatherAttributes.GetWeather());
     this._lastAdvanceTick = Calendar.Ticks;
+    this.lastPlowedTick = Calendar.Ticks - recentlyPlowedLimit - 1;
   }
 
   // Advance the current state of the field to the current tick.
@@ -52,10 +53,16 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     }
   }
 
+  public const long recentlyPlowedLimit = Calendar.ticksPerDay * 30;
   public bool CanPlant(ItemType itemType, double quantity)
   {
     lock (_lock)
     {
+      // The field must have been plowed recently.
+      if (Calendar.Ticks - lastPlowedTick > recentlyPlowedLimit)
+      {
+        return false;
+      }
       if (itemType.cropSettings == null)
       {
         // Can't plant something that isn't a crop.
@@ -126,6 +133,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
     {
       _crops.Clear();
       cropCount = 0;
+      lastPlowedTick = Calendar.Ticks;
     }
   }
 
@@ -326,9 +334,23 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   // Readonly accessor for the crops.
   public IReadOnlyDictionary<ItemType, CropInfo> crops { get { return _crops; } }
 
-  // The current number of crops in the field.
-  public double cropCount { get; private set; } = 0;
+  // When was the field last plowed.
+  public long lastPlowedTick { get; private set; } = 0;
 
+  // The current number of crops in the field.
+  public double cropCount {
+    get => _cropCount;
+    private set
+    {
+      _cropCount = value;
+      // Update the field attribute, which can be used by other attributes
+      // to determine how much of the field is covered by crops.
+      if (StaticAttributes.field != null)
+      {
+        state.SetAttribute(StaticAttributes.field, _cropCount);
+      }
+    }
+  }
   // The size of the field
   // In acres, 1 acre = 4 rods by 40 rods = 80 furrows each 1 furlong long.
   // 1 rod = 5.5 yards = 16.5 feet
@@ -378,6 +400,7 @@ public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdCon
   public override HashSet<AbilityType> Abilities { get { return _fieldAbilities; } }
 
   private object _lock = new object();
+  private double _cropCount = 0;
 
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
