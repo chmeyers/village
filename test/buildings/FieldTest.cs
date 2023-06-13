@@ -100,6 +100,7 @@ public class FieldUnitTest
     field.Resize(10);
     // Plant a crop in the field.
     ItemType wheat = ItemType.Find("wheat")!;
+    field.RemoveAll(); // Plow.
     Assert.IsTrue(field.Plant(wheat, 1));
     // The field can hold 10 crops.
     Assert.IsTrue(field.Plant(wheat, 8));

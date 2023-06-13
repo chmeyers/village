@@ -7,6 +7,7 @@ using Village.Items;
 using Village.Persons;
 using Village.Skills;
 using Village.Tasks;
+using Village.Utilities;
 
 namespace Village.Effects;
 
@@ -110,36 +111,14 @@ public class PlantCropEffect : Effect
     {
       return double.MinValue;
     }
+    // The field must be recently plowed and have enough room for the crop.
     if (!field.CanPlant(crop, scaler))
     {
       return double.MinValue;
     }
-    // If it's out of season, then we don't want to plant it.
-    // TODO(chmeyers): Support non-temperate climates.
-    // TODO(chmeyers): Provide some lesser utility for shoulder seasons.
-    if (!crop.cropSettings!.temperatePlantingMonths.Contains(Calendar.Month))
-    {
-      return double.MinValue;
-    }
     // Base utility is based on the expected yield.
-    // TODO(chmeyers): Adjust this based on the household's history with this crop.
-    double targetYield = crop.cropSettings!.targetYieldPerAcre * scaler;
-    // Reduce utility if the soil quality isn't good enough.
-    double soilQuality = field.GetUnscaledAttributeValue(StaticAttributes.soilQuality!);
-    targetYield *= GrowCropEffect.SoilQualityEffect(crop, soilQuality);
-    // TODO(chmeyers): The field should be recently plowed.
-    // The weeds should be low.
-    if (field.GetUnscaledAttributeValue(StaticAttributes.weeds!) > maxPlantingWeeds)
-    {
-      targetYield *= highWeedsPenalty;
-    }
-    // The ground should be moist.
-    if (field.GetUnscaledAttributeValue(StaticAttributes.surfaceMoisture!) < minPlantingMoisture)
-    {
-      targetYield *= lowMoisturePenalty;
-    }
-    // TODO(chmeyers): Adjust for NPK in the field compared to crop needs, so that the AI
-    // can make better decisions about what to plant.
+    double targetYield = YieldEstimator.EstimateYield(field, crop, household, scaler);
+
     // TODO(chmeyers): Discount for all the work that needs to be done prior to harvest.
     // TODO(chmeyers): Discount for the amount of time it will take to grow.
     double utility = 0;
@@ -439,7 +418,7 @@ public class KillCropEffect : Effect
     field.AddAttribute(StaticAttributes.phosphorus!, phosphorus);
     field.AddAttribute(StaticAttributes.potassium!, potassium);
 
-    // Clear the field.
+    // Clear the field and set the plowed tick.
     field.RemoveAll();
   }
 
@@ -539,22 +518,49 @@ public class KillCropEffect : Effect
     return household.household.Utility(runner, crop, minQuantity);
   }
 
+  // The Utility of making this field plantable.
+  private double PlantableUtility(Field field, IHouseholdContext household, ITaskRunner runner, double scaler)
+  {
+    if (Calendar.Ticks - field.lastPlowedTick <= Field.recentlyPlowedLimit)
+    {
+      // The field is already plowed, so plowing it again has no utility.
+      return double.MinValue;
+    }
+    foreach (var crop in ItemType.fieldCrops)
+    {
+      double utility = 0;
+      int seedNeeded = (int)Math.Ceiling(scaler * crop.cropSettings!.seedPerAcre);
+      // Cost to buy/use the seed.
+      utility -= household.household.Utility(runner, crop, -seedNeeded);
+      double expectedYield = YieldEstimator.EstimateYield(field, crop, household, scaler);
+      foreach (var harvestItem in crop.cropSettings!.harvestItems)
+      {
+        int quantity = (int)(expectedYield * harvestItem.Value / harvestItem.Key.weight);
+        if (quantity <= 0) continue;
+        utility += household.household.FutureUtility(runner, harvestItem.Key, quantity, crop.cropSettings!.totalDays);
+      }
+    }
+    return 0;
+  }
+
   public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
-    // if the field is empty, utility is zero.
+    // if the field is empty, utility is dependent on what will be able to be planted.
     // otherwise it's likely negative and depends on the available yield, seed cost,
     // and the cost of the fertilizing effect.
     if (chosenEffectTarget.target is Field field)
     {
       if (field.cropCount == 0)
       {
-        return 0;
+        return PlantableUtility(field, household, runner, scaler);
       }
       double utility = 0;
       foreach (var cropInfo in field.crops)
       {
         utility -= CropUtility(household, runner, scaler, cropInfo.Value);
       }
+      utility += PlantableUtility(field, household, runner, scaler);
+      return utility;
     }
     else if (chosenEffectTarget.target is Field.CropInfo cropInfo)
     {
@@ -829,13 +835,6 @@ public class GrowCropEffect : Effect
     }
   }
 
-  public static double SoilQualityEffect(ItemType crop, double soilQuality)
-  {
-    double minSoilQuality = crop.cropSettings!.minSoilQuality;
-    double soilQualityDeficitMultiplier = Math.Clamp(soilQuality / minSoilQuality, 0.1, 1);
-    return soilQualityDeficitMultiplier;
-  }
-
   // Apply the effect to the target.
   public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
   {
@@ -871,7 +870,7 @@ public class GrowCropEffect : Effect
     yieldGain *= currentHealthPercentage;
     // Reduce the maximum yield based on the lack of soil quality.
     double soilQuality = cropInfo.GetUnscaledAttributeValue(StaticAttributes.soilQuality!);
-    double soilQualityDeficitMultiplier = SoilQualityEffect(crop, soilQuality);
+    double soilQualityDeficitMultiplier = YieldEstimator.SoilQualityEffect(crop, soilQuality);
     yieldGain *= soilQualityDeficitMultiplier;
 
     // Weeds
