@@ -23,7 +23,7 @@ namespace Village.Tasks
     // How much does it cost this runner to produce the given item?
     public double ProductionCost(ItemType itemType);
     // How much is this item worth to the runner as input.
-    public double WorthAsInput(ItemType itemType);
+    public List<DesireUtility> WorthAsInput(ItemType itemType, double minWorth = 0);
   }
 
   // Named WorkTask instead of Task to avoid conflict with System.Task
@@ -100,6 +100,7 @@ namespace Village.Tasks
       {
         // Check that all the inputs required for the task are in the inventory.
         // TODO(chmeyers): Check that all the effects have a possible valid target.
+        // TODO(chmeyers): Allow scales for scales <1.0, especially for fields.
         if (inventory.Contains(task.Inputs(context)))
         {
           filteredTasks.Add(task);
@@ -140,11 +141,11 @@ namespace Village.Tasks
         {
           time.min = 0;
         }
-        // Get the repeatable setting, defaulting to true unless timeCost is zero.
-        bool repeatable = task.Value.ContainsKey("repeatable") ? (bool)task.Value["repeatable"] : time.GetBaseValue() == 0;
+        // Get the compulsory setting, defaulting to false unless timeCost is zero.
+        bool compulsory = task.Value.ContainsKey("compulsory") ? (bool)task.Value["compulsory"] : time.GetBaseValue() == 0;
 
         // Create the task.
-        WorkTask newTask = new WorkTask(name, requirements, inputs, outputs, effects, supercedes, time, repeatable);
+        WorkTask newTask = new WorkTask(name, requirements, inputs, outputs, effects, supercedes, time, compulsory);
       }
     }
 
@@ -170,7 +171,7 @@ namespace Village.Tasks
     }
 
     // Constructor for a WorkTask.
-    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, AbilityValue>? outputs, Dictionary<string, List<string>>? effects, List<string>? supercedes, AbilityValue timeCost, bool repeatable)
+    public WorkTask(string task, List<string>? requirements, Dictionary<string, AbilityValue>? inputs, Dictionary<string, AbilityValue>? outputs, Dictionary<string, List<string>>? effects, List<string>? supercedes, AbilityValue timeCost, bool compulsory)
     {
       // Set the task name.
       this.task = task;
@@ -347,8 +348,8 @@ namespace Village.Tasks
 
       // Set the time cost.
       this.timeCost = timeCost;
-      // Set the repeatable flag.
-      this.repeatable = false;
+      // Set the compulsory flag.
+      this.compulsory = compulsory;
       
       // Add the task to the dictionary.
       tasks.Add(task, this);
@@ -637,8 +638,8 @@ namespace Village.Tasks
     // 300 units worth of tasks per month/turn.
     // Zero cost tasks are free to perform.
     public AbilityValue timeCost;
-    // Whether a task is repeatable in a single turn.
-    public bool repeatable;
+    // Whether a task is compulsory and shouldn't be run without being explicitly requested.
+    public bool compulsory;
     // Set of targets for this task.
     // Targets are specified by @1, @2, etc in the config.
     public Dictionary<string, EffectTarget> targets;

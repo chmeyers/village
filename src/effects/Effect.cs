@@ -310,7 +310,7 @@ public class Effect
     return 1.0;
   }
 
-  public virtual double MaxScale(ChosenEffectTarget target)
+  private double _MaxScale(ChosenEffectTarget target)
   {
     // For Crops and Fields, the default max scale is the size of the field or crop.
     // For other targets, the default max scale is 1.
@@ -334,6 +334,11 @@ public class Effect
     return 1.0;
   }
 
+  public virtual double MaxScale(ChosenEffectTarget target)
+  {
+    return _MaxScale(target);
+  }
+
   public virtual double? PreferredScale(ChosenEffectTarget target)
   {
     // For Crops and Fields, the default preferred scale is the max scale.
@@ -341,7 +346,7 @@ public class Effect
     // if it is less than 1, otherwise it is null.
     if (target.effectTargetType == EffectTargetType.Crop || target.effectTargetType == EffectTargetType.Field || MaxScale(target) < 1.0)
     {
-      return MaxScale(target);
+      return _MaxScale(target);
     }
     return null;
   }

@@ -107,7 +107,7 @@ public class DegradeEffect : Effect
     // values are mostly recommendations.
     // This min scale will degrade by 1.
     double amount = this.amount.GetValue(target.runningContext);
-    return amount == 0 ? Double.MinValue: 1.0/amount;
+    return amount == 0 ? Double.MinValue : 1.0 / amount;
   }
 
   public override double MaxScale(ChosenEffectTarget target)
@@ -125,7 +125,7 @@ public class DegradeEffect : Effect
     Item item = (Item)chosenEffectTarget.target!;
     // We always assume a base quality item, as that is what the buy price is based on.
     int defaultQuality = (int)item.itemType.craftQuality.GetBaseValue();
-    double buyPrice = household.household.BuyPrice(item.itemType);
+    double buyPrice = household.household.CostPrice(item.itemType);
     return -buyPrice * degradeAmount / defaultQuality;
   }
 

@@ -50,8 +50,8 @@ public class TaskUnitTest
     {
       WorkTask.Clear();
       string json = @"{
-    'gather_wood': { 'timeCost': 10, 'requirements': ['chopping_1'], 'repeatable': true, 'outputs' : { 'wood' : 100 }, 'effects' : { 'skill_chopping_1' : [''], 'degrade_1': ['chopping_1'] } },
-    'gather_more_wood': { 'timeCost': 10, 'supercedes':['gather_wood'],'requirements': ['chopping_2'], 'repeatable': true, 'outputs' : { 'wood' : 200 }, 'effects' : { 'skill_chopping_1' : [''], 'degrade_1': ['chopping_2'] } },
+    'gather_wood': { 'timeCost': 10, 'requirements': ['chopping_1'], 'compulsory': true, 'outputs' : { 'wood' : 100 }, 'effects' : { 'skill_chopping_1' : [''], 'degrade_1': ['chopping_1'] } },
+    'gather_more_wood': { 'timeCost': 10, 'supercedes':['gather_wood'],'requirements': ['chopping_2'], 'compulsory': true, 'outputs' : { 'wood' : 200 }, 'effects' : { 'skill_chopping_1' : [''], 'degrade_1': ['chopping_2'] } },
     'teach_chopping_1': { 'timeCost': 10, 'requirements': ['chopping_2'],  'effects' : { 'skill_chopping_1' : ['@1'] } },
     'gather_wood2': { 'timeCost': 10, 'requirements': ['chopping_3'], 'inputs' : { 'wood' : {'val' : 50 } }, 'outputs' : { 'wood' : {'val': 100, 'modifiers': {'chopping_4': {'add': 5}}} } },
       }";

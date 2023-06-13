@@ -84,6 +84,18 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     }
   }
 
+  // TODO(chmeyers): Refactor this.
+  public void AddField(BuildingType buildingType)
+  {
+    Building building = new Field(buildingType, household);
+    building.AbilitiesChanged += UpdateAbilities;
+    buildings.Add(building);
+    if (building.Abilities.Count > 0)
+    {
+      UpdateAbilities(building, building.Abilities, null, null);
+    }
+  }
+
   public void AdvanceBuildings()
   {
     foreach (var building in buildings)
@@ -173,19 +185,28 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     return effect.Utility(household, runner, chosenTarget, scale);
   }
 
-  private double _MarginalUtility(List<DesireUtility> desired, int have, int delta, double price)
+  private double _MarginalUtility(List<DesireUtility> desiredStockpile, int have, int delta, List<DesireUtility> valueList, double finalPrice = 0)
   {
     if (delta < 0)
     {
       // Removing items.
+
+      // When removing items, we don't consider the values if we have that total quantity,
+      // as that is the expected use of the item. Instead we compare against the next best value.
+      // We DO consider all the desired stockpile values, as the expected use of the stockpile
+      // is to keep the item.
+      // TODO(chmeyers): We should only remove them if the associated task is available to run.
+      List<DesireUtility> allValues = DesireUtility.MergeExceptQuantity(desiredStockpile, valueList, have);
+
       double utility = 0;
-      for (int i = desired.Count - 1; i >= 0; i--)
+      double price = finalPrice;
+      for (int i = allValues.Count - 1; i >= 0; i--)
       {
-        int totalDesired = desired[i].totalQuantity;
+        int totalDesired = allValues[i].totalQuantity;
         int excess = Math.Max(have - totalDesired, 0);
         int undesired_amount = Math.Min(-delta, excess);
         delta += undesired_amount;
-        utility += price * undesired_amount;  // +/- epsilon?
+        utility += price * -undesired_amount;  // +/- epsilon?
         if (delta == 0)
         {
           return utility;
@@ -193,67 +214,34 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
         // Desired Utilities should be higher than the price,
         // but the price might be more up to date, so we use
         // that as a lower bound.
-        price = Math.Max(desired[i].marginalUtility, price);
-        have = totalDesired;
+        price = Math.Max(allValues[i].marginalUtility, finalPrice);
+        have = Math.Min(have, totalDesired);
       }
       utility += price * delta;  // +/- epsilon?
       return utility;
     }
     else if (delta > 0)
     {
+      List<DesireUtility> allValues = DesireUtility.Merge(desiredStockpile, valueList);
       // Adding items.
       double utility = 0;
-      for (int i = 0; i < desired.Count; i++)
+      for (int i = 0; i < allValues.Count; i++)
       {
-        int totalDesired = desired[i].totalQuantity;
+        int totalDesired = allValues[i].totalQuantity;
         int needed = Math.Max(totalDesired - have, 0);
         int desired_amount = Math.Min(delta, needed);
         delta -= desired_amount;
-        utility += Math.Max(desired[i].marginalUtility, price) * desired_amount;
+        utility += Math.Max(allValues[i].marginalUtility, 0) * desired_amount;
         if (delta == 0)
         {
           return utility;
         }
-        have = totalDesired;
+        have = Math.Max(have, totalDesired);
       }
-      utility += price * delta;  // +/- epsilon?
+      utility += finalPrice * delta;  // +/- epsilon?
       return utility;
     }
     return 0;
-  }
-
-  // How desirable is a given quantity of a given item.
-  public class DesireUtility
-  {
-    // Constructor
-    public DesireUtility(int totalQuantity, int marginalQuantity, double marginalUtility)
-    {
-      this.totalQuantity = totalQuantity;
-      this.marginalQuantity = marginalQuantity;
-      this.marginalUtility = marginalUtility;
-    }
-    // Total quantity of the item that is at least this desirable.
-    public int totalQuantity;
-    // Marginal quantity of the item that is this desirable.
-    public int marginalQuantity;
-    // Marginal desirability of the item.
-    public double marginalUtility;
-
-    // Sort order should be from highest marginal utility to lowest,
-    // then from highest total quantity to lowest, then from
-    // highest marginal quantity to lowest.
-    public int CompareTo(DesireUtility other)
-    {
-      if (other.marginalUtility != marginalUtility)
-      {
-        return other.marginalUtility.CompareTo(marginalUtility);
-      }
-      if (other.totalQuantity != totalQuantity)
-      {
-        return other.totalQuantity.CompareTo(totalQuantity);
-      }
-      return other.marginalQuantity.CompareTo(marginalQuantity);
-    }
   }
 
   private object _DesiredStockpileLock = new object();
@@ -319,7 +307,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
         _CachedDesiredStockpile[itemType] = new KeyValuePair<long, List<DesireUtility>>(cacheUntil, desired);
         return _CachedDesiredStockpile[itemType].Value;
       }
-      else 
+      else
       {
         // Don't cache future values.
         return desired;
@@ -332,18 +320,19 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // to further production. Traders will generally backstop this price
   // with an offer equal to the price at another market minus transport
   // costs and a desired profit.
-  public double SellPrice(ItemType itemType)
+  public List<DesireUtility> ValuePrice(ItemType itemType)
   {
     // TODO(chmeyers): Use a market instead of a price list.
     IPriceList priceList = ConfigPriceList.Default;
     double marketPrice = priceList.BuyPrice(itemType);
     // See if any people in the household can beat the market price.
-    double bestPrice = marketPrice;
+    List<DesireUtility> bestValue = new List<DesireUtility>();
+    bestValue.Add(new DesireUtility(int.MaxValue, int.MaxValue, marketPrice));
     foreach (var person in people)
     {
-      bestPrice = Math.Max(bestPrice, person.WorthAsInput(itemType));
+      DesireUtility.MergeFrom(bestValue, person.WorthAsInput(itemType));
     }
-    return bestPrice;
+    return bestValue;
   }
 
   // The actual price of the item on the local market not
@@ -357,7 +346,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // equal to the price at another market plus transport costs
   // and a desired profit.
   // TODO(chmeyers): Make sure we are dealing correctly with vendor "overstock".
-  public double BuyPrice(ItemType itemType)
+  public double CostPrice(ItemType itemType)
   {
     // TODO(chmeyers): Use a market instead of a price list.
     IPriceList priceList = ConfigPriceList.Default;
@@ -378,7 +367,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // for it's utility value minus epsilon, and sell them for plus epsilon.
   public double Utility(ITaskRunner runner, ItemType itemType, int quantity)
   {
-    double utility = _MarginalUtility(DesiredStockpile(itemType), inventory.Count(itemType), quantity, SellPrice(itemType));
+    double utility = _MarginalUtility(DesiredStockpile(itemType), inventory.Count(itemType), quantity, ValuePrice(itemType));
     // Add in the utility for the parents/ancestors of this item, as it can
     // also be used as any of them.
     foreach (var parent in itemType.parentTypes)
@@ -395,7 +384,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     // at future stockpile utility, but assuming static market prices.
     // TODO(chmeyers): Do we need to simulate a burn down rate for the household's current
     // inventory? Currently this just assumes we'll have the same amount of everything as now.
-    double utility = _MarginalUtility(DesiredStockpile(itemType, days), inventory.Count(itemType), quantity, SellPrice(itemType));
+    double utility = _MarginalUtility(DesiredStockpile(itemType, days), inventory.Count(itemType), quantity, ValuePrice(itemType));
     // Add in the utility for the parents/ancestors of this item, as it can
     // also be used as any of them.
     foreach (var parent in itemType.parentTypes)
