@@ -39,9 +39,9 @@ public class AttributeInterval : IAbilityProvider
   // The utility function to use for this interval.
   public AttributeUtility utilityType = AttributeUtility.None;
   // The utility of the lower limit of this interval.
-  public double utilityLower = 0;
+  public AbilityValue utilityLower = 0;
   // The utility of the upper limit of this interval.
-  public double utilityUpper = 0;
+  public AbilityValue utilityUpper = 0;
 }
 
 public class AttributeType
@@ -260,7 +260,7 @@ public class AttributeType
         }
         if (intervalData.ContainsKey("utility"))
         {
-          attributeInterval.utilityLower = _Double(intervalData["utility"]);
+          attributeInterval.utilityLower = AbilityValue.FromJson(intervalData["utility"]);
           // If they didn't specify a utility type, throw.
           if (attributeInterval.utilityType == AttributeUtility.None)
           {
@@ -268,7 +268,7 @@ public class AttributeType
           }
           if (intervalData.ContainsKey("utilityUpper"))
           {
-            attributeInterval.utilityUpper = _Double(intervalData["utilityUpper"]);
+            attributeInterval.utilityUpper = AbilityValue.FromJson(intervalData["utilityUpper"]); ;
           }
           else if (attributeInterval.utilityType == AttributeUtility.Step)
           {
@@ -281,9 +281,7 @@ public class AttributeType
           }
           else
           {
-            // Final fallback for the last interval, the upper bound is assumed to have the same
-            // difference from the lower bound as the previous interval.
-            attributeInterval.utilityUpper = attributeInterval.utilityLower + (attributeInterval.utilityLower - _Double(intervals[intervals.IndexOf(interval) - 1]["utility"]));
+            throw new Exception("utilityUpper bound must be specified for last interval of attribute: " + attribute.Key);
           }
         }
 
@@ -399,9 +397,9 @@ public class Attribute : IAbilityCollection
   private double _scaledMinValue = 0;
   private double _scaledChangePerTick = 0;
   private AttributeUtility _currentUtilityType = AttributeUtility.None;
-  private double _currentUtilityLower = 0;
-  private double _currentUtilityUpper = 0;
-  public double currentUtility { get; private set; } = 0;
+  private AbilityValue _currentUtilityLower = 0;
+  private AbilityValue _currentUtilityUpper = 0;
+  public double currentUtility { get { return _Utility(value); } }
   // Cached index of the interval the attribute is currently in.
   private int intervalIndex;
   // The attribute type.
@@ -454,7 +452,6 @@ public class Attribute : IAbilityCollection
     _scaledMaxValue = attributeType.maxValue * scale;
     _scaledMinValue = attributeType.minValue * scale;
     _scaledChangePerTick = attributeType.changePerTick * scale;
-    this.currentUtility = _Utility(this.value);
   }
 
   public HashSet<AbilityType> Abilities
@@ -604,8 +601,6 @@ public class Attribute : IAbilityCollection
       }
     }
 
-    // Cache the utility value.
-    this.currentUtility = _Utility(value);
     return value;
   }
 
@@ -675,8 +670,8 @@ public class Attribute : IAbilityCollection
   {
     value = Math.Clamp(value, _scaledMinValue, _scaledMaxValue - maxEpsilon);
     AttributeUtility utilityType = _currentUtilityType;
-    double utilityLower = _currentUtilityLower;
-    double utilityUpper = _currentUtilityUpper;
+    AbilityValue utilityLowerValue = _currentUtilityLower;
+    AbilityValue utilityUpperValue = _currentUtilityUpper;
     int intervalIndex = this.intervalIndex;
     double rangeMin = this.rangeMin;
     double rangeMax = this.rangeMax;
@@ -684,12 +679,14 @@ public class Attribute : IAbilityCollection
     {
       intervalIndex = attributeType.FindIntervalIndex(value / scale);
       var newInterval = attributeType.intervals.GetValueAtIndex(intervalIndex);
-      utilityLower = newInterval.utilityLower;
-      utilityUpper = newInterval.utilityUpper;
+      utilityLowerValue = newInterval.utilityLower;
+      utilityUpperValue = newInterval.utilityUpper;
       utilityType = newInterval.utilityType;
       rangeMin = newInterval.lower * scale;
       rangeMax = newInterval.upper * scale;
     }
+    double utilityLower = utilityLowerValue.GetValue(abilityContext);
+    double utilityUpper = utilityUpperValue.GetValue(abilityContext);
 
     if (utilityType == AttributeUtility.None) return 0;
     double fractionOfRange = (value - rangeMin) / (rangeMax - rangeMin);

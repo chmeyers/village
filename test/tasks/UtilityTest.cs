@@ -15,7 +15,7 @@ namespace VillageTest;
 [TestClass]
 public class UtilityUnitTest
 {
-  public void Advance(Household household, uint days, bool untilIdle = false)
+  public void Advance(Household household, HashSet<WorkTask> dailyTasks, uint days, bool untilIdle = false)
   {
     bool done = false;
     for (int i = 0; i < days * 10; i++)
@@ -25,6 +25,10 @@ public class UtilityUnitTest
       household.AdvanceBuildings();
       foreach (var person in Person.global_persons[household])
       {
+        if (Calendar.StartOfDay)
+        {
+          person.PickTaskFromSet(dailyTasks, true);
+        }
         TaskRunner.AdvanceTask(person);
         person.attributes.Advance();
         if (untilIdle && person.runningTasks.Count == 0)
@@ -37,6 +41,18 @@ public class UtilityUnitTest
         break;
       }
     }
+  }
+
+  public string NextTask(Person person, Household household, HashSet<WorkTask> dailyTasks)
+  {
+    Advance(household, dailyTasks, 5, true);
+    WorkTask? task = person.PickTask();
+    if (task == null)
+    {
+      return "";
+    }
+    Assert.IsNotNull(task);
+    return task!.task;
   }
 
   [TestMethod]
@@ -104,10 +120,10 @@ public class UtilityUnitTest
       string json = """
 {
   "straw": { "group": "RESOURCE"},
-  "food": { "group": "FOOD", "stockpile": [{"perPerson": 100, "utility": 2000}, {"perPerson": 900, "utility": 200}]},
-  "wheat": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 4, "minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.4444, "targetYieldPerAcre": 600, "seedPerAcre": 150, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
-  "hay": { "group": "FOOD", "parents" : ["food"], "weight": 1, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 1, "minSoilQuality": 0, "minPlantingTemp": 32, "frostTolerance": 20, "heatTolerance": 100, "droughtTolerance": 0.75, "weedSusceptibleDays": 10, "initDays": 10, "devDays": 15, "midDays": 75, "lateDays": 35, "kcInit": 0.4, "kcMid": 0.85, "kcEnd": 0.85, "perTickYieldGrowth": 2.963, "targetYieldPerAcre": 4000, "seedPerAcre": 10, "nitrogenPerYield": 0.019, "phosphorusPerYield": 0.0025, "potassiumPerYield": 0.018, "strawPerYield": 1, "nitrogenPerStraw": 0.006, "phosphorusPerStraw": 0, "potassiumPerStraw": 0, "nitrogenFixing": 0.8, "temperatePlantingMonths": [0,1], "harvestItems": { "hay" : 1 }, "cropAttribute": "crop_hay_growing"} },
-  "field_peas": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "legumes", "cropSkillLevel": 1, "minSoilQuality": 2, "minPlantingTemp": 40, "frostTolerance": 28, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 40, "initDays": 20, "devDays": 30, "midDays": 40, "lateDays": 25, "kcInit": 0.4, "kcMid": 1.15, "kcEnd": 0.3, "perTickYieldGrowth": 0.5739, "targetYieldPerAcre": 660, "seedPerAcre": 180, "hasHarvestableStraw": true, "nitrogenPerYield": 0.04, "phosphorusPerYield": 0.008717, "potassiumPerYield": 0.009817, "strawPerYield": 1.5, "nitrogenPerStraw": 0.008, "phosphorusPerStraw": 0.0007, "potassiumPerStraw": 0.009, "nitrogenFixing": 0.6, "temperatePlantingMonths": [0,1], "harvestItems": { "field_peas" : 1 , "straw": 1.5 }, "cropAttribute": "crop_field_peas_growing"} },
+  "food": { "group": "FOOD", "stockpile": [{"perPerson": 200, "utility": 200}]},
+  "wheat": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 4, "minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.4444, "targetYieldPerAcre": 600, "seedPerAcre": 150, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "fieldCrop": true, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
+  "hay": { "group": "FOOD", "parents" : ["food"], "weight": 1, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 1, "minSoilQuality": 0, "minPlantingTemp": 32, "frostTolerance": 20, "heatTolerance": 100, "droughtTolerance": 0.75, "weedSusceptibleDays": 10, "initDays": 10, "devDays": 15, "midDays": 75, "lateDays": 35, "kcInit": 0.4, "kcMid": 0.85, "kcEnd": 0.85, "perTickYieldGrowth": 2.963, "targetYieldPerAcre": 4000, "seedPerAcre": 10, "nitrogenPerYield": 0.019, "phosphorusPerYield": 0.0025, "potassiumPerYield": 0.018, "strawPerYield": 1, "nitrogenPerStraw": 0.006, "phosphorusPerStraw": 0, "potassiumPerStraw": 0, "nitrogenFixing": 0.8, "fieldCrop": true, "temperatePlantingMonths": [0,1], "harvestItems": { "hay" : 1 }, "cropAttribute": "crop_hay_growing"} },
+  "field_peas": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "legumes", "cropSkillLevel": 1, "minSoilQuality": 2, "minPlantingTemp": 40, "frostTolerance": 28, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 40, "initDays": 20, "devDays": 30, "midDays": 40, "lateDays": 25, "kcInit": 0.4, "kcMid": 1.15, "kcEnd": 0.3, "perTickYieldGrowth": 0.5739, "targetYieldPerAcre": 660, "seedPerAcre": 180, "hasHarvestableStraw": true, "nitrogenPerYield": 0.04, "phosphorusPerYield": 0.008717, "potassiumPerYield": 0.009817, "strawPerYield": 1.5, "nitrogenPerStraw": 0.008, "phosphorusPerStraw": 0.0007, "potassiumPerStraw": 0.009, "nitrogenFixing": 0.6, "temperatePlantingMonths": [0,1], "fieldCrop": true, "harvestItems": { "field_peas" : 1 , "straw": 1.5 }, "cropAttribute": "crop_field_peas_growing"} },
   "wood": { "group": "RESOURCE" },
   "logs": { "group": "RESOURCE" },
   "clay": { "group": "RESOURCE" },
@@ -129,7 +145,7 @@ public class UtilityUnitTest
   "iron_anvil": { "group": "HOUSEHOLD", "parents": ["anvil"], "scrapItems": {"iron":300} },
   "chest": { "group": "HOUSEHOLD", "flammable": true },
   "quern": { "group": "HOUSEHOLD" },
-  "meal":  { "group": "FOOD", "stockpile": [{"perPerson": 30, "utility": 10000},{ "perPerson": 100, "perHousehold": 50, "utility": 250}] },
+  "meal":  { "group": "FOOD", "stockpile": [{"perPerson": 10, "utility": 20000},{"perPerson": 20, "utility": 500},{ "perPerson": 100, "perHousehold": 50, "utility": 250}] },
 }
 """;
       // Load the item types.
@@ -163,12 +179,12 @@ public class UtilityUnitTest
 "plant_hay" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "hay", "chainedEffects": ["major_touch_crop", "major_learn_crop"] } },
 "plow_under" : { "target": "Field", "effectType": "KillCrop", "config": {  } },
 "plow" : { "target": "Field", "effectType": "AttributePuller", "config": { "soil_quality" : { "target": {"val": "plowing", "add": 1 }, "amount": 0.3}, "weeds" : { "target": 0, "amount": {"val": "plowing", "add": 2, "mult": 20 }}, } },
-"weed" : { "target": "Field", "effectType": "AttributeAdder", "config": { "weeds" : { "target": { "val": "weeding", "add": -10, "mult": -0.25}, "amount": {"val": "weeding", "add": 10, "mult": 0.3 }}, } },
+"weed" : { "target": "Field", "effectType": "AttributeAdder", "config": { "weeds" : { "target": { "val": "weeding", "add": -5, "mult": -1}, "amount": {"val": "weeding", "add": 10, "mult": -2.0 }}, } },
 "degrade_1" : { "target": "Item", "effectType": "Degrade", "config": { "amount": 1 } },
 "skill_weeding_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "weeding", "level": 3} },
 "skill_harvesting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "harvesting", "level": 3, "amount": 10} },
 "skill_planting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "planting", "level": 3, "amount": 10 } },
-"skill_plowing_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "plowing", "level": 3, "amount": 20 } },
+"skill_plowing_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "plowing", "level": 3, "amount": 10 } },
 "skill_basketmaking_1" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "basketmaking", "level": 1, "amount": 1 } },
 "skill_pottery_1" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "pottery", "level": 1, "amount": 1 } },
 "skill_tilemaking_1" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "tilemaking", "level": 1, "amount": 1 } },
@@ -196,7 +212,7 @@ public class UtilityUnitTest
       AttributeType.Clear();
       string json = """
       {
-"field" : { "min": 0, "max": 1, "group": "field" , "initial": 0, "intervals": [{"lower": 0, "abilities": [], "ongoing_effects": ["field_changes","drain_update","field_maintenance"]}]},
+"field" : { "min": 0, "max": 1.01, "group": "field" , "initial": 0, "intervals": [{"lower": 0, "abilities": [], "ongoing_effects": ["field_changes","drain_update","field_maintenance"]}]},
 "surface_moisture" : { "min": 0, "max": 2, "group": "field" , "initial": 1, "intervals": [{"lower": 0, "abilities": ["dry_surface_soil"]},{"lower": 0.05, "abilities": ["wet_surface_soil"]}]},
 "deep_moisture" : { "min": 0, "max": 10, "group": "field" , "initial": 4, "intervals": [{"lower": 0, "abilities": ["low_deep_moisture"]},{"lower": 0.1, "abilities": ["high_deep_moisture"]}]},
 "drainage" : { "min": 0.2, "max": 2, "group": "field" , "initial": 1, "intervals": [{"lower": 0.2, "abilities": []}]},
@@ -204,7 +220,7 @@ public class UtilityUnitTest
 "nitrogen" : { "min": 0, "max": 500, "group": "field" , "initial": 100, "intervals": [{"lower": 0, "abilities": ["low_nitrogen"]},{"lower": 5, "abilities": []}]},
 "phosphorus" : { "min": 0, "max": 1000, "group": "field" , "initial": 150, "intervals": [{"lower": 0, "abilities": ["low_phosphorus"]},{"lower": 5, "abilities": []}]},
 "potassium" : { "min": 0, "max": 10000, "group": "field" , "initial": 5000, "intervals": [{"lower": 0, "abilities": ["low_potassium"]},{"lower": 50, "abilities": []}]},
-"weeds" : { "min": 0, "max": 100, "group": "field" , "initial": 100, "intervals": [{"lower": 0, "abilities": ["low_weeds"]},{"lower": 10, "abilities": ["mid_weeds"]},{"lower": 20, "abilities": ["high_weeds"]}]},
+"weeds" : { "min": 0, "max": 100, "group": "field" , "initial": 100, "utilityType": "Linear", "intervals": [{"lower": 0, "abilities": ["low_weeds"], "utility": { "val": "field", "mult": 10000} },{"lower": 5, "abilities": ["mid_weeds"], "utility": { "val": "field", "mult": 9000}},{"lower": 30, "abilities": ["high_weeds"], "utility": { "val": "field", "mult": 5000}, "utilityUpper": 0}]},
 "crop_health" : { "min": 0, "max": 200, "group": "crop" , "initial": 100, "intervals": [{"lower": 0, "abilities": []},{"lower": 10, "abilities": []}]},
 "crop_yield" : { "min": 0, "max": 100000, "group": "crop" , "initial": 0, "intervals": [{"lower": 0, "abilities": []}]},
 "crop_wheat_growing": { "min": 0, "max": 190, "changePerTick": 0.1, "initial": 0, "intervals": [{"lower": 0, "ongoing_effects": ["grow_crop"]}, {"lower": 130, "abilities": ["harvestable"], "ongoing_effects": ["grow_crop"]}, {"lower": 135, "abilities": ["harvestable"]}, {"lower": 155, "ongoing_effects": ["rotting"]}, {"lower": 185, "entry_effects": ["kill_crop"]} ]},
@@ -288,14 +304,14 @@ public class UtilityUnitTest
 "gather_logs_3": { "timeCost": 20, "requirements": [],  "outputs": {"logs" : {"val": 20, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"lumberjacking_1":{ "mult":3},"lumberjacking_2":{ "mult":1.5}}} }, "effects": {"skill_lumberjacking_3": [""]} },
 "gather_clay_by_hand": { "timeCost": 10, "requirements": [],  "outputs": {"clay" : {"val": 20, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} }} }, "effects": {} },
 "gather_stone_1": { "timeCost": 10, "requirements": [],  "outputs": {"stone" : {"val": 1, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"quarrying_1":{ "mult":3},"quarrying_2":{ "mult":1.5}}} }, "effects": {"skill_quarrying_1": [""]} },
-"mine_iron_1": { "timeCost": 10, "requirements": [],  "outputs": {"iron" : {"val": 10, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"mining_1":{ "mult":3},"mining_2":{ "mult":1.5}}} }, "effects": {"skill_mining_1": [""]} },
+"mine_iron_1": { "timeCost": 10, "requirements": [],  "outputs": {"iron_ore" : {"val": 10, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"mining_1":{ "mult":3},"mining_2":{ "mult":1.5}}} }, "effects": {"skill_mining_1": [""]} },
 "gather_rattan_1": { "timeCost": 10, "requirements": [],  "outputs": {"rattan" : {"val": 35, "modifiers": { "dexterity_10":{ "mult":1.1},"dexterity_15":{ "mult":1.1} ,"foraging_1":{ "mult":3},"foraging_2":{ "mult":1.5}}} }, "effects": {"skill_foraging_3": [""]} },
-"go_hungry": { "timeCost": 0, "inputs": {}, "outputs": { }, "effects": {} },
-"scrounge_for_food": { "timeCost": {"val": 1, "min":1, "modifiers": { }}, "supercedes": ["go_hungry"], "requirements": ["not_winter","not_spring"], "inputs": {}, "outputs": { }, "effects": {} },
-"forage_to_eat": { "timeCost": {"val": 1, "min":1, "modifiers": { "intelligence_10":{ "mult":0.9},"intelligence_15":{ "mult":0.9}, "foraging_1":{ "mult":0.8},"foraging_2":{ "mult":0.8}}}, "supercedes": ["scrounge_for_food"], "requirements": ["foraging_2","not_winter"], "inputs": {}, "outputs": {"food" : 1 }, "effects": {"skill_foraging_2": [""],} },
-"hunt_to_eat": { "timeCost": {"val": 1, "min":1, "modifiers": { "intelligence_10":{ "mult":0.9},"intelligence_15":{ "mult":0.9}, "hunting_1":{ "mult":0.8},"hunting_2":{ "mult":0.8}}}, "supercedes": ["scrounge_for_food"], "requirements": ["hunting_2"], "inputs": {}, "outputs": {"food" : 1 }, "effects": {"skill_hunting_2": [""],} },
-"cook_for_self_with_leftovers": { "timeCost": {"val": 1.2, "min":1, "modifiers": { "dexterity_10":{ "mult":0.9},"dexterity_15":{ "mult":0.9}, "cooking_1":{ "mult":0.8},"cooking_2":{ "mult":0.8}}}, "supercedes": ["forage_to_eat","hunt_to_eat"], "inputs": {"food" : 3}, "outputs": {"meal" : 20 }, "effects": {"skill_cooking_1": [""],} },
-"eat_meal": { "timeCost": 0, "supercedes": ["cook_for_self_with_leftovers"], "inputs": {"meal" : 10}, "outputs": { }, "effects": {} },
+"go_hungry": { "timeCost": 0, "compulsory": true, "inputs": {}, "outputs": { }, "effects": {} },
+"scrounge_for_food": { "timeCost": {"val": 1, "min":1, "modifiers": { }}, "compulsory": true,"supercedes": ["go_hungry"], "requirements": ["not_winter","not_spring"], "inputs": {}, "outputs": { }, "effects": {} },
+"forage_to_eat": { "timeCost": {"val": 1, "min":1, "modifiers": { "intelligence_10":{ "mult":0.9},"intelligence_15":{ "mult":0.9}, "foraging_1":{ "mult":0.8},"foraging_2":{ "mult":0.8}}}, "compulsory": true, "supercedes": ["scrounge_for_food"], "requirements": ["foraging_2","not_winter"], "inputs": {}, "outputs": {"food" : 1 }, "effects": {"skill_foraging_2": [""],} },
+"hunt_to_eat": { "timeCost": {"val": 1, "min":1, "modifiers": { "intelligence_10":{ "mult":0.9},"intelligence_15":{ "mult":0.9}, "hunting_1":{ "mult":0.8},"hunting_2":{ "mult":0.8}}}, "compulsory": true, "supercedes": ["scrounge_for_food"], "requirements": ["hunting_2"], "inputs": {}, "outputs": {"food" : 1 }, "effects": {"skill_hunting_2": [""],} },
+"cook_for_self_with_leftovers": { "timeCost": {"val": 1.2, "min":1, "modifiers": { "dexterity_10":{ "mult":0.9},"dexterity_15":{ "mult":0.9}, "cooking_1":{ "mult":0.8},"cooking_2":{ "mult":0.8}}}, "compulsory": true, "supercedes": ["forage_to_eat","hunt_to_eat"], "inputs": {"food" : 3}, "outputs": {"meal" : 20 }, "effects": {"skill_cooking_1": [""],} },
+"eat_meal": { "timeCost": 0, "compulsory": true, "supercedes": ["cook_for_self_with_leftovers"], "inputs": {"meal" : 10}, "outputs": { }, "effects": {} },
 "hunt": { "timeCost": {"val": 10, "min":1, "modifiers": { "intelligence_10":{ "mult":0.9},"intelligence_15":{ "mult":0.9}, "hunting_1":{ "mult":0.8},"hunting_2":{ "mult":0.8}}}, "inputs": {}, "outputs": {"food" : 12 }, "effects": {"skill_hunting_2": [""],} },
 "quick_cook_meal": { "timeCost": 1, "inputs": {"food" : 1}, "outputs": {"meal" : 10 } },
 "quick_cook_meals": { "timeCost": 2, "supercedes": ["quick_cook_meal"], "inputs": {"food" : 3}, "outputs": {"meal" : 30 } },
@@ -306,13 +322,22 @@ public class UtilityUnitTest
       WorkTask.LoadString(json);
     }
     {
+      TaskSet.Clear();
+      string json = """
+{
+  "daily": [ "go_hungry", "scrounge_for_food", "forage_to_eat", "hunt_to_eat", "cook_for_self_with_leftovers", "eat_meal" ],
+}
+""";
+      TaskSet.LoadString(json);
+    }
+    {
       string json = """
 {
   "coin": { "buy":1, "sell":1 },
   "straw": { "buy":5, "sell":150 },
-  "wheat": { "buy":155, "sell":250 },
-  "field_peas": { "buy":90, "sell":200 },
-  "hay": { "buy":30, "sell":150 },
+  "wheat": { "buy":155, "sell":350 },
+  "field_peas": { "buy":90, "sell":300 },
+  "hay": { "buy":25, "sell":150 },
   "wood": { "buy":5, "sell":100 },
   "logs": { "buy":15, "sell":200 },
   "clay": { "buy":2, "sell":50 },
@@ -342,39 +367,108 @@ public class UtilityUnitTest
     Household household = new Household();
     Person person = new Person("Bob", "bob", household, Role.HeadOfHousehold);
     // Give the household a field so they can plant stuff.
-    household.AddBuilding(BuildingType.Find("field")!);
+    household.AddField(BuildingType.Find("field")!);
 
     // Abilities for field work.
     person.GrantAbility(AbilityType.Find("hoe_1")!);
     person.GrantAbility(AbilityType.Find("plow_1")!);
     person.GrantAbility(AbilityType.Find("sickle_1")!);
 
+    HashSet<WorkTask> dailyTasks = TaskSet.Find("daily")!;
+    ItemType wheat = ItemType.Find("wheat")!;
+    ItemType hay = ItemType.Find("hay")!;
+    ItemType peas = ItemType.Find("field_peas")!;
+    ItemType basket = ItemType.Find("basket")!;
+    ItemType iron_anvil = ItemType.Find("iron_anvil")!;
+
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
-    Assert.AreEqual(110.4, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(45.6, person.DetermineTimeUtility(), 0.5);
 
-    HashSet<WorkTask> blacklist = new HashSet<WorkTask>();
+    // We don't have any food, so wheat has high utility.
+    Assert.AreEqual(200100, household.Utility(person, wheat, 1), 1);
+    Assert.AreEqual(-200250, household.Utility(person, wheat, -1), 1);
+
+    // Basket's utility is solely based on the market price.
+    Assert.AreEqual(45, household.Utility(person, basket, 1), 0.5);
+    // Since we don't have any, we would need to buy one or produce one.
+    // It's cheaper to produce one, so the utility is based on that.
+    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
+    household.inventory.AddItem(new Item(basket), 1);
+    // Now that we have one, utility is based on sell price.
+    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
+    Assert.AreEqual(-90, household.Utility(person, basket, -2), 0.5);
+
+    // Unlike baskets, it's cheaper to buy an anvil than to produce one.
+    Assert.AreEqual(500, household.Utility(person, iron_anvil, 1), 0.5);
+    Assert.AreEqual(-4000, household.Utility(person, iron_anvil, -1), 0.5);
+    household.inventory.AddItem(new Item(iron_anvil), 1);
+    // Now that we have one, utility is based on sell price.
+    Assert.AreEqual(-500, household.Utility(person, iron_anvil, -1), 0.5);
+    Assert.AreEqual(-4500, household.Utility(person, iron_anvil, -2), 0.5);
 
     // Pick a task. They need food, so they'll pick "hunt".
-    WorkTask? task = person.PickTask(blacklist);
-    Assert.IsNotNull(task);
-    Assert.AreEqual("hunt", task!.task);
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    // They have food, so they'll cook it.
+    Assert.AreEqual("quick_cook_meals", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    // Enough food for a big cooking job.
+    Assert.AreEqual("cook_meals", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("cook_meals", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("cook_meals", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+    // They've filled up their food stockpile, so they'll do something else.
+    // They'll plow the field, even though they don't have any seed, because
+    // they assume they can buy some.
+    Assert.AreEqual("plow_field", NextTask(person, household, dailyTasks));
+    // Buying not implemented, so they mine instead.
+    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
 
-    // Advance until done hunting.
-    Advance(household, 2, true);
+    // // Give them wheat, hayseed, and peas so they can plant.
+    household.inventory.AddItem(new Item(wheat), 300);
+    household.inventory.AddItem(new Item(hay), 300);
+    household.inventory.AddItem(new Item(peas), 300);
 
-    // Pick a task. They have food, so they'll cook it.
-    task = person.PickTask(blacklist);
-    Assert.IsNotNull(task);
-    Assert.AreEqual("cook", task!.task);
+    Assert.AreEqual("plant_wheat", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("weed_field", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("weed_field", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("weed_field", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("cook_meals", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
 
-    // Advance a week to clear the caches.
-    Advance(household, 5, false);
-
-    // Pick a task. They should hunt more
-    task = person.PickTask(blacklist);
-    Assert.IsNotNull(task);
-    Assert.AreEqual("hunt", task!.task);
-
+    // HashSet<string> validTasks = new HashSet<string>();
+    // validTasks.Add("mine_iron_1");
+    // validTasks.Add("hunt");
+    // validTasks.Add("cook_meals");
+    // validTasks.Add("");
+    // validTasks.Add("gather_clay_by_hand");
+    // for (int i = 0; i < 1000; ++i) {
+    //   string task = NextTask(person, household, dailyTasks);
+    //   // print the task so we can see what's going on.
+    //   Console.WriteLine(task);
+    //   Assert.IsTrue(validTasks.Contains(task), "Task " + task + " is not in valid set.");
+    // }
+    // string task2 = NextTask(person, household, dailyTasks);
+    
   }
 }
