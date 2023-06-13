@@ -241,7 +241,7 @@ public class CropUnitTest
 "plant_hay" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "hay", "chainedEffects": ["major_touch_crop", "major_learn_crop"] } },
 "plow_under" : { "target": "Field", "effectType": "KillCrop", "config": {  } },
 "plow" : { "target": "Field", "effectType": "AttributePuller", "config": { "soil_quality" : { "target": {"val": "plowing", "add": 1 }, "amount": 0.3}, "weeds" : { "target": 0, "amount": {"val": "plowing", "add": 2, "mult": 20 }}, } },
-"weed" : { "target": "Field", "effectType": "AttributeAdder", "config": { "weeds" : { "target": { "val": "weeding", "add": -10, "mult": -0.25}, "amount": {"val": "weeding", "add": 10, "mult": 0.3 }}, } },
+"weed" : { "target": "Field", "effectType": "AttributeAdder", "config": { "weeds" : { "target": { "val": "weeding", "add": -10, "mult": -0.25}, "amount": {"val": "weeding", "add": 10, "mult": -0.3 }}, } },
 "degrade_1" : { "target": "Item", "effectType": "Degrade", "config": { "amount": 1 } },
 "skill_weeding_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "weeding", "level": 3} },
 "skill_harvesting_3" : { "target" : "Person", "effectType" : "Skill", "config" : { "skill": "harvesting", "level": 3, "amount": 10} },
@@ -345,6 +345,7 @@ public class CropUnitTest
     field.SetAttribute(AttributeType.Find("soil_quality")!, 50);
     // Set the field's weeds to a low amount.
     field.SetAttribute(weeds, 0);
+    field.RemoveAll(); // Plow.
     // Plant 9 wheat. The field can hold 10, but we leave one empty to test for bugs
     // in the scaling code.
     plantCrop.ApplySync(fieldTarget, 0.9, 1);
@@ -370,6 +371,7 @@ public class CropUnitTest
     field.SetAttribute(weeds, 0);
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
+    field.RemoveAll(); // Plow.
     plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one day (10 ticks) at a time for 135 days.
@@ -388,6 +390,7 @@ public class CropUnitTest
     field.SetAttribute(weeds, 0);
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
+    field.RemoveAll(); // Plow.
     plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one tick at a time for 135 days.
@@ -401,6 +404,7 @@ public class CropUnitTest
     // Another crop planted immediately after harvest in the same field.
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
+    field.RemoveAll(); // Plow.
     plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one tick at a time for 135 days.
@@ -414,6 +418,7 @@ public class CropUnitTest
     // A third crop planted immediately after harvest in the same field.
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
+    field.RemoveAll(); // Plow.
     plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one tick at a time for 135 days.
@@ -432,6 +437,7 @@ public class CropUnitTest
     field.SetAttribute(weeds, 0);
     field.SetAttribute(AttributeType.Find("deep_moisture")!, 40);
     field.SetAttribute(AttributeType.Find("surface_moisture")!, 10);
+    field.RemoveAll(); // Plow.
     plantCrop.ApplySync(fieldTarget, 0.9, 1);
 
     // Advance the calendar one tick at a time for 135 days.
@@ -516,7 +522,7 @@ public class CropUnitTest
     // Check that the field is planted.
     Assert.AreEqual(0.9, field.Count(wheat));
     // Check the weeds.
-    Assert.AreEqual(3.2, field.GetAttributeValue(weeds), 0.1);
+    Assert.AreEqual(2.15, field.GetAttributeValue(weeds), 0.1);
     // Check the crop health and yield
     Assert.AreEqual(71, field.GetValue(wheat, crop_health), 1.0);
     Assert.AreEqual(10, field.GetValue(wheat, crop_yield), 0.2);
@@ -531,15 +537,15 @@ public class CropUnitTest
     Assert.AreEqual(43.2, person.GetXP(Skill.Find("cereals")!));
 
     // Check the weeds, health, and yield.
-    Assert.AreEqual(7.85, field.GetAttributeValue(weeds), 0.1);
+    Assert.AreEqual(3.2, field.GetAttributeValue(weeds), 0.1);
     Assert.AreEqual(70.5, field.GetValue(wheat, crop_health), 0.5);
     Assert.AreEqual(30.5, field.GetValue(wheat, crop_yield), 0.2);
 
     // Run until the crop is 135 days old.
     RunCrop(field, wheat, wheat.cropSettings!.cropAttribute!, 135, 1);
-    Assert.AreEqual(16.3, field.GetAttributeValue(weeds), 0.1);
-    Assert.AreEqual(69.5, field.GetValue(wheat, crop_health), 0.5);
-    Assert.AreEqual(341.8, field.GetValue(wheat, crop_yield), 1.0);
+    Assert.AreEqual(14.3, field.GetAttributeValue(weeds), 0.1);
+    Assert.AreEqual(70.3, field.GetValue(wheat, crop_health), 0.5);
+    Assert.AreEqual(366.1, field.GetValue(wheat, crop_yield), 1.0);
 
     // Harvest the crop.
     targetCrop["@1"] = new ChosenEffectTarget(EffectTargetType.Crop, field.crops[wheat], person, person);
@@ -550,7 +556,7 @@ public class CropUnitTest
     // Advance until the harvest is complete.
     Advance(field, person, 7, true);
     // Check the harvested yield.
-    Assert.AreEqual(683, household.inventory[wheatItem]);
+    Assert.AreEqual(732, household.inventory[wheatItem]);
 
     // Check the person's skills.
     Assert.AreEqual(4, person.GetXP(Skill.Find("weeding")!));
@@ -589,16 +595,16 @@ public class CropUnitTest
 
     Run3FoldYear(fields, targetFields, person, tasks, 0);
     // Check the wheat and peas yields.
-    Assert.AreEqual(308, household.inventory[wheatItem]);
-    Assert.AreEqual(370, household.inventory[peasItem]);
+    Assert.AreEqual(318, household.inventory[wheatItem]);
+    Assert.AreEqual(390, household.inventory[peasItem]);
 
     Run3FoldYear(fields, targetFields, person, tasks, 1);
-    Assert.AreEqual(364, household.inventory[wheatItem]);
-    Assert.AreEqual(430, household.inventory[peasItem]);
+    Assert.AreEqual(383, household.inventory[wheatItem]);
+    Assert.AreEqual(446, household.inventory[peasItem]);
 
     Run3FoldYear(fields, targetFields, person, tasks, 2);
-    Assert.AreEqual(361, household.inventory[wheatItem]);
-    Assert.AreEqual(452, household.inventory[peasItem]);
+    Assert.AreEqual(383, household.inventory[wheatItem]);
+    Assert.AreEqual(479, household.inventory[peasItem]);
 
     Assert.AreEqual(407.2, person.GetXP(Skill.Find("cereals")!));
 
@@ -606,8 +612,8 @@ public class CropUnitTest
     for (int i = 0; i < 5; ++i) {
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
-    Assert.AreEqual(519, household.inventory[wheatItem]);
-    Assert.AreEqual(679, household.inventory[peasItem]);
+    Assert.AreEqual(561, household.inventory[wheatItem]);
+    Assert.AreEqual(748, household.inventory[peasItem]);
 
     Assert.AreEqual(100, person.GetXP(Skill.Find("weeding")!));
     Assert.AreEqual(338, person.GetXP(Skill.Find("harvesting")!));
@@ -620,8 +626,8 @@ public class CropUnitTest
     for (int i = 0; i < 20; ++i) {
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
-    Assert.AreEqual(864, household.inventory[wheatItem]);
-    Assert.AreEqual(1188, household.inventory[peasItem]);
+    Assert.AreEqual(904, household.inventory[wheatItem]);
+    Assert.AreEqual(1258, household.inventory[peasItem]);
 
     Assert.AreEqual(340, person.GetXP(Skill.Find("weeding")!));
     Assert.AreEqual(919, person.GetXP(Skill.Find("harvesting")!));
@@ -635,8 +641,8 @@ public class CropUnitTest
     {
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
-    Assert.AreEqual(1106, household.inventory[wheatItem]);
-    Assert.AreEqual(1248, household.inventory[peasItem]);
+    Assert.AreEqual(1168, household.inventory[wheatItem]);
+    Assert.AreEqual(1342, household.inventory[peasItem]);
 
     Assert.AreEqual(820, person.GetXP(Skill.Find("weeding")!));
     Assert.AreEqual(1609.5, person.GetXP(Skill.Find("harvesting")!));
@@ -658,8 +664,8 @@ public class CropUnitTest
     {
       Run3FoldYear(fields, targetFields, person, tasks, i % 3);
     }
-    Assert.AreEqual(1388, household.inventory[wheatItem]);
-    Assert.AreEqual(1367, household.inventory[peasItem]);
+    Assert.AreEqual(1464, household.inventory[wheatItem]);
+    Assert.AreEqual(1468, household.inventory[peasItem]);
 
     // Try it without rotation.
     for (int i = 0; i < 30; ++i)
@@ -668,7 +674,7 @@ public class CropUnitTest
     }
     // Both peas and wheat fields are now nitrogen depleted.
     Assert.AreEqual(986, household.inventory[wheatItem]);
-    Assert.AreEqual(1026, household.inventory[peasItem]);
+    Assert.AreEqual(1085, household.inventory[peasItem]);
 
   }
 }
