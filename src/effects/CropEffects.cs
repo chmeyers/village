@@ -236,7 +236,7 @@ public class HarvestCropEffect : Effect
     // discounted depending on the amount of time this field has until
     // it starts to rot, so that the farmer will harvest the crops that
     // are closest to rotting first.
-    Field? field = chosenEffectTarget.target as Field;
+    Field? field = (chosenEffectTarget.target as Field) ?? (chosenEffectTarget.target as Field.CropInfo)?.field;
     if (field == null)
     {
       return double.MinValue;

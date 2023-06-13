@@ -172,10 +172,8 @@ public class UtilityUnitTest
 "kill_crop" : { "target": "Crop", "effectType": "KillCrop", "config": {  } },
 "plant_wheat" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "wheat", "chainedEffects": ["major_touch_crop", "major_learn_crop"] } },
 "harvest_wheat" : { "target": "Crop", "effectType": "HarvestCrop", "config": { "crop" : "wheat" } },
-"harvest_wheat_field" : { "target": "Field", "effectType": "HarvestCrop", "config": { "crop" : "wheat" } },
 "plant_peas" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "field_peas", "chainedEffects": ["major_touch_crop", "major_learn_crop"] } },
 "harvest_peas" : { "target": "Crop", "effectType": "HarvestCrop", "config": { "crop" : "field_peas" } },
-"harvest_peas_field" : { "target": "Field", "effectType": "HarvestCrop", "config": { "crop" : "field_peas" } },
 "plant_hay" : { "target": "Field", "effectType": "PlantCrop", "config": { "crop" : "hay", "chainedEffects": ["major_touch_crop", "major_learn_crop"] } },
 "plow_under" : { "target": "Field", "effectType": "KillCrop", "config": {  } },
 "plow" : { "target": "Field", "effectType": "AttributePuller", "config": { "soil_quality" : { "target": {"val": "plowing", "add": 1 }, "amount": 0.3}, "weeds" : { "target": 0, "amount": {"val": "plowing", "add": 2, "mult": 20 }}, } },
@@ -283,9 +281,8 @@ public class UtilityUnitTest
 "plow_field": { "timeCost": {"val": 15, "min":1, "modifiers": { "plowing_1":{ "mult":0.8},"plowing_2":{ "mult":0.8}}}, "requirements": ["plow_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["plow_1"],"skill_plowing_3": [""],"minor_learn_field": ["@1"], "plow_under": ["@1"], "plow": ["@1"]} },
 "plant_wheat": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"wheat" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_wheat":["@1"]} },
 "harvest_wheat": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_crop":["@1"], "harvest_wheat":["@1"]} },
-"harvest_wheat_field": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_field":["@1"], "harvest_wheat_field":["@1"]} },
 "plant_peas": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"field_peas" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_peas":["@1"]} },
-"harvest_peas": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_field":["@1"], "harvest_peas_field":["@1"]} },
+"harvest_peas": { "timeCost": {"val": 63, "min":1, "modifiers": { "harvesting_1":{ "mult":0.8},"harvesting_2":{ "mult":0.8}}}, "requirements": ["sickle_1"], "inputs": {}, "outputs": { }, "effects": {"degrade_1": ["sickle_1"],"skill_harvesting_3": [""],"major_learn_crop":["@1"], "harvest_peas":["@1"]} },
 "plant_hay": { "timeCost": {"val": 15, "min":1, "modifiers": { "planting_1":{ "mult":0.8},"planting_2":{ "mult":0.8}}}, "inputs": {"hay" : 150}, "outputs": { }, "effects": {"skill_planting_3": [""],"plant_hay":["@1"]} },
 "craft_basket": { "timeCost": {"val": 2, "min":1, "modifiers": { "dexterity_10":{ "mult":0.9},"dexterity_15":{ "mult":0.9}, "basketmaking_1":{ "mult":0.8},"basketmaking_2":{ "mult":0.8}}}, "requirements": [], "inputs": {"rattan" : 2}, "outputs": {"basket" : 1 }, "effects": {"skill_basketmaking_1": [""]} },
 "craft_unfired_pottery": { "timeCost": {"val": 5, "min":1, "modifiers": { "dexterity_10":{ "mult":0.9},"dexterity_15":{ "mult":0.9}, "pottery_1":{ "mult":0.8},"pottery_2":{ "mult":0.8}}}, "requirements": [], "inputs": {"clay" : 2}, "outputs": {"unfired_pottery" : 5 }, "effects": {"skill_pottery_1": [""]} },
@@ -456,19 +453,31 @@ public class UtilityUnitTest
     Assert.AreEqual("cook_meals", NextTask(person, household, dailyTasks));
     Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
 
-    // HashSet<string> validTasks = new HashSet<string>();
-    // validTasks.Add("mine_iron_1");
-    // validTasks.Add("hunt");
-    // validTasks.Add("cook_meals");
-    // validTasks.Add("");
-    // validTasks.Add("gather_clay_by_hand");
-    // for (int i = 0; i < 1000; ++i) {
-    //   string task = NextTask(person, household, dailyTasks);
-    //   // print the task so we can see what's going on.
-    //   Console.WriteLine(task);
-    //   Assert.IsTrue(validTasks.Contains(task), "Task " + task + " is not in valid set.");
-    // }
-    // string task2 = NextTask(person, household, dailyTasks);
+    HashSet<string> validTasks = new HashSet<string>();
+    validTasks.Add("mine_iron_1");
+    validTasks.Add("weed_field");
+    validTasks.Add("hunt");
+    validTasks.Add("cook_meals");
+    validTasks.Add("");
+    validTasks.Add("gather_clay_by_hand");
+    validTasks.Add("craft_unfired_brick");
+    validTasks.Add("craft_unfired_tile");
+    validTasks.Add("craft_unfired_pottery");
+    validTasks.Add("gather_wood_1");
+    validTasks.Add("make_charcoal_1");
+    validTasks.Add("craft_brick");
+    validTasks.Add("craft_tile");
+    validTasks.Add("craft_pottery");
+    for (int i = 0; i < 205; ++i) {
+      string task = NextTask(person, household, dailyTasks);
+      // print the task so we can see what's going on.
+      //Console.WriteLine(task);
+      Assert.IsTrue(validTasks.Contains(task), "Task ("+ i + ") " + task + " is not in valid set.");
+    }
+
+    // Time to harvest the wheat.
+    Assert.AreEqual("harvest_wheat", NextTask(person, household, dailyTasks));
+    
     
   }
 }
