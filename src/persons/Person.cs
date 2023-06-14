@@ -644,7 +644,14 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       }
       // Cache the cost, unless it's negative, as those are probably temporary due to one-time
       // effect benefits.
-      if (cost >= 0) _costCache[itemType] = new CostCacheValue(Calendar.Ticks + cost_cache_duration, cost);
+      if (cost >= 0)
+      {
+        _costCache[itemType] = new CostCacheValue(Calendar.Ticks + cost_cache_duration, cost);
+      }
+      else {
+        // When the cost is negative, we still cache, but only for this tick.
+        _costCache[itemType] = new CostCacheValue(Calendar.Ticks, cost);
+      }
       return cost;
     }
   }
@@ -695,16 +702,16 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
         Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
         double scale = 1.0;
         double score = task.PotentialInputUtility(this, this.household, ref targets, ref scale);
-        int numInputs = 0;
         int thisInput = 0;
+        // Since we are looking for the worth of itemType, we remove the cost to buy or
+        // produce the other inputs from the score.
         foreach (var input in task.Inputs(this, scale))
         {
           if (input.Key == itemType) thisInput += input.Value;
-          numInputs += input.Value;
+          else score -= this.household.CostPrice(input.Key) * input.Value;
         }
-        if (thisInput == 0) continue;
-        // partition the score evenly among all inputs.
-        double worth = score / numInputs;
+        if (thisInput == 0 || score <= 0) continue;
+        double worth = score / thisInput;
         if (worth > minWorth)
         {
           worthList.Add(new DesireUtility(thisInput, thisInput, worth));

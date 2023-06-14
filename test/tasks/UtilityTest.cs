@@ -380,7 +380,7 @@ public class UtilityUnitTest
 
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
-    Assert.AreEqual(45.6, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(18, person.DetermineTimeUtility(), 0.5);
 
     // We don't have any food, so wheat has high utility.
     Assert.AreEqual(200100, household.Utility(person, wheat, 1), 1);
@@ -436,8 +436,9 @@ public class UtilityUnitTest
     // They'll plow the field, even though they don't have any seed, because
     // they assume they can buy some.
     Assert.AreEqual("plow_field", NextTask(person, household, dailyTasks));
-    // Buying not implemented, so they mine instead.
-    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
+    // Buying not implemented, so they do something else instead
+    Assert.AreEqual("", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("gather_wood_1", NextTask(person, household, dailyTasks));
 
     // // Give them wheat, hayseed, and peas so they can plant.
     household.inventory.AddItem(new Item(wheat), 300);
@@ -459,16 +460,18 @@ public class UtilityUnitTest
     validTasks.Add("hunt");
     validTasks.Add("cook_meals");
     validTasks.Add("");
+    validTasks.Add("gather_wood_1");
     validTasks.Add("gather_clay_by_hand");
     validTasks.Add("craft_unfired_brick");
     validTasks.Add("craft_unfired_tile");
-    validTasks.Add("craft_unfired_pottery");
-    validTasks.Add("gather_wood_1");
     validTasks.Add("make_charcoal_1");
     validTasks.Add("craft_brick");
-    validTasks.Add("craft_tile");
+    validTasks.Add("gather_rattan_1");
+    validTasks.Add("craft_basket");
+    validTasks.Add("craft_unfired_pottery");
     validTasks.Add("craft_pottery");
-    for (int i = 0; i < 205; ++i) {
+    validTasks.Add("smelt_iron_1");
+    for (int i = 0; i < 171; ++i) {
       string task = NextTask(person, household, dailyTasks);
       // print the task so we can see what's going on.
       //Console.WriteLine(task);
