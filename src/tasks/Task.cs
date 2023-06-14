@@ -23,7 +23,7 @@ namespace Village.Tasks
     // How much does it cost this runner to produce the given item?
     public double ProductionCost(ItemType itemType);
     // How much is this item worth to the runner as input.
-    public List<UtilityQuantity> WorthAsInput(ItemType itemType, double minWorth = 0);
+    public UtilityQuantityList WorthAsInput(ItemType itemType, double minWorth = 0);
   }
 
   // Named WorkTask instead of Task to avoid conflict with System.Task

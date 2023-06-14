@@ -63,70 +63,79 @@ public class UtilityQuantity : IComparable<UtilityQuantity>
     return $"({totalQuantity}, {marginalUtility:F2})";
   }
 
-  public static void Sort(List<UtilityQuantity> list)
+}
+
+public class UtilityQuantityList : List<UtilityQuantity>
+{
+  public UtilityQuantityList() : base() { }
+  public UtilityQuantityList(IEnumerable<UtilityQuantity> collection) : base(collection) { }
+  public UtilityQuantityList(int capacity) : base(capacity) { }
+
+  public new void Sort()
   {
-    list.Sort();
+    base.Sort();
     // Prune entries that are dominated by other entries.
-    for (int i = 1; i < list.Count; i++)
+    for (int i = 1; i < this.Count; i++)
     {
-      if (list[i].totalQuantity <= list[i - 1].totalQuantity)
+      if (this[i].totalQuantity <= this[i - 1].totalQuantity)
       {
-        list.RemoveAt(i);
+        this.RemoveAt(i);
         i--;
       }
       else
       {
-        list[i].marginalQuantity = list[i].totalQuantity - list[i - 1].totalQuantity;
+        this[i].marginalQuantity = this[i].totalQuantity - this[i - 1].totalQuantity;
       }
     }
     // Fix up the first element if necessary.
-    if (list.Count > 0)
+    if (this.Count > 0)
     {
-      list[0].marginalQuantity = list[0].totalQuantity;
+      this[0].marginalQuantity = this[0].totalQuantity;
     }
   }
+
   // Combine the second list of desire utilities into the first,
   // maintaining the sort order.
-  public static void MergeFrom(List<UtilityQuantity> to, List<UtilityQuantity> from)
+  public UtilityQuantityList Merge(UtilityQuantityList from)
   {
     foreach (var element in from)
     {
-      to.Add(element.Clone());
+      this.Add(element.Clone());
     }
-    Sort(to);
+    Sort();
+    return this;
   }
 
-  public static List<UtilityQuantity> Merge(List<UtilityQuantity> a, List<UtilityQuantity> b)
+  public UtilityQuantityList Clone()
   {
-    var result = new List<UtilityQuantity>();
-    foreach (var element in a)
+    var result = new UtilityQuantityList();
+    foreach (var element in this)
     {
       result.Add(element.Clone());
     }
-
-    MergeFrom(result, b);
     return result;
   }
 
-  // Merges everything except the first element of the second list.
-  public static List<UtilityQuantity> MergeExceptQuantity(List<UtilityQuantity> a, List<UtilityQuantity> b, int quantity)
+  public static UtilityQuantityList Merge(UtilityQuantityList a, UtilityQuantityList b)
   {
-    var result = new List<UtilityQuantity>();
-    foreach (var element in a)
+    return a.Clone().Merge(b);
+  }
+
+
+  // Merges everything except with at least the given total quantity.
+  public UtilityQuantityList MergeExceptQuantity(UtilityQuantityList other, int quantity)
+  {
+    for (int i = 0; i < other.Count; i++)
     {
-      result.Add(element.Clone());
-    }
-    for (int i = 0; i < b.Count; i++)
-    {
-      if (b[i].totalQuantity > quantity)
+      if (other[i].totalQuantity > quantity)
       {
-        result.Add(b[i].Clone());
+        this.Add(other[i].Clone());
       }
     }
     // Sort the result.
-    Sort(result);
+    Sort();
 
-    return result;
+    return this;
   }
 }
 

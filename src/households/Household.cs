@@ -185,7 +185,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     return effect.Utility(household, runner, chosenTarget, scale);
   }
 
-  private double _MarginalUtility(List<UtilityQuantity> desiredStockpile, int have, int delta, List<UtilityQuantity> valueList, double costPrice = double.MaxValue)
+  private double _MarginalUtility(UtilityQuantityList desiredStockpile, int have, int delta, UtilityQuantityList valueList, double costPrice = double.MaxValue)
   {
     if (delta < 0)
     {
@@ -196,7 +196,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       // We DO consider all the desired stockpile values, as the expected use of the stockpile
       // is to keep the item.
       // TODO(chmeyers): We should only remove them if the associated task is available to run.
-      List<UtilityQuantity> allValues = UtilityQuantity.MergeExceptQuantity(desiredStockpile, valueList, have);
+      UtilityQuantityList allValues = desiredStockpile.Clone().MergeExceptQuantity(valueList, have);
 
       double utility = 0;
       double price = valueList.Count > 0 ? valueList[valueList.Count - 1].marginalUtility : 0;
@@ -226,7 +226,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     }
     else if (delta > 0)
     {
-      List<UtilityQuantity> allValues = UtilityQuantity.Merge(desiredStockpile, valueList);
+      UtilityQuantityList allValues = desiredStockpile.Clone().Merge(valueList);
       // Adding items.
       double utility = 0;
       for (int i = 0; i < allValues.Count; i++)
@@ -251,7 +251,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
 
   private object _DesiredStockpileLock = new object();
   // TODO(chmeyers): Occasionally clear out the cache.
-  private Dictionary<ItemType, KeyValuePair<long, List<UtilityQuantity>>> _CachedDesiredStockpile = new Dictionary<ItemType, KeyValuePair<long, List<UtilityQuantity>>>();
+  private Dictionary<ItemType, KeyValuePair<long, UtilityQuantityList>> _CachedDesiredStockpile = new Dictionary<ItemType, KeyValuePair<long, UtilityQuantityList>>();
   // How many items of this type the household wants to have.
   // This includes stock for vendors and traders, items/food
   // for consumption, and items for household living standards.
@@ -259,7 +259,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // only the end product is really desired.
   // Returns a list of DesiredUtilities, sorted from highest marginal
   // to lowest marginal. (i.e. highest totalQuantity last.)
-  public List<UtilityQuantity> DesiredStockpile(ItemType itemType, int daysInFuture = 0, bool ignoreCache = false)
+  public UtilityQuantityList DesiredStockpile(ItemType itemType, int daysInFuture = 0, bool ignoreCache = false)
   {
     lock (_DesiredStockpileLock)
     {
@@ -275,7 +275,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       {
         // CURRENCY type items are never desired (for more than their sell price).
         // Cache this forever, since it will never change.
-        _CachedDesiredStockpile[itemType] = new KeyValuePair<long, List<UtilityQuantity>>(long.MaxValue, new List<UtilityQuantity>());
+        _CachedDesiredStockpile[itemType] = new KeyValuePair<long, UtilityQuantityList>(long.MaxValue, new UtilityQuantityList());
         return _CachedDesiredStockpile[itemType].Value;
       }
       SortedDictionary<double, int> quantityByUtility = itemType.GetUtilityQuantities(defaultContext, householdSize, daysInFuture);
@@ -298,7 +298,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
           }
         }
       }
-      List<UtilityQuantity> desired = new List<UtilityQuantity>();
+      UtilityQuantityList desired = new UtilityQuantityList();
       int runningTotal = 0;
       foreach (var pair in quantityByUtility.Reverse())
       {
@@ -309,7 +309,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       {
         // Cache for a week.
         long cacheUntil = Calendar.Ticks + Calendar.ticksPerWeek;
-        _CachedDesiredStockpile[itemType] = new KeyValuePair<long, List<UtilityQuantity>>(cacheUntil, desired);
+        _CachedDesiredStockpile[itemType] = new KeyValuePair<long, UtilityQuantityList>(cacheUntil, desired);
         return _CachedDesiredStockpile[itemType].Value;
       }
       else
@@ -325,17 +325,17 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // to further production. Traders will generally backstop this price
   // with an offer equal to the price at another market minus transport
   // costs and a desired profit.
-  public List<UtilityQuantity> ValuePrice(ItemType itemType)
+  public UtilityQuantityList ValuePrice(ItemType itemType)
   {
     // TODO(chmeyers): Use a market instead of a price list.
     IPriceList priceList = ConfigPriceList.Default;
     double marketPrice = priceList.BidPrice(itemType);
     // See if any people in the household can beat the market price.
-    List<UtilityQuantity> bestValue = new List<UtilityQuantity>();
+    UtilityQuantityList bestValue = new UtilityQuantityList();
     bestValue.Add(new UtilityQuantity(int.MaxValue, int.MaxValue, marketPrice));
     foreach (var person in people)
     {
-      UtilityQuantity.MergeFrom(bestValue, person.WorthAsInput(itemType));
+      bestValue.Merge(person.WorthAsInput(itemType));
     }
     return bestValue;
   }
