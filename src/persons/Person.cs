@@ -660,14 +660,14 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
 
   private class WorthCacheValue
   {
-    public WorthCacheValue(long expiry, List<DesireUtility> values)
+    public WorthCacheValue(long expiry, List<UtilityQuantity> values)
     {
       this.expiry = expiry;
       this.values = values;
     }
 
     public long expiry;
-    public List<DesireUtility> values;
+    public List<UtilityQuantity> values;
 
     public override string ToString()
     {
@@ -680,7 +680,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   private Dictionary<ItemType, WorthCacheValue> _worthCache = new Dictionary<ItemType, WorthCacheValue>();
   private const long worth_cache_duration = Calendar.ticksPerWeek;
   // How much is this item worth as an input to further production?
-  public List<DesireUtility> WorthAsInput(ItemType itemType, double minWorth = 0)
+  public List<UtilityQuantity> WorthAsInput(ItemType itemType, double minWorth = 0)
   {
     lock (_cacheLock)
     {
@@ -691,10 +691,10 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       }
 
       // Set the cache to an empty value, to ensure that recursive calls don't loop forever.
-      _worthCache[itemType] = new WorthCacheValue(Calendar.Ticks, new List<DesireUtility>());
+      _worthCache[itemType] = new WorthCacheValue(Calendar.Ticks, new List<UtilityQuantity>());
       // Note that we don't point the cache entry above to our real new list, as we don't want
       // to return a partial result when called recursively.
-      List<DesireUtility> worthList = new List<DesireUtility>();
+      List<UtilityQuantity> worthList = new List<UtilityQuantity>();
 
       CalculateValidTasks();
       if (!validTasksByInput.ContainsKey(itemType)) return _worthCache[itemType].values;
@@ -716,12 +716,12 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
         double worth = score / thisInput;
         if (worth > minWorth)
         {
-          worthList.Add(new DesireUtility(thisInput, thisInput, worth));
+          worthList.Add(new UtilityQuantity(thisInput, thisInput, worth));
         }
       }
       // Sort the list with highest marginalUtility first, then go through an
       // prune out any entries worse than their predecessors.
-      DesireUtility.Sort(worthList);
+      UtilityQuantity.Sort(worthList);
 
       // Cache the worth.
       _worthCache[itemType] = new WorthCacheValue(Calendar.Ticks + worth_cache_duration, worthList);

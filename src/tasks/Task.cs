@@ -23,7 +23,7 @@ namespace Village.Tasks
     // How much does it cost this runner to produce the given item?
     public double ProductionCost(ItemType itemType);
     // How much is this item worth to the runner as input.
-    public List<DesireUtility> WorthAsInput(ItemType itemType, double minWorth = 0);
+    public List<UtilityQuantity> WorthAsInput(ItemType itemType, double minWorth = 0);
   }
 
   // Named WorkTask instead of Task to avoid conflict with System.Task
@@ -112,7 +112,7 @@ namespace Village.Tasks
       filteredTasks.ExceptWith(supercededTasks);
       // Return the list of tasks.
       return filteredTasks;
-        
+
     }
 
     // Loader function to load all tasks from a JSON Dictionary.
@@ -350,7 +350,7 @@ namespace Village.Tasks
       this.timeCost = timeCost;
       // Set the compulsory flag.
       this.compulsory = compulsory;
-      
+
       // Add the task to the dictionary.
       tasks.Add(task, this);
 
@@ -442,7 +442,7 @@ namespace Village.Tasks
     public bool IsResourceProcessingTask()
     {
       // Check that all the inputs are resources and there is one resource output.
-      return this.inputs.Count > 0 && this.inputs.All<KeyValuePair<ItemType,AbilityValue>>(pair => pair.Key.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
+      return this.inputs.Count > 0 && this.inputs.All<KeyValuePair<ItemType, AbilityValue>>(pair => pair.Key.itemGroup == ItemGroup.RESOURCE) && this.outputs.Count == 1 && this.outputs.Keys.First().itemGroup == ItemGroup.RESOURCE;
     }
 
     private double _CalcUtility(ITaskRunner runner, IHouseholdContext household, Dictionary<string, Effects.ChosenEffectTarget>? chosenTargets, ref double scale, bool evalOutputs = false, bool evalInputs = false, bool evalTime = false)
@@ -453,7 +453,7 @@ namespace Village.Tasks
       // To determine the utility for inputs, outputs, and time, we first
       // must know the scale of the task, so we have to get the allowable scale
       // range from the effects.
-      
+
       Inventory inventory = household.household.inventory;
       Household h = household.household;
       scale = 1.0;  // Default value if we return early.
@@ -530,7 +530,7 @@ namespace Village.Tasks
           utility += h.Utility(runner, effect.Key, chosenTarget, preferredScale ?? 1.0);
         }
       }
-      
+
       if (!evalOutputs)
       {
         // Add the utility of each output, unless we are evaluating the outputs.
@@ -625,7 +625,7 @@ namespace Village.Tasks
       // For friendly printing.
       return this.task;
     }
-    
+
 
     // The name of the task.
     public string task;

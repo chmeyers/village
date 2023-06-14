@@ -1,10 +1,10 @@
 namespace Village.Items;
 
 // How desirable is a given quantity of a given item.
-public class DesireUtility : IComparable<DesireUtility>
+public class UtilityQuantity : IComparable<UtilityQuantity>
 {
   // Constructor
-  public DesireUtility(int totalQuantity, int marginalQuantity, double marginalUtility)
+  public UtilityQuantity(int totalQuantity, int marginalQuantity, double marginalUtility)
   {
     this.totalQuantity = totalQuantity;
     this.marginalQuantity = marginalQuantity;
@@ -18,15 +18,15 @@ public class DesireUtility : IComparable<DesireUtility>
   public double marginalUtility;
 
   // Clone
-  public DesireUtility Clone()
+  public UtilityQuantity Clone()
   {
-    return new DesireUtility(totalQuantity, marginalQuantity, marginalUtility);
+    return new UtilityQuantity(totalQuantity, marginalQuantity, marginalUtility);
   }
 
   // Sort order should be from highest marginal utility to lowest,
   // then from highest total quantity to lowest, then from
   // highest marginal quantity to lowest.
-  public int CompareTo(DesireUtility? other)
+  public int CompareTo(UtilityQuantity? other)
   {
     if (other == null)
     {
@@ -45,7 +45,7 @@ public class DesireUtility : IComparable<DesireUtility>
 
   public override bool Equals(object? obj)
   {
-    return obj is DesireUtility utility &&
+    return obj is UtilityQuantity utility &&
            totalQuantity == utility.totalQuantity &&
            marginalQuantity == utility.marginalQuantity &&
            marginalUtility == utility.marginalUtility;
@@ -63,7 +63,7 @@ public class DesireUtility : IComparable<DesireUtility>
     return $"({totalQuantity}, {marginalUtility:F2})";
   }
 
-  public static void Sort(List<DesireUtility> list)
+  public static void Sort(List<UtilityQuantity> list)
   {
     list.Sort();
     // Prune entries that are dominated by other entries.
@@ -87,7 +87,7 @@ public class DesireUtility : IComparable<DesireUtility>
   }
   // Combine the second list of desire utilities into the first,
   // maintaining the sort order.
-  public static void MergeFrom(List<DesireUtility> to, List<DesireUtility> from)
+  public static void MergeFrom(List<UtilityQuantity> to, List<UtilityQuantity> from)
   {
     foreach (var element in from)
     {
@@ -96,9 +96,9 @@ public class DesireUtility : IComparable<DesireUtility>
     Sort(to);
   }
 
-  public static List<DesireUtility> Merge(List<DesireUtility> a, List<DesireUtility> b)
+  public static List<UtilityQuantity> Merge(List<UtilityQuantity> a, List<UtilityQuantity> b)
   {
-    var result = new List<DesireUtility>();
+    var result = new List<UtilityQuantity>();
     foreach (var element in a)
     {
       result.Add(element.Clone());
@@ -109,9 +109,9 @@ public class DesireUtility : IComparable<DesireUtility>
   }
 
   // Merges everything except the first element of the second list.
-  public static List<DesireUtility> MergeExceptQuantity(List<DesireUtility> a, List<DesireUtility> b, int quantity)
+  public static List<UtilityQuantity> MergeExceptQuantity(List<UtilityQuantity> a, List<UtilityQuantity> b, int quantity)
   {
-    var result = new List<DesireUtility>();
+    var result = new List<UtilityQuantity>();
     foreach (var element in a)
     {
       result.Add(element.Clone());
@@ -125,7 +125,7 @@ public class DesireUtility : IComparable<DesireUtility>
     }
     // Sort the result.
     Sort(result);
-    
+
     return result;
   }
 }
