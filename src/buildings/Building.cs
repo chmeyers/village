@@ -295,4 +295,9 @@ public class Building : IAbilityCollection
     // Notify that the abilities have changed.
     AbilitiesChanged?.Invoke(this, Abilities.Except(oldAbilities), this, oldAbilities.Except(_abilities));
   }
+
+  public override string ToString()
+  {
+    return buildingType.name;
+  }
 }

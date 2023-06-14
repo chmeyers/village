@@ -56,6 +56,13 @@ public class DesireUtility : IComparable<DesireUtility>
     return HashCode.Combine(totalQuantity, marginalQuantity, marginalUtility);
   }
 
+  public override string ToString()
+  {
+    // For friendly debugging, print the total quantity and
+    // marginal utility, rounded to 2 decimal places.
+    return $"({totalQuantity}, {marginalUtility:F2})";
+  }
+
   public static void Sort(List<DesireUtility> list)
   {
     list.Sort();

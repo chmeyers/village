@@ -679,6 +679,12 @@ public class ItemType
     }
   }
 
+  public override string ToString()
+  {
+    // For friendly printing.
+    return itemType;
+  }
+
   // The name of the item type.
   // This is the string used to refer to the item in configuration files.
   public readonly string itemType;

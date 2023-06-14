@@ -8,6 +8,23 @@ public interface IInventoryContext
   public Inventory inventory { get; }
 }
 
+public class InventoryEntry : SortedDictionary<Item, int>
+{
+  public InventoryEntry() { }
+  
+  public override string ToString()
+  {
+    // return the total quantity of items in the entry.
+    // for ease of debugging.
+    int total = 0;
+    foreach (var item in this)
+    {
+      total += item.Value;
+    }
+    return total.ToString();
+  }
+}
+
 // An Inventory is a collection of items, owned by a person, building, trader, village, etc.
 public class Inventory : IInventoryContext, IAbilityCollection
 {
@@ -23,7 +40,7 @@ public class Inventory : IInventoryContext, IAbilityCollection
 
   // The items in the inventory with their quantities.
   // Items of the same type are sorted so that the "worst" items are used first.
-  public Dictionary<ItemType, SortedDictionary<Item, int>> items { get; private set; } = new Dictionary<ItemType, SortedDictionary<Item, int>>();
+  public Dictionary<ItemType, InventoryEntry> items { get; private set; } = new Dictionary<ItemType, InventoryEntry>();
 
   // Event handler for when the abilities of a person change.
   public event AbilitiesChanged? AbilitiesChanged;
@@ -413,7 +430,7 @@ public class Inventory : IInventoryContext, IAbilityCollection
 
   // Bracket operator to get the dictionary of a given ItemType in the inventory.
   // Return only the items of the given type, not child types.
-  public SortedDictionary<Item, int> this[ItemType itemType]
+  public InventoryEntry this[ItemType itemType]
   {
     get
     {
@@ -423,7 +440,7 @@ public class Inventory : IInventoryContext, IAbilityCollection
         {
           return items[itemType];
         }
-        return new SortedDictionary<Item, int>();
+        return new InventoryEntry();
       }
     }
   }
@@ -533,7 +550,7 @@ public class Inventory : IInventoryContext, IAbilityCollection
     }
     else
     {
-      items.Add(item.itemType, new SortedDictionary<Item, int> { { item, quantity } });
+      items.Add(item.itemType, new InventoryEntry { { item, quantity } });
       if (item.itemType.abilities.Count > 0)
       {
         IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, item, item.itemType.abilities, null, null, AbilitiesChanged);
@@ -789,8 +806,8 @@ public class Inventory : IInventoryContext, IAbilityCollection
     // Add the itemType itself to the list.
     descendants.Add(itemType);
     // Lookup each of the itemTypes in the inventory.
-    var itemTypes = new List<SortedDictionary<Item, int>>();
-    var enumerators = new List<SortedDictionary<Item, int>.Enumerator>();
+    var itemTypes = new List<InventoryEntry>();
+    var enumerators = new List<InventoryEntry.Enumerator>();
     // We could merge all the dictionaries into a single dictionary but that would
     // require sorting the entire set of items. Instead we pull the items out of
     // the dictionaries in the correct order until we have enough.

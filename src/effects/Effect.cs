@@ -364,4 +364,9 @@ public class Effect
     // Effects that are never called by tasks don't need to override this.
     return 0;
   }
+
+  public override string ToString()
+  {
+    return effect;
+  }
 }

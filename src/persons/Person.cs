@@ -583,8 +583,26 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
   }
 
+  private class CostCacheValue
+  {
+    public CostCacheValue(long expiry, double cost)
+    {
+      this.expiry = expiry;
+      this.cost = cost;
+    }
+
+    public long expiry;
+    public double cost;
+
+    public override string ToString()
+    {
+      // For friendly printing.
+      return $"{cost}";
+    }
+  }
+
   // This person's cache of item cost. Value is a pair of (cache expiry, cost).
-  private Dictionary<ItemType, KeyValuePair<long, double>> _costCache = new Dictionary<ItemType, KeyValuePair<long, double>>();
+  private Dictionary<ItemType, CostCacheValue> _costCache = new Dictionary<ItemType, CostCacheValue>();
   private const long cost_cache_duration = Calendar.ticksPerWeek;
   // What does it cost for this person to produce the given item?
   public double ProductionCost(ItemType itemType)
@@ -593,11 +611,11 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     {
       if (_costCache.TryGetValue(itemType, out var costPair))
       {
-        if (costPair.Key >= Calendar.Ticks) return costPair.Value;
+        if (costPair.expiry >= Calendar.Ticks) return costPair.cost;
       }
       // Calls here shouldn't result in recursion loops, but just in case, we'll set a cache value
       // before calling any other functions.
-      _costCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks, double.MaxValue);
+      _costCache[itemType] = new CostCacheValue(Calendar.Ticks, double.MaxValue);
 
       CalculateValidTasks();
       if (!validTasksByOutput.ContainsKey(itemType)) return double.MaxValue;
@@ -625,13 +643,31 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       }
       // Cache the cost, unless it's negative, as those are probably temporary due to one-time
       // effect benefits.
-      if (cost >= 0) _costCache[itemType] = new KeyValuePair<long, double>(Calendar.Ticks + cost_cache_duration, cost);
+      if (cost >= 0) _costCache[itemType] = new CostCacheValue(Calendar.Ticks + cost_cache_duration, cost);
       return cost;
     }
   }
 
+  private class WorthCacheValue
+  {
+    public WorthCacheValue(long expiry, List<DesireUtility> values)
+    {
+      this.expiry = expiry;
+      this.values = values;
+    }
+
+    public long expiry;
+    public List<DesireUtility> values;
+
+    public override string ToString()
+    {
+      // For friendly printing, create a comma separated list of the values.
+      return string.Join(", ", values);
+    }
+  }
+
   // This person's cache of item worth. Value is a pair of (cache expiry, worth).
-  private Dictionary<ItemType, KeyValuePair<long, List<DesireUtility>>> _worthCache = new Dictionary<ItemType, KeyValuePair<long, List<DesireUtility>>>();
+  private Dictionary<ItemType, WorthCacheValue> _worthCache = new Dictionary<ItemType, WorthCacheValue>();
   private const long worth_cache_duration = Calendar.ticksPerWeek;
   // How much is this item worth as an input to further production?
   public List<DesireUtility> WorthAsInput(ItemType itemType, double minWorth = 0)
@@ -641,17 +677,17 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       // Check the cache.
       if (_worthCache.TryGetValue(itemType, out var worthPair))
       {
-        if (worthPair.Key >= Calendar.Ticks) return worthPair.Value;
+        if (worthPair.expiry >= Calendar.Ticks) return worthPair.values;
       }
       
       // Set the cache to an empty value, to ensure that recursive calls don't loop forever.
-      _worthCache[itemType] = new KeyValuePair<long, List<DesireUtility>>(Calendar.Ticks, new List<DesireUtility>());
+      _worthCache[itemType] = new WorthCacheValue(Calendar.Ticks, new List<DesireUtility>());
       // Note that we don't point the cache entry above to our real new list, as we don't want
       // to return a partial result when called recursively.
       List<DesireUtility> worthList = new List<DesireUtility>();
 
       CalculateValidTasks();
-      if (!validTasksByInput.ContainsKey(itemType)) return _worthCache[itemType].Value;
+      if (!validTasksByInput.ContainsKey(itemType)) return _worthCache[itemType].values;
       foreach (var task in validTasksByInput[itemType])
       {
         if (task.compulsory) continue;
@@ -678,8 +714,8 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       DesireUtility.Sort(worthList);
       
       // Cache the worth.
-      _worthCache[itemType] = new KeyValuePair<long, List<DesireUtility>>(Calendar.Ticks + worth_cache_duration, worthList);
-      return _worthCache[itemType].Value;
+      _worthCache[itemType] = new WorthCacheValue(Calendar.Ticks + worth_cache_duration, worthList);
+      return _worthCache[itemType].values;
     }
   }
 

@@ -619,6 +619,12 @@ namespace Village.Tasks
     {
       return _Utility(runner, household, ref targets, ref scale, false, false, true);
     }
+
+    public override string ToString()
+    {
+      // For friendly printing.
+      return this.task;
+    }
     
 
     // The name of the task.

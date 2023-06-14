@@ -19,6 +19,11 @@ public class ConfigItemPrice
 {
   public int buy { get; set; }
   public int sell { get; set; }
+
+  public override string ToString()
+  {
+    return $"buy: {buy}, sell: {sell}";
+  }
 }
 
 public class ConfigPriceList : IPriceList

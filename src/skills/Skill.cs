@@ -216,6 +216,11 @@ public class Skill
       throw new Exception("Failed to load skill parents from file: " + filename + "\n" + e.Message);
     }
   }
+
+  public override string ToString()
+  {
+    return id;
+  }
 }
 
 public interface ISkillContext : IAbilityContext, IInventoryContext
@@ -384,6 +389,11 @@ public class PersonSkill
       return double.MaxValue;
     }
     return skill.levels[level].xp - xp;
+  }
+
+  public override string ToString()
+  {
+    return skill.id + " " + level + " " + xp + "/" + GetNextLevelXP();
   }
 
 }

@@ -152,6 +152,11 @@ public class AbilityType
     // Hash is based only off of the abilityType since it is unique.
     return abilityType.GetHashCode();
   }
+
+  public override string ToString()
+  {
+    return abilityType;
+  }
 }
 
 public interface IAbilityProvider

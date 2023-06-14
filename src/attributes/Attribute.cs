@@ -729,4 +729,9 @@ public class Attribute : IAbilityCollection
     if (_currentUtilityType == AttributeUtility.None) return 0;
     return _Utility(value + delta) - this.currentUtility;
   }
+
+  public override string ToString()
+  {
+    return $"{attributeType.name}: {value}";
+  }
 }
