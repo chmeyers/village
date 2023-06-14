@@ -631,16 +631,17 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
         // In theory, the utility of the effects could be so large that the cost is negative,
         // leading to a negative price. (Maybe when the person is able to level up from the task.)
         score *= -1;
-        double numOutputs = 0;
         double thisOutput = 0;
+        // Since we are looking for the cost of itemType, we add what we could get selling
+        // or using the other outputs.
         foreach (var output in task.OutputTypes(this, scale))
         {
           if (output.Key == itemType) thisOutput += output.Value;
-          numOutputs += output.Value;
+          else score += this.household.Utility(this, output.Key, output.Value);
         }
         if (thisOutput == 0) continue;
         // partition the score evenly among all outputs.
-        cost = Math.Min(cost, score / numOutputs);
+        cost = Math.Min(cost, score / thisOutput);
       }
       // Cache the cost, unless it's negative, as those are probably temporary due to one-time
       // effect benefits.
@@ -708,7 +709,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
         foreach (var input in task.Inputs(this, scale))
         {
           if (input.Key == itemType) thisInput += input.Value;
-          else score -= this.household.CostPrice(input.Key) * input.Value;
+          else score += this.household.Utility(this, input.Key, -input.Value);
         }
         if (thisInput == 0 || score <= 0) continue;
         double worth = score / thisInput;

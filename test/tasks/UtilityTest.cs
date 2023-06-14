@@ -335,10 +335,10 @@ public class UtilityUnitTest
   "wheat": { "buy":155, "sell":350 },
   "field_peas": { "buy":90, "sell":300 },
   "hay": { "buy":25, "sell":150 },
-  "wood": { "buy":5, "sell":100 },
+  "wood": { "buy":15, "sell":100 },
   "logs": { "buy":15, "sell":200 },
   "clay": { "buy":2, "sell":50 },
-  "stone": { "buy":10, "sell":300 },
+  "stone": { "buy":75, "sell":300 },
   "iron": { "buy":50, "sell":400 },
   "charcoal": { "buy":8, "sell":120 },
   "rattan": { "buy":2, "sell":50 },
@@ -347,7 +347,7 @@ public class UtilityUnitTest
   "brick": { "buy":45, "sell":100 },
   "tile": { "buy":45, "sell":100 },
   "lumber": { "buy":40, "sell":500 },
-  "iron_anvil": { "buy":500, "sell":4000 },
+  "iron_anvil": { "buy":5000, "sell":20000 },
   "chest": { "buy":300, "sell":2000 },
   "quern": { "buy":400, "sell":2500 },
 }
@@ -380,7 +380,7 @@ public class UtilityUnitTest
 
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
-    Assert.AreEqual(18, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(20, person.DetermineTimeUtility(), 0.5);
 
     // We don't have any food, so wheat has high utility.
     Assert.AreEqual(200100, household.Utility(person, wheat, 1), 1);
@@ -397,12 +397,12 @@ public class UtilityUnitTest
     Assert.AreEqual(-90, household.Utility(person, basket, -2), 0.5);
 
     // Unlike baskets, it's cheaper to buy an anvil than to produce one.
-    Assert.AreEqual(500, household.Utility(person, iron_anvil, 1), 0.5);
-    Assert.AreEqual(-4000, household.Utility(person, iron_anvil, -1), 0.5);
+    Assert.AreEqual(5000, household.Utility(person, iron_anvil, 1), 0.5);
+    Assert.AreEqual(-20000, household.Utility(person, iron_anvil, -1), 0.5);
     household.inventory.AddItem(new Item(iron_anvil), 1);
     // Now that we have one, utility is based on sell price.
-    Assert.AreEqual(-500, household.Utility(person, iron_anvil, -1), 0.5);
-    Assert.AreEqual(-4500, household.Utility(person, iron_anvil, -2), 0.5);
+    Assert.AreEqual(-5000, household.Utility(person, iron_anvil, -1), 0.5);
+    Assert.AreEqual(-25000, household.Utility(person, iron_anvil, -2), 0.5);
 
     // Pick a task. They need food, so they'll pick "hunt".
     Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
@@ -460,18 +460,20 @@ public class UtilityUnitTest
     validTasks.Add("hunt");
     validTasks.Add("cook_meals");
     validTasks.Add("");
-    validTasks.Add("gather_wood_1");
     validTasks.Add("gather_clay_by_hand");
     validTasks.Add("craft_unfired_brick");
     validTasks.Add("craft_unfired_tile");
-    validTasks.Add("make_charcoal_1");
-    validTasks.Add("craft_brick");
     validTasks.Add("gather_rattan_1");
     validTasks.Add("craft_basket");
-    validTasks.Add("craft_unfired_pottery");
-    validTasks.Add("craft_pottery");
-    validTasks.Add("smelt_iron_1");
-    for (int i = 0; i < 171; ++i) {
+    validTasks.Add("gather_wood_1");
+    validTasks.Add("make_charcoal_1");
+    validTasks.Add("craft_brick");
+    validTasks.Add("craft_tile");
+    
+    // validTasks.Add("craft_unfired_pottery");
+    // validTasks.Add("craft_pottery");
+    // validTasks.Add("smelt_iron_1");
+    for (int i = 0; i < 211; ++i) {
       string task = NextTask(person, household, dailyTasks);
       // print the task so we can see what's going on.
       //Console.WriteLine(task);
