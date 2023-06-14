@@ -597,7 +597,8 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     public override string ToString()
     {
       // For friendly printing.
-      return $"{cost}";
+      if (cost == double.MaxValue) return "∞";
+      return $"{cost:F2}";
     }
   }
 
