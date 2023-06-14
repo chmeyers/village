@@ -176,7 +176,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
-      offer += priceList.BuyPrice(item.Key) * item.Value;
+      offer += priceList.BidPrice(item.Key) * item.Value;
     }
     return offer;
   }
@@ -192,7 +192,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
-      offer += priceList.SellPrice(item.Key) * item.Value;
+      offer += priceList.AskPrice(item.Key) * item.Value;
     }
     return offer;
   }
@@ -649,7 +649,8 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       {
         _costCache[itemType] = new CostCacheValue(Calendar.Ticks + cost_cache_duration, cost);
       }
-      else {
+      else
+      {
         // When the cost is negative, we still cache, but only for this tick.
         _costCache[itemType] = new CostCacheValue(Calendar.Ticks, cost);
       }
@@ -688,7 +689,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       {
         if (worthPair.expiry >= Calendar.Ticks) return worthPair.values;
       }
-      
+
       // Set the cache to an empty value, to ensure that recursive calls don't loop forever.
       _worthCache[itemType] = new WorthCacheValue(Calendar.Ticks, new List<DesireUtility>());
       // Note that we don't point the cache entry above to our real new list, as we don't want
@@ -721,7 +722,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       // Sort the list with highest marginalUtility first, then go through an
       // prune out any entries worse than their predecessors.
       DesireUtility.Sort(worthList);
-      
+
       // Cache the worth.
       _worthCache[itemType] = new WorthCacheValue(Calendar.Ticks + worth_cache_duration, worthList);
       return _worthCache[itemType].values;

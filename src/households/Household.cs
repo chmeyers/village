@@ -329,7 +329,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   {
     // TODO(chmeyers): Use a market instead of a price list.
     IPriceList priceList = ConfigPriceList.Default;
-    double marketPrice = priceList.BuyPrice(itemType);
+    double marketPrice = priceList.BidPrice(itemType);
     // See if any people in the household can beat the market price.
     List<DesireUtility> bestValue = new List<DesireUtility>();
     bestValue.Add(new DesireUtility(int.MaxValue, int.MaxValue, marketPrice));
@@ -355,7 +355,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   {
     // TODO(chmeyers): Use a market instead of a price list.
     IPriceList priceList = ConfigPriceList.Default;
-    double marketPrice = priceList.SellPrice(itemType);
+    double marketPrice = priceList.AskPrice(itemType);
     // See if any people in the household can beat the market price.
     double bestPrice = marketPrice;
     foreach (var person in people)

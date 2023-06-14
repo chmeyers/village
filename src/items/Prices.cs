@@ -6,23 +6,23 @@ namespace Village.Items;
 public interface IPriceList
 {
   // Given an item, return the price they are willing to pay for the item.
-  double BuyPrice(Item item);
-  double BuyPrice(ItemType itemType);
+  double BidPrice(Item item);
+  double BidPrice(ItemType itemType);
 
   // Given an item, return the price they are willing to sell the item for.
-  double SellPrice(Item item);
-  double SellPrice(ItemType itemType);
+  double AskPrice(Item item);
+  double AskPrice(ItemType itemType);
 }
 
 
 public class ConfigItemPrice
 {
-  public int buy { get; set; }
-  public int sell { get; set; }
+  public int bid { get; set; }
+  public int ask { get; set; }
 
   public override string ToString()
   {
-    return $"buy: {buy}, sell: {sell}";
+    return $"bid: {bid}, ask: {ask}";
   }
 }
 
@@ -63,27 +63,27 @@ public class ConfigPriceList : IPriceList
   }
 
   // Given an item type, return the price they are willing to pay for the item.
-  public double BuyPrice(ItemType itemType)
+  public double BidPrice(ItemType itemType)
   {
     if (_prices.ContainsKey(itemType))
     {
-      return _prices[itemType].buy;
+      return _prices[itemType].bid;
     }
     return 0;
   }
 
-  public double BuyPrice(Item item) => BuyPrice(item.itemType);
+  public double BidPrice(Item item) => BidPrice(item.itemType);
 
   // Given an item, return the price they are willing to sell the item for.
-  public double SellPrice(ItemType itemType)
+  public double AskPrice(ItemType itemType)
   {
     if (_prices.ContainsKey(itemType))
     {
-      return _prices[itemType].sell;
+      return _prices[itemType].ask;
     }
     return int.MaxValue;
   }
 
-  public double SellPrice(Item item) => SellPrice(item.itemType);
+  public double AskPrice(Item item) => AskPrice(item.itemType);
 }
 
