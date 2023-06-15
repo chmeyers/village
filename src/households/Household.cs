@@ -364,7 +364,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     double bestPrice = marketPrice;
     foreach (var person in people)
     {
-      bestPrice = Math.Min(bestPrice, person.ProductionCost(itemType));
+      bestPrice = Math.Min(bestPrice, (-person.ProductionCost(itemType).GetFirstUtility()) ?? double.MaxValue);
     }
     return bestPrice;
   }

@@ -583,84 +583,9 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
   }
 
-  private class CostCacheValue
+  private class UtilityCacheValue
   {
-    public CostCacheValue(long expiry, double cost)
-    {
-      this.expiry = expiry;
-      this.cost = cost;
-    }
-
-    public long expiry;
-    public double cost;
-
-    public override string ToString()
-    {
-      // For friendly printing.
-      if (cost == double.MaxValue) return "∞";
-      return $"{cost:F2}";
-    }
-  }
-
-  // This person's cache of item cost. Value is a pair of (cache expiry, cost).
-  private Dictionary<ItemType, CostCacheValue> _costCache = new Dictionary<ItemType, CostCacheValue>();
-  private const long cost_cache_duration = Calendar.ticksPerWeek;
-  // What does it cost for this person to produce the given item?
-  public double ProductionCost(ItemType itemType)
-  {
-    lock (_cacheLock)
-    {
-      if (_costCache.TryGetValue(itemType, out var costPair))
-      {
-        if (costPair.expiry >= Calendar.Ticks) return costPair.cost;
-      }
-      // Calls here shouldn't result in recursion loops, but just in case, we'll set a cache value
-      // before calling any other functions.
-      _costCache[itemType] = new CostCacheValue(Calendar.Ticks, double.MaxValue);
-
-      CalculateValidTasks();
-      if (!validTasksByOutput.ContainsKey(itemType)) return double.MaxValue;
-      double cost = double.MaxValue;
-      foreach (var task in validTasksByOutput[itemType])
-      {
-        if (task.compulsory) continue;
-        Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
-        double scale = 1.0;
-        double score = task.PotentialOutputUtility(this, this.household, ref targets, ref scale);
-        // score should be negative, as it is the cost, so invert it.
-        // In theory, the utility of the effects could be so large that the cost is negative,
-        // leading to a negative price. (Maybe when the person is able to level up from the task.)
-        score *= -1;
-        double thisOutput = 0;
-        // Since we are looking for the cost of itemType, we add what we could get selling
-        // or using the other outputs.
-        foreach (var output in task.OutputTypes(this, scale))
-        {
-          if (output.Key == itemType) thisOutput += output.Value;
-          else score += this.household.Utility(this, output.Key, output.Value);
-        }
-        if (thisOutput == 0) continue;
-        // partition the score evenly among all outputs.
-        cost = Math.Min(cost, score / thisOutput);
-      }
-      // Cache the cost, unless it's negative, as those are probably temporary due to one-time
-      // effect benefits.
-      if (cost >= 0)
-      {
-        _costCache[itemType] = new CostCacheValue(Calendar.Ticks + cost_cache_duration, cost);
-      }
-      else
-      {
-        // When the cost is negative, we still cache, but only for this tick.
-        _costCache[itemType] = new CostCacheValue(Calendar.Ticks, cost);
-      }
-      return cost;
-    }
-  }
-
-  private class WorthCacheValue
-  {
-    public WorthCacheValue(long expiry, UtilityQuantityList values)
+    public UtilityCacheValue(long expiry, UtilityQuantityList values)
     {
       this.expiry = expiry;
       this.values = values;
@@ -676,8 +601,68 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
   }
 
+  // This person's cache of item cost. Value is a pair of (cache expiry, cost).
+  private Dictionary<ItemType, UtilityCacheValue> _costCache = new Dictionary<ItemType, UtilityCacheValue>();
+  private const long cost_cache_duration = Calendar.ticksPerWeek;
+  // What does it cost for this person to produce the given item?
+  public UtilityQuantityList ProductionCost(ItemType itemType)
+  {
+    lock (_cacheLock)
+    {
+      if (_costCache.TryGetValue(itemType, out var costPair))
+      {
+        if (costPair.expiry >= Calendar.Ticks) return costPair.values;
+      }
+      // Calls here shouldn't result in recursion loops, but just in case, we'll set a cache value
+      // before calling any other functions.
+      _costCache[itemType] = new UtilityCacheValue(Calendar.Ticks, new UtilityQuantityList());
+
+      CalculateValidTasks();
+      if (!validTasksByOutput.ContainsKey(itemType)) return _costCache[itemType].values;
+      double cost = double.MinValue;
+      foreach (var task in validTasksByOutput[itemType])
+      {
+        if (task.compulsory) continue;
+        Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
+        double scale = 1.0;
+        double score = task.PotentialOutputUtility(this, this.household, ref targets, ref scale);
+        // score should be negative, as it is the cost.
+        // In theory, the utility of the effects could be so large that the cost is negative,
+        // leading to a negative price. (Maybe when the person is able to level up from the task.)
+        double thisOutput = 0;
+        // Since we are looking for the cost of itemType, we add what we could get selling
+        // or using the other outputs.
+        foreach (var output in task.OutputTypes(this, scale))
+        {
+          if (output.Key == itemType) thisOutput += output.Value;
+          else score += this.household.Utility(this, output.Key, output.Value);
+        }
+        if (thisOutput == 0) continue;
+        // partition the score evenly among all outputs.
+        cost = Math.Max(cost, score / thisOutput);
+      }
+      // Cache the cost, unless it's positive, as those are probably temporary due to one-time
+      // effect benefits.
+      UtilityQuantityList costList = new UtilityQuantityList();
+      if (cost > double.MinValue)
+      {
+        costList.Add(new UtilityQuantity(int.MaxValue, int.MaxValue, cost));
+      }
+      if (cost <= 0)
+      {
+        _costCache[itemType] = new UtilityCacheValue(Calendar.Ticks + cost_cache_duration, costList);
+      }
+      else
+      {
+        // When the cost is negative, we still cache, but only for this tick.
+        _costCache[itemType] = new UtilityCacheValue(Calendar.Ticks, costList);
+      }
+      return costList;
+    }
+  }
+
   // This person's cache of item worth. Value is a pair of (cache expiry, worth).
-  private Dictionary<ItemType, WorthCacheValue> _worthCache = new Dictionary<ItemType, WorthCacheValue>();
+  private Dictionary<ItemType, UtilityCacheValue> _worthCache = new Dictionary<ItemType, UtilityCacheValue>();
   private const long worth_cache_duration = Calendar.ticksPerWeek;
   // How much is this item worth as an input to further production?
   public UtilityQuantityList WorthAsInput(ItemType itemType, double minWorth = 0)
@@ -691,7 +676,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       }
 
       // Set the cache to an empty value, to ensure that recursive calls don't loop forever.
-      _worthCache[itemType] = new WorthCacheValue(Calendar.Ticks, new UtilityQuantityList());
+      _worthCache[itemType] = new UtilityCacheValue(Calendar.Ticks, new UtilityQuantityList());
       // Note that we don't point the cache entry above to our real new list, as we don't want
       // to return a partial result when called recursively.
       UtilityQuantityList worthList = new UtilityQuantityList();
@@ -724,7 +709,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       worthList.Sort();
 
       // Cache the worth.
-      _worthCache[itemType] = new WorthCacheValue(Calendar.Ticks + worth_cache_duration, worthList);
+      _worthCache[itemType] = new UtilityCacheValue(Calendar.Ticks + worth_cache_duration, worthList);
       return _worthCache[itemType].values;
     }
   }

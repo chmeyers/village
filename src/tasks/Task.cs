@@ -21,7 +21,7 @@ namespace Village.Tasks
     // How much is this runner's time worth?
     public double TimeUtility();
     // How much does it cost this runner to produce the given item?
-    public double ProductionCost(ItemType itemType);
+    public UtilityQuantityList ProductionCost(ItemType itemType);
     // How much is this item worth to the runner as input.
     public UtilityQuantityList WorthAsInput(ItemType itemType, double minWorth = 0);
   }

@@ -62,7 +62,7 @@ public class UtilityQuantity : IComparable<UtilityQuantity>
     // marginal utility, rounded to 2 decimal places.
     if (totalQuantity >= int.MaxValue)
     {
-      return $"({marginalUtility:F2})";
+      return $"(∞, {marginalUtility:F2})";
     }
     return $"({totalQuantity}, {marginalUtility:F2})";
   }
