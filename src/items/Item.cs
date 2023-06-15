@@ -783,13 +783,13 @@ public class ItemType
     return descendents;
   }
 
-  public SortedDictionary<double, int> GetUtilityQuantities(IAbilityContext context, double householdSize, int daysInFuture = 0)
+  public UtilityQuantityList GetUtilityQuantities(IAbilityContext context, double householdSize, int daysInFuture = 0)
   {
-    // Get the desirability of this item type.
-    SortedDictionary<double, int> quantityByUtility = new SortedDictionary<double, int>();
+    UtilityQuantityList utilityQuantities = new UtilityQuantityList();
+    // Get the needed stockpile of this item type.
     if (stockpileUtilities == null)
     {
-      return quantityByUtility;
+      return utilityQuantities;
     }
     
     foreach (var stockpileUtility in stockpileUtilities)
@@ -800,17 +800,11 @@ public class ItemType
       if (quantity == 0) continue;
 
       double utility = stockpileUtility.utility!.GetSeasonalValue(context, daysInFuture);
-      if (quantityByUtility.ContainsKey(utility))
-      {
-        quantityByUtility[utility] += quantity;
-      }
-      else
-      {
-        quantityByUtility[utility] = quantity;
-      }
+      utilityQuantities.Add(new UtilityQuantity(0, quantity, utility));
     }
+    utilityQuantities.SetTotals();
 
-    return quantityByUtility;
+    return utilityQuantities;
   }
 }
 

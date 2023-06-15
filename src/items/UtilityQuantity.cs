@@ -77,12 +77,28 @@ public class UtilityQuantityList : List<UtilityQuantity>
 
   public new void Sort()
   {
+    SetMarginals();
+  }
+
+  public void SetMarginals()
+  {
     base.Sort();
-    // Prune entries that are dominated by other entries.
+    // Assume that the total quantities are correct, and set the marginal
+    // quantities by subtracting the previous total quantity.
     for (int i = 1; i < this.Count; i++)
     {
       if (this[i].totalQuantity <= this[i - 1].totalQuantity)
       {
+        // This entry would have <=0 marginal quantity, so remove it.
+        this.RemoveAt(i);
+        i--;
+      }
+      else if (this[i].marginalUtility == this[i - 1].marginalUtility)
+      {
+        // This entry has the same marginal utility as the previous one,
+        // so merge the two entries.
+        this[i - 1].marginalQuantity += this[i].totalQuantity - this[i - 1].totalQuantity;
+        this[i - 1].totalQuantity = this[i].totalQuantity;
         this.RemoveAt(i);
         i--;
       }
@@ -98,6 +114,29 @@ public class UtilityQuantityList : List<UtilityQuantity>
     }
   }
 
+  public void SetTotals()
+  {
+    base.Sort();
+    // Assume that the marginal quantities are correct, and set the totals
+    // by adding them up.
+    int runningTotal = 0;
+    for (int i = 0; i < this.Count; i++)
+    {
+      // If the marginal utility is the same as the previous one, then
+      // merge the two entries.
+      if (i > 0 && this[i].marginalUtility == this[i - 1].marginalUtility)
+      {
+        this[i - 1].marginalQuantity += this[i].marginalQuantity;
+        this[i - 1].totalQuantity += this[i].marginalQuantity;
+        this.RemoveAt(i);
+        i--;
+        continue;
+      }
+      runningTotal += this[i].marginalQuantity;
+      this[i].totalQuantity = runningTotal;
+    }
+  }
+
   // Combine the second list of desire utilities into the first,
   // maintaining the sort order.
   public UtilityQuantityList Merge(UtilityQuantityList from)
@@ -106,7 +145,7 @@ public class UtilityQuantityList : List<UtilityQuantity>
     {
       this.Add(element.Clone());
     }
-    Sort();
+    SetMarginals();
     return this;
   }
 
@@ -137,7 +176,7 @@ public class UtilityQuantityList : List<UtilityQuantity>
       }
     }
     // Sort the result.
-    Sort();
+    SetMarginals();
 
     return this;
   }

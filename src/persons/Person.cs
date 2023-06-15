@@ -703,9 +703,8 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
           worthList.Add(new UtilityQuantity(thisInput, thisInput, worth));
         }
       }
-      // Sort the list with highest marginalUtility first, then go through an
-      // prune out any entries worse than their predecessors.
-      worthList.Sort();
+      // We are done adding to the list, so sort it to get it ready for use.
+      worthList.SetMarginals();
 
       // Cache the worth.
       _worthCache[itemType] = new UtilityCacheValue(Calendar.Ticks + worth_cache_duration, worthList);

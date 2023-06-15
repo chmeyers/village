@@ -279,20 +279,14 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       {
         // CURRENCY type items are never desired (for more than their sell price).
         // Cache this forever, since it will never change.
+        // TODO(chmeyers): Should households want to keep some currency on hand?
         _CachedDesiredStockpile[itemType] = new KeyValuePair<long, UtilityQuantityList>(long.MaxValue, new UtilityQuantityList());
         return _CachedDesiredStockpile[itemType].Value;
       }
-      SortedDictionary<double, int> quantityByUtility = itemType.GetUtilityQuantities(defaultContext, householdSize, daysInFuture);
+      UtilityQuantityList desired = itemType.GetUtilityQuantities(defaultContext, householdSize, daysInFuture);
       // TODO(chmeyers): Add in seed corn needed for next year.
       // TODO(chmeyers): Add tools that household members need.
       // TODO(chmeyers): Add vendor stock w/ BuyPrice+Profit Utility.
-      UtilityQuantityList desired = new UtilityQuantityList();
-      int runningTotal = 0;
-      foreach (var pair in quantityByUtility.Reverse())
-      {
-        runningTotal += pair.Value;
-        desired.Add(new UtilityQuantity(runningTotal, pair.Value, pair.Key));
-      }
       if (daysInFuture == 0)
       {
         // Cache for a week.
