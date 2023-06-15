@@ -383,6 +383,14 @@ public class Inventory : IInventoryContext, IAbilityCollection
     }
   }
 
+  public bool Contains(ItemType itemType, int quantity)
+  {
+    lock (_itemsLock)
+    {
+      return _ContainsNoLock(itemType, ref quantity);
+    }
+  }
+
   // Check whether the given items exists in the inventory with at least the specified quantity.
   // For correct behavior, child types should be listed before parent types.
   public bool Contains(IEnumerable<KeyValuePair<ItemType, int>> items)

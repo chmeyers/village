@@ -10,6 +10,7 @@ public interface IPriceList
   UtilityQuantityList BidPrice(ItemType itemType);
 
   // Given an item, return the price they are willing to sell the item for.
+  // By convention, these are negative numbers.
   UtilityQuantityList AskPrice(Item item);
   UtilityQuantityList AskPrice(ItemType itemType);
 }

@@ -352,6 +352,12 @@ public class ItemType
 {
   // Default Quality is 100.
   public const int DEFAULT_QUALITY = 100;
+  private const string _coin_name = "coin";
+  public static ItemType Coin {
+    get {
+      return Find(_coin_name) ?? throw new Exception($"Could not find item type {_coin_name}");
+    }
+  }
   // A static dictionary of all item types.
   // This is used to look up item types by name.
   private static Dictionary<string, ItemType> _itemTypes = new Dictionary<string, ItemType>();

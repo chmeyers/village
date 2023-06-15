@@ -43,6 +43,16 @@ public class UtilityQuantity : IComparable<UtilityQuantity>
     return other.marginalQuantity.CompareTo(marginalQuantity);
   }
 
+  public static bool operator <(UtilityQuantity a, UtilityQuantity b)
+  {
+    return a.CompareTo(b) < 0;
+  }
+
+  public static bool operator >(UtilityQuantity a, UtilityQuantity b)
+  {
+    return a.CompareTo(b) > 0;
+  }
+
   public override bool Equals(object? obj)
   {
     return obj is UtilityQuantity utility &&
@@ -256,10 +266,39 @@ public class UtilityQuantityList : List<UtilityQuantity>
     return this[0].marginalUtility;
   }
 
+  public double GetTotalUtility()
+  {
+    // Add up all the marginal utilities.
+    double total = 0;
+    foreach (var element in this)
+    {
+      total += element.marginalUtility * element.marginalQuantity;
+    }
+    return total;
+  }
+
   public override string ToString()
   {
     return $"[{string.Join(", ", this)}]";
   }
 
+}
+
+public class UtilityCacheValue
+{
+  public UtilityCacheValue(long expiry, UtilityQuantityList values)
+  {
+    this.expiry = expiry;
+    this.values = values;
+  }
+
+  public long expiry;
+  public UtilityQuantityList values;
+
+  public override string ToString()
+  {
+    // For friendly printing, create a comma separated list of the values.
+    return string.Join(", ", values);
+  }
 }
 

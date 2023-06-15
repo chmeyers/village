@@ -313,6 +313,9 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     IPriceList priceList = ConfigPriceList.Default;
     UtilityQuantityList bestValue = priceList.BidPrice(itemType);
     // See if any people in the household can beat the market price.
+    // The BidPrice above probably includes this household's market offers,
+    // but that's fine, as those offers are always epsilon worse than
+    // what WorthAsInput will return, so Merge will remove them.
     foreach (var person in people)
     {
       bestValue.Merge(person.WorthAsInput(itemType));
@@ -338,6 +341,9 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     IPriceList priceList = ConfigPriceList.Default;
     UtilityQuantityList bestPrice = priceList.AskPrice(itemType);
     // See if any people in the household can beat the market price.
+    // The AskPrice above probably includes this household's market offers,
+    // but that's fine, as those offers are always epsilon worse than
+    // what ProductionCost will return, so Merge will remove them.
     foreach (var person in people)
     {
       bestPrice.Merge(person.ProductionCost(itemType));

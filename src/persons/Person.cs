@@ -582,24 +582,6 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
   }
 
-  private class UtilityCacheValue
-  {
-    public UtilityCacheValue(long expiry, UtilityQuantityList values)
-    {
-      this.expiry = expiry;
-      this.values = values;
-    }
-
-    public long expiry;
-    public UtilityQuantityList values;
-
-    public override string ToString()
-    {
-      // For friendly printing, create a comma separated list of the values.
-      return string.Join(", ", values);
-    }
-  }
-
   // This person's cache of item cost. Value is a pair of (cache expiry, cost).
   private Dictionary<ItemType, UtilityCacheValue> _costCache = new Dictionary<ItemType, UtilityCacheValue>();
   private const long cost_cache_duration = Calendar.ticksPerWeek;
