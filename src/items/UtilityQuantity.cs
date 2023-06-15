@@ -142,6 +142,56 @@ public class UtilityQuantityList : List<UtilityQuantity>
     return this;
   }
 
+  // Stack the two lists, adding the marginal quantities together.
+  public static UtilityQuantityList Stack(UtilityQuantityList? a, UtilityQuantityList? b)
+  {
+    if (a == null)
+    {
+      return b?.Clone() ?? new UtilityQuantityList();
+    }
+    if (b == null)
+    {
+      return a.Clone();
+    }
+    var result = new UtilityQuantityList();
+    int i = 0;
+    int j = 0;
+    int runningTotal = 0;
+    while (i < a.Count || j < b.Count)
+    {
+      if (i >= a.Count)
+      {
+        result.Add(b[j].Clone());
+        j++;
+      }
+      else if (j >= b.Count)
+      {
+        result.Add(a[i].Clone());
+        i++;
+      }
+      else if (a[i].marginalUtility > b[j].marginalUtility)
+      {
+        result.Add(a[i].Clone());
+        i++;
+      }
+      else if (a[i].marginalUtility < b[j].marginalUtility)
+      {
+        result.Add(b[j].Clone());
+        j++;
+      }
+      else
+      {
+        result.Add(new UtilityQuantity(0, a[i].marginalQuantity + b[j].marginalQuantity, a[i].marginalUtility));
+        i++;
+        j++;
+      }
+      // Fix the total quantity of the element we added.
+      runningTotal += result[result.Count - 1].marginalQuantity;
+      result[result.Count - 1].totalQuantity = runningTotal;
+    }
+    return result;
+  }
+
   public double? GetLastUtility()
   {
     if (this.Count == 0)

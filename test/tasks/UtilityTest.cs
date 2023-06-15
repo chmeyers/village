@@ -121,7 +121,9 @@ public class UtilityUnitTest
 {
   "straw": { "group": "RESOURCE"},
   "food": { "group": "FOOD", "stockpile": [{"perPerson": 200, "utility": 200}]},
-  "wheat": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 4, "minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.4444, "targetYieldPerAcre": 600, "seedPerAcre": 150, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "fieldCrop": true, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
+  "grain": { "group": "FOOD", "parents" : ["food"], "stockpile": [{"perPerson": 3000, "utility": 1}]},
+  "wheat": { "group": "FOOD", "parents" : ["grain"], "weight": 0.5, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 4, "minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.4444, "targetYieldPerAcre": 600, "seedPerAcre": 150, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "fieldCrop": true, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
+  "tricorn": { "group": "FOOD", "parents" : ["wheat"], "stockpile": [{"perPerson": 2000, "utility": 2}]},
   "hay": { "group": "FOOD", "parents" : ["food"], "weight": 1, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 1, "minSoilQuality": 0, "minPlantingTemp": 32, "frostTolerance": 20, "heatTolerance": 100, "droughtTolerance": 0.75, "weedSusceptibleDays": 10, "initDays": 10, "devDays": 15, "midDays": 75, "lateDays": 35, "kcInit": 0.4, "kcMid": 0.85, "kcEnd": 0.85, "perTickYieldGrowth": 2.963, "targetYieldPerAcre": 4000, "seedPerAcre": 10, "nitrogenPerYield": 0.019, "phosphorusPerYield": 0.0025, "potassiumPerYield": 0.018, "strawPerYield": 1, "nitrogenPerStraw": 0.006, "phosphorusPerStraw": 0, "potassiumPerStraw": 0, "nitrogenFixing": 0.8, "fieldCrop": true, "temperatePlantingMonths": [0,1], "harvestItems": { "hay" : 1 }, "cropAttribute": "crop_hay_growing"} },
   "field_peas": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "legumes", "cropSkillLevel": 1, "minSoilQuality": 2, "minPlantingTemp": 40, "frostTolerance": 28, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 40, "initDays": 20, "devDays": 30, "midDays": 40, "lateDays": 25, "kcInit": 0.4, "kcMid": 1.15, "kcEnd": 0.3, "perTickYieldGrowth": 0.5739, "targetYieldPerAcre": 660, "seedPerAcre": 180, "hasHarvestableStraw": true, "nitrogenPerYield": 0.04, "phosphorusPerYield": 0.008717, "potassiumPerYield": 0.009817, "strawPerYield": 1.5, "nitrogenPerStraw": 0.008, "phosphorusPerStraw": 0.0007, "potassiumPerStraw": 0.009, "nitrogenFixing": 0.6, "temperatePlantingMonths": [0,1], "fieldCrop": true, "harvestItems": { "field_peas" : 1 , "straw": 1.5 }, "cropAttribute": "crop_field_peas_growing"} },
   "wood": { "group": "RESOURCE" },
@@ -332,7 +334,7 @@ public class UtilityUnitTest
 {
   "coin": { "bid":1, "ask":1 },
   "straw": { "bid":5, "ask":150 },
-  "wheat": { "bid":155, "ask":350 },
+  "wheat": { "bid":160, "ask":350 },
   "field_peas": { "bid":90, "ask":300 },
   "hay": { "bid":25, "ask":150 },
   "wood": { "bid":15, "ask":100 },
@@ -372,7 +374,10 @@ public class UtilityUnitTest
     person.GrantAbility(AbilityType.Find("sickle_1")!);
 
     HashSet<WorkTask> dailyTasks = TaskSet.Find("daily")!;
+    ItemType food = ItemType.Find("food")!;
+    ItemType grain = ItemType.Find("grain")!;
     ItemType wheat = ItemType.Find("wheat")!;
+    ItemType tricorn = ItemType.Find("tricorn")!;
     ItemType hay = ItemType.Find("hay")!;
     ItemType peas = ItemType.Find("field_peas")!;
     ItemType basket = ItemType.Find("basket")!;
@@ -382,9 +387,54 @@ public class UtilityUnitTest
     // This will recursively check all the tasks they can do.
     Assert.AreEqual(20, person.DetermineTimeUtility(), 0.5);
 
-    // We don't have any food, so wheat has high utility.
-    Assert.AreEqual(200100, household.Utility(person, wheat, 1), 1);
+    // Check DesiresStockpile functionality.
+    var foodStockpile = household.DesiredStockpile(food);
+    Assert.AreEqual(1, foodStockpile.Count);
+    Assert.AreEqual(200, foodStockpile[0].totalQuantity);
+    Assert.AreEqual(200, foodStockpile[0].marginalUtility);
+    // Food value should come from the utility of making a meal.
+    var foodValue = household.ValuePrice(food);
+    Assert.AreEqual(3, foodValue.Count);
+    Assert.AreEqual(1, foodValue[0].totalQuantity);
+    Assert.AreEqual(199900, foodValue[0].marginalUtility);
+    Assert.AreEqual(3, foodValue[1].totalQuantity);
+    Assert.AreEqual(69933.3, foodValue[1].marginalUtility, 0.1);
+    Assert.AreEqual(15, foodValue[2].totalQuantity);
+    Assert.AreEqual(15974.6, foodValue[2].marginalUtility, 0.1);
+
+    var grainStockpile = household.DesiredStockpile(grain);
+    Assert.AreEqual(1, grainStockpile.Count);
+    Assert.AreEqual(3000, grainStockpile[0].totalQuantity);
+    Assert.AreEqual(1, grainStockpile[0].marginalUtility);
+    // Grain value should be empty.
+    var grainValue = household.ValuePrice(grain);
+    Assert.AreEqual(0, grainValue.Count);
+
+    var wheatStockpile = household.DesiredStockpile(wheat);
+    Assert.AreEqual(0, wheatStockpile.Count);
+    // Wheat value should be based on market price.
+    var wheatValue = household.ValuePrice(wheat);
+    Assert.AreEqual(1, wheatValue.Count);
+    Assert.AreEqual(160, wheatValue[0].marginalUtility);
+
+    var tricornStockpile = household.DesiredStockpile(tricorn);
+    Assert.AreEqual(1, tricornStockpile.Count);
+    Assert.AreEqual(2000, tricornStockpile[0].totalQuantity);
+    Assert.AreEqual(2, tricornStockpile[0].marginalUtility);
+
+
+    // We don't have any food, so the entire wheat-tricorn chain has high utility.
+    // Food is based on just the Value Price
+    Assert.AreEqual(199900, household.Utility(person, food, 1), 1);
+    Assert.AreEqual(-199900, household.Utility(person, food, -1), 1);
+    // Grain inherits from food, but is unpurchasable.
+    Assert.AreEqual(199901, household.Utility(person, grain, 1), 1);
+    Assert.AreEqual(double.MinValue, household.Utility(person, grain, -1), 1);
+    // Wheat inherits from grain, but adds in the purchase/sale price.
+    Assert.AreEqual(200061, household.Utility(person, wheat, 1), 1);
     Assert.AreEqual(-200250, household.Utility(person, wheat, -1), 1);
+    Assert.AreEqual(200064, household.Utility(person, tricorn, 1), 1);
+    Assert.AreEqual(double.MinValue, household.Utility(person, tricorn, -1), 1);
 
     // Basket's utility is solely based on the market price.
     Assert.AreEqual(45, household.Utility(person, basket, 1), 0.5);
@@ -473,7 +523,7 @@ public class UtilityUnitTest
     // validTasks.Add("craft_unfired_pottery");
     // validTasks.Add("craft_pottery");
     // validTasks.Add("smelt_iron_1");
-    for (int i = 0; i < 211; ++i) {
+    for (int i = 0; i < 209; ++i) {
       string task = NextTask(person, household, dailyTasks);
       // print the task so we can see what's going on.
       //Console.WriteLine(task);

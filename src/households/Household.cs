@@ -286,23 +286,6 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       // TODO(chmeyers): Add in seed corn needed for next year.
       // TODO(chmeyers): Add tools that household members need.
       // TODO(chmeyers): Add vendor stock w/ BuyPrice+Profit Utility.
-      // Recurse and merge the parent items' desired stockpile.
-      // DO NOT SUBMIT: This is wrong. Need to include grandparents/ancestors.
-      foreach (var parent in itemType.parentTypes)
-      {
-        var parentDesired = DesiredStockpile(parent, daysInFuture, ignoreCache);
-        foreach (var parentDesire in parentDesired)
-        {
-          if (quantityByUtility.ContainsKey(parentDesire.marginalUtility))
-          {
-            quantityByUtility[parentDesire.marginalUtility] += parentDesire.marginalQuantity;
-          }
-          else
-          {
-            quantityByUtility[parentDesire.marginalUtility] = parentDesire.marginalQuantity;
-          }
-        }
-      }
       UtilityQuantityList desired = new UtilityQuantityList();
       int runningTotal = 0;
       foreach (var pair in quantityByUtility.Reverse())
@@ -368,6 +351,22 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     return bestPrice;
   }
 
+
+  private double _Utility(ITaskRunner runner, ItemType itemType, int quantity, int days, UtilityQuantityList? cost, UtilityQuantityList? childStockpile)
+  {
+    UtilityQuantityList stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType, days), childStockpile);
+    double utility = _MarginalUtility(stockpile, inventory.Count(itemType), quantity, ValuePrice(itemType), cost);
+    // Add in the utility for the parents/ancestors of this item, as it can
+    // also be used as any of them.
+    foreach (var parent in itemType.parentTypes)
+    {
+      // We pass in null for the costPrice here, because we don't want to
+      // double count the cost.
+      utility += _Utility(runner, parent, quantity, days, null, stockpile);
+    }
+    return utility;
+  }
+
   // Item Utility
   // Negative Quantities are for removing items.
   // Returned units are in currency.
@@ -375,16 +374,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // for it's utility value minus epsilon, and sell them for plus epsilon.
   public double Utility(ITaskRunner runner, ItemType itemType, int quantity)
   {
-    double utility = _MarginalUtility(DesiredStockpile(itemType), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : null));
-    // Add in the utility for the parents/ancestors of this item, as it can
-    // also be used as any of them.
-    foreach (var parent in itemType.parentTypes)
-    {
-      // We pass in zero for the costPrice here, because we don't want to
-      // double count the cost.
-      utility += _MarginalUtility(DesiredStockpile(parent), inventory.Count(parent), quantity, ValuePrice(parent), null);
-    }
-    return utility;
+    return _Utility(runner, itemType, quantity, 0, (quantity < 0 ? CostPrice(itemType) : null), null);
   }
 
   // Utility of a quantity of an item expected to be produced in the future.
@@ -394,14 +384,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     // at future stockpile utility, but assuming static market prices.
     // TODO(chmeyers): Do we need to simulate a burn down rate for the household's current
     // inventory? Currently this just assumes we'll have the same amount of everything as now.
-    double utility = _MarginalUtility(DesiredStockpile(itemType, days), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : null));
-    // Add in the utility for the parents/ancestors of this item, as it can
-    // also be used as any of them.
-    foreach (var parent in itemType.parentTypes)
-    {
-      utility += _MarginalUtility(DesiredStockpile(parent, days), inventory.Count(parent), quantity, ValuePrice(parent), null);
-    }
-    return utility;
+    return _Utility(runner, itemType, quantity, days, (quantity < 0 ? CostPrice(itemType) : null), null);
   }
 
   // Time Utility
