@@ -148,8 +148,13 @@ public class UtilityQuantityList : List<UtilityQuantity>
     {
       return null;
     }
-    // return the utility of the last element.
-    return this[this.Count - 1].marginalUtility;
+    // return the utility of the last element if it has MaxInt total quantity, otherwise
+    // retun null to indicate they should use a fallback value.
+    if (this[this.Count - 1].totalQuantity == int.MaxValue)
+    {
+      return this[this.Count - 1].marginalUtility;
+    }
+    return null;
   }
 
   public double? GetFirstUtility()

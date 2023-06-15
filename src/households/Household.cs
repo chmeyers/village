@@ -285,7 +285,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       // TODO(chmeyers): Add tools that household members need.
       // TODO(chmeyers): Add vendor stock w/ BuyPrice+Profit Utility.
       // Recurse and merge the parent items' desired stockpile.
-      // DO NOT SUBMIT: This is wrong. Parent stockpiles should be taken care of by parent Utility.
+      // DO NOT SUBMIT: This is wrong. Need to include grandparents/ancestors.
       foreach (var parent in itemType.parentTypes)
       {
         var parentDesired = DesiredStockpile(parent, daysInFuture, ignoreCache);
@@ -332,10 +332,8 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   {
     // TODO(chmeyers): Use a market instead of a price list.
     IPriceList priceList = ConfigPriceList.Default;
-    double marketPrice = priceList.BidPrice(itemType);
+    UtilityQuantityList bestValue = priceList.BidPrice(itemType);
     // See if any people in the household can beat the market price.
-    UtilityQuantityList bestValue = new UtilityQuantityList();
-    bestValue.Add(new UtilityQuantity(int.MaxValue, int.MaxValue, marketPrice));
     foreach (var person in people)
     {
       bestValue.Merge(person.WorthAsInput(itemType));

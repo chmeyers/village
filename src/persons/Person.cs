@@ -176,7 +176,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
-      offer += priceList.BidPrice(item.Key) * item.Value;
+      offer += household.Utility(this, item.Key.itemType, item.Value);
     }
     return offer;
   }

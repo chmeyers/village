@@ -6,8 +6,8 @@ namespace Village.Items;
 public interface IPriceList
 {
   // Given an item, return the price they are willing to pay for the item.
-  double BidPrice(Item item);
-  double BidPrice(ItemType itemType);
+  UtilityQuantityList BidPrice(Item item);
+  UtilityQuantityList BidPrice(ItemType itemType);
 
   // Given an item, return the price they are willing to sell the item for.
   double AskPrice(Item item);
@@ -63,16 +63,17 @@ public class ConfigPriceList : IPriceList
   }
 
   // Given an item type, return the price they are willing to pay for the item.
-  public double BidPrice(ItemType itemType)
+  public UtilityQuantityList BidPrice(ItemType itemType)
   {
+    UtilityQuantityList bid = new UtilityQuantityList();
     if (_prices.ContainsKey(itemType))
     {
-      return _prices[itemType].bid;
+      bid.Add(new UtilityQuantity(int.MaxValue, int.MaxValue, _prices[itemType].bid));
     }
-    return 0;
+    return bid;
   }
 
-  public double BidPrice(Item item) => BidPrice(item.itemType);
+  public UtilityQuantityList BidPrice(Item item) => BidPrice(item.itemType);
 
   // Given an item, return the price they are willing to sell the item for.
   // By convention, these are negative.
