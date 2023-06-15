@@ -10,8 +10,8 @@ public interface IPriceList
   UtilityQuantityList BidPrice(ItemType itemType);
 
   // Given an item, return the price they are willing to sell the item for.
-  double AskPrice(Item item);
-  double AskPrice(ItemType itemType);
+  UtilityQuantityList AskPrice(Item item);
+  UtilityQuantityList AskPrice(ItemType itemType);
 }
 
 
@@ -77,15 +77,16 @@ public class ConfigPriceList : IPriceList
 
   // Given an item, return the price they are willing to sell the item for.
   // By convention, these are negative.
-  public double AskPrice(ItemType itemType)
+  public UtilityQuantityList AskPrice(ItemType itemType)
   {
+    UtilityQuantityList ask = new UtilityQuantityList();
     if (_prices.ContainsKey(itemType))
     {
-      return -_prices[itemType].ask;
+      ask.Add(new UtilityQuantity(int.MaxValue, int.MaxValue, -_prices[itemType].ask));
     }
-    return double.MinValue;
+    return ask;
   }
 
-  public double AskPrice(Item item) => AskPrice(item.itemType);
+  public UtilityQuantityList AskPrice(Item item) => AskPrice(item.itemType);
 }
 

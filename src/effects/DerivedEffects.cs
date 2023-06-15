@@ -130,7 +130,7 @@ public class DegradeEffect : Effect
     // are not available for purchase.
     // TODO(chmeyers): We should be willing to substitute a different item with the
     // same abilities.
-    double buyPrice = Math.Max(household.household.CostPrice(item.itemType), utilityOfUnavailableTools);
+    double buyPrice = household.household.CostPrice(item.itemType).GetFirstUtility() ??utilityOfUnavailableTools;
     return buyPrice * degradeAmount / defaultQuality;
   }
 

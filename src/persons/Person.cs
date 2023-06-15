@@ -171,8 +171,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   public double GetOffer(IDictionary<Item, int> items, Person seller)
   {
     // TODO(chmeyers): Implement buyer/seller relationships.
-    // TODO(chmeyers): Implement non-linear quantities.
-    // Look up the items in the price list.
+    // Get the utility of having the items.
     double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
@@ -187,12 +186,12 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   public double GetPrice(IDictionary<Item, int> items, Person buyer)
   {
     // TODO(chmeyers): Implement buyer/seller relationships.
-    // TODO(chmeyers): Implement non-linear quantities.
-    // Look up the items in the price list.
+    // Get the utility of removing the items.
     double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
-      offer += -priceList.AskPrice(item.Key) * item.Value;
+      // Offer will be negative. Invert it?
+      offer += household.Utility(this, item.Key.itemType, -item.Value);
     }
     return offer;
   }

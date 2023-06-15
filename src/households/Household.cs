@@ -185,7 +185,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     return effect.Utility(household, runner, chosenTarget, scale);
   }
 
-  private double _MarginalUtility(UtilityQuantityList desiredStockpile, int have, int delta, UtilityQuantityList valueList, double costPrice = double.MinValue)
+  private double _MarginalUtility(UtilityQuantityList desiredStockpile, int have, int delta, UtilityQuantityList valueList, UtilityQuantityList? costPrice)
   {
     if (delta < 0)
     {
@@ -221,7 +221,9 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       int from_inventory = Math.Min(-delta, have);
       int need_to_buy = -delta - from_inventory;
       utility += price * -from_inventory;  // +/- epsilon?
-      price = Math.Max(-costPrice, price);
+      // An null costPrice means we'll use a zero, an empty one means min value.
+      double aquirePrice = costPrice == null ? 0 : costPrice.GetLastUtility() ?? double.MinValue;
+      price = Math.Max(-aquirePrice, price);
       utility += price * -need_to_buy;  // +/- epsilon?
       return utility;
     }
@@ -353,16 +355,15 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // and a desired profit.
   // TODO: By convention, these values are negative.
   // TODO(chmeyers): Make sure we are dealing correctly with vendor "overstock".
-  public double CostPrice(ItemType itemType)
+  public UtilityQuantityList CostPrice(ItemType itemType)
   {
     // TODO(chmeyers): Use a market instead of a price list.
     IPriceList priceList = ConfigPriceList.Default;
-    double marketPrice = priceList.AskPrice(itemType);
+    UtilityQuantityList bestPrice = priceList.AskPrice(itemType);
     // See if any people in the household can beat the market price.
-    double bestPrice = marketPrice;
     foreach (var person in people)
     {
-      bestPrice = Math.Max(bestPrice, person.ProductionCost(itemType).GetFirstUtility() ?? double.MinValue);
+      bestPrice.Merge(person.ProductionCost(itemType));
     }
     return bestPrice;
   }
@@ -374,14 +375,14 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // for it's utility value minus epsilon, and sell them for plus epsilon.
   public double Utility(ITaskRunner runner, ItemType itemType, int quantity)
   {
-    double utility = _MarginalUtility(DesiredStockpile(itemType), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : double.MinValue));
+    double utility = _MarginalUtility(DesiredStockpile(itemType), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : null));
     // Add in the utility for the parents/ancestors of this item, as it can
     // also be used as any of them.
     foreach (var parent in itemType.parentTypes)
     {
       // We pass in zero for the costPrice here, because we don't want to
       // double count the cost.
-      utility += _MarginalUtility(DesiredStockpile(parent), inventory.Count(parent), quantity, ValuePrice(parent), 0);
+      utility += _MarginalUtility(DesiredStockpile(parent), inventory.Count(parent), quantity, ValuePrice(parent), null);
     }
     return utility;
   }
@@ -393,12 +394,12 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     // at future stockpile utility, but assuming static market prices.
     // TODO(chmeyers): Do we need to simulate a burn down rate for the household's current
     // inventory? Currently this just assumes we'll have the same amount of everything as now.
-    double utility = _MarginalUtility(DesiredStockpile(itemType, days), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : double.MinValue));
+    double utility = _MarginalUtility(DesiredStockpile(itemType, days), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : null));
     // Add in the utility for the parents/ancestors of this item, as it can
     // also be used as any of them.
     foreach (var parent in itemType.parentTypes)
     {
-      utility += _MarginalUtility(DesiredStockpile(parent, days), inventory.Count(parent), quantity, ValuePrice(parent), 0);
+      utility += _MarginalUtility(DesiredStockpile(parent, days), inventory.Count(parent), quantity, ValuePrice(parent), null);
     }
     return utility;
   }
