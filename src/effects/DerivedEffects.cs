@@ -117,6 +117,7 @@ public class DegradeEffect : Effect
     return amount == 0 ? Double.MaxValue : (target.target! as Item)!.quality / amount;
   }
 
+  public const double utilityOfUnavailableTools = 5000;
   public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // Degrade has a negative utility equal to the degradation percentage of the buy price
@@ -125,6 +126,10 @@ public class DegradeEffect : Effect
     Item item = (Item)chosenEffectTarget.target!;
     // We always assume a base quality item, as that is what the buy price is based on.
     int defaultQuality = (int)item.itemType.craftQuality.GetBaseValue();
+    // We don't default to max value, because we want to be able to degrade items that
+    // are not available for purchase.
+    // TODO(chmeyers): We should be willing to substitute a different item with the
+    // same abilities.
     double buyPrice = household.household.CostPrice(item.itemType);
     return -buyPrice * degradeAmount / defaultQuality;
   }

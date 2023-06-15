@@ -199,9 +199,10 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       UtilityQuantityList allValues = desiredStockpile.Clone().MergeExceptQuantity(valueList, have);
 
       double utility = 0;
-      double price = valueList.Count > 0 ? valueList[valueList.Count - 1].marginalUtility : 0;
+      double price = valueList.GetLastUtility() ?? 0;
       for (int i = allValues.Count - 1; i >= 0; i--)
       {
+        // TODO(chmeyers): This could be refactored to skip entries for better performance.
         int totalDesired = allValues[i].totalQuantity;
         int excess = Math.Max(have - totalDesired, 0);
         int undesired_amount = Math.Min(-delta, excess);
@@ -242,7 +243,8 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
         }
         have = Math.Max(have, totalDesired);
       }
-      double fallbackValue = valueList.Count > 0 ? valueList[valueList.Count - 1].marginalUtility : 0;
+      // Fallback to the lowest ValuePrice, NOT the desire stockpile.
+      double fallbackValue = valueList.GetLastUtility() ?? 0;
       utility += fallbackValue * delta;  // +/- epsilon?
       return utility;
     }
@@ -283,6 +285,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       // TODO(chmeyers): Add tools that household members need.
       // TODO(chmeyers): Add vendor stock w/ BuyPrice+Profit Utility.
       // Recurse and merge the parent items' desired stockpile.
+      // DO NOT SUBMIT: This is wrong. Parent stockpiles should be taken care of by parent Utility.
       foreach (var parent in itemType.parentTypes)
       {
         var parentDesired = DesiredStockpile(parent, daysInFuture, ignoreCache);
@@ -350,6 +353,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // Traders will generally backstop this price with an offer
   // equal to the price at another market plus transport costs
   // and a desired profit.
+  // TODO: By convention, these values are negative.
   // TODO(chmeyers): Make sure we are dealing correctly with vendor "overstock".
   public double CostPrice(ItemType itemType)
   {

@@ -60,6 +60,10 @@ public class UtilityQuantity : IComparable<UtilityQuantity>
   {
     // For friendly debugging, print the total quantity and
     // marginal utility, rounded to 2 decimal places.
+    if (totalQuantity >= int.MaxValue)
+    {
+      return $"({marginalUtility:F2})";
+    }
     return $"({totalQuantity}, {marginalUtility:F2})";
   }
 
@@ -137,5 +141,31 @@ public class UtilityQuantityList : List<UtilityQuantity>
 
     return this;
   }
+
+  public double? GetLastUtility()
+  {
+    if (this.Count == 0)
+    {
+      return null;
+    }
+    // return the utility of the last element.
+    return this[this.Count - 1].marginalUtility;
+  }
+
+  public double? GetFirstUtility()
+  {
+    if (this.Count == 0)
+    {
+      return null;
+    }
+    // return the utility of the first element.
+    return this[0].marginalUtility;
+  }
+
+  public override string ToString()
+  {
+    return $"[{string.Join(", ", this)}]";
+  }
+
 }
 
