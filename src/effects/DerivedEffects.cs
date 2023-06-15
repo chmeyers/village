@@ -117,7 +117,7 @@ public class DegradeEffect : Effect
     return amount == 0 ? Double.MaxValue : (target.target! as Item)!.quality / amount;
   }
 
-  public const double utilityOfUnavailableTools = 5000;
+  public const double utilityOfUnavailableTools = -50000;
   public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
     // Degrade has a negative utility equal to the degradation percentage of the buy price

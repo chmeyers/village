@@ -192,7 +192,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
-      offer += priceList.AskPrice(item.Key) * item.Value;
+      offer += -priceList.AskPrice(item.Key) * item.Value;
     }
     return offer;
   }

@@ -75,13 +75,14 @@ public class ConfigPriceList : IPriceList
   public double BidPrice(Item item) => BidPrice(item.itemType);
 
   // Given an item, return the price they are willing to sell the item for.
+  // By convention, these are negative.
   public double AskPrice(ItemType itemType)
   {
     if (_prices.ContainsKey(itemType))
     {
-      return _prices[itemType].ask;
+      return -_prices[itemType].ask;
     }
-    return int.MaxValue;
+    return double.MinValue;
   }
 
   public double AskPrice(Item item) => AskPrice(item.itemType);
