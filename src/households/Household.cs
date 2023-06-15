@@ -185,7 +185,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     return effect.Utility(household, runner, chosenTarget, scale);
   }
 
-  private double _MarginalUtility(UtilityQuantityList desiredStockpile, int have, int delta, UtilityQuantityList valueList, double costPrice = double.MaxValue)
+  private double _MarginalUtility(UtilityQuantityList desiredStockpile, int have, int delta, UtilityQuantityList valueList, double costPrice = double.MinValue)
   {
     if (delta < 0)
     {
@@ -221,7 +221,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       int from_inventory = Math.Min(-delta, have);
       int need_to_buy = -delta - from_inventory;
       utility += price * -from_inventory;  // +/- epsilon?
-      price = Math.Max(costPrice, price);
+      price = Math.Max(-costPrice, price);
       utility += price * -need_to_buy;  // +/- epsilon?
       return utility;
     }
@@ -366,7 +366,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     {
       bestPrice = Math.Max(bestPrice, person.ProductionCost(itemType).GetFirstUtility() ?? double.MinValue);
     }
-    return -bestPrice;
+    return bestPrice;
   }
 
   // Item Utility
@@ -376,7 +376,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // for it's utility value minus epsilon, and sell them for plus epsilon.
   public double Utility(ITaskRunner runner, ItemType itemType, int quantity)
   {
-    double utility = _MarginalUtility(DesiredStockpile(itemType), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : double.MaxValue));
+    double utility = _MarginalUtility(DesiredStockpile(itemType), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : double.MinValue));
     // Add in the utility for the parents/ancestors of this item, as it can
     // also be used as any of them.
     foreach (var parent in itemType.parentTypes)
@@ -395,7 +395,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     // at future stockpile utility, but assuming static market prices.
     // TODO(chmeyers): Do we need to simulate a burn down rate for the household's current
     // inventory? Currently this just assumes we'll have the same amount of everything as now.
-    double utility = _MarginalUtility(DesiredStockpile(itemType, days), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : double.MaxValue));
+    double utility = _MarginalUtility(DesiredStockpile(itemType, days), inventory.Count(itemType), quantity, ValuePrice(itemType), (quantity < 0 ? CostPrice(itemType) : double.MinValue));
     // Add in the utility for the parents/ancestors of this item, as it can
     // also be used as any of them.
     foreach (var parent in itemType.parentTypes)

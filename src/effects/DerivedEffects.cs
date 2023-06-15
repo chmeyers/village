@@ -131,7 +131,7 @@ public class DegradeEffect : Effect
     // TODO(chmeyers): We should be willing to substitute a different item with the
     // same abilities.
     double buyPrice = household.household.CostPrice(item.itemType);
-    return -buyPrice * degradeAmount / defaultQuality;
+    return buyPrice * degradeAmount / defaultQuality;
   }
 
   // The amount to degrade the item by.
