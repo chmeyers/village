@@ -1,6 +1,7 @@
 using Village.Abilities;
 using Village.Attributes;
 using Village.Base;
+using Village.Effects;
 using Village.Households;
 using Village.Items;
 
@@ -10,10 +11,8 @@ namespace Village.Buildings;
 // As food production is dependent on the conditions while
 // the crop is growing, the field must track the current
 // state of the crop.
-public class Field : Building, IAbilityContext, IInventoryContext, IHouseholdContext, IAttributeContext
+public class Field : Building, IAbilityContext, IEffectTargetContext, IHouseholdContext, IAttributeContext
 {
-  public Inventory inventory { get; private set; } = new Inventory();
-
   public Household household { get; private set; }
 
   private const string fieldAttributeGroup = "field";

@@ -259,7 +259,7 @@ public class GameServer
     priceDict[coin] = price;
 
     // Sell the item.
-    if (!person.ProposeTrade(trader, items, priceDict))
+    if (!IInventoryContext.ProposeTrade(person!, trader, items, priceDict))
     {
       Console.WriteLine($"Item {itemName} not sold!");
       return;
@@ -290,7 +290,7 @@ public class GameServer
     priceDict[coin] = price;
 
     // Buy the item.
-    if (!person!.ProposeTrade(trader, priceDict, items))
+    if (!IInventoryContext.ProposeTrade(person!, trader, priceDict, items))
     {
       Console.WriteLine($"Item {itemName} not bought!");
       return;
@@ -299,7 +299,7 @@ public class GameServer
     // Move any bought resources from personal inventory to household inventory.
     if (itemType.itemGroup == ItemGroup.RESOURCE)
     {
-      person.inventory.Transfer(household!.inventory, items);
+      person!.inventory.Transfer(household!.inventory, items);
     }
   }
 

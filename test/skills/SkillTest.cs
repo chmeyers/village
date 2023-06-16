@@ -60,6 +60,16 @@ public class SkillUnitTest
     {
       return 0;
     }
+
+    public double GetOffer(IDictionary<Item, int> items, IInventoryContext seller)
+    {
+      throw new NotImplementedException();
+    }
+
+    public double GetPrice(IDictionary<Item, int> items, IInventoryContext buyer)
+    {
+      throw new NotImplementedException();
+    }
   }
 
   [TestMethod]

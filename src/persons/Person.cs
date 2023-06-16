@@ -7,6 +7,7 @@ using Village.Abilities;
 using Village.Attributes;
 using Village.Base;
 using Village.Buildings;
+using Village.Effects;
 using Village.Households;
 using Village.Items;
 using Village.Skills;
@@ -168,7 +169,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   // Get the amount this person will offer for a set of items.
   // In this case the other person (the seller) is assumed to be the one initiating the trade.
   // The offer may depend on the seller, such as the buyer's relationship with the seller.
-  public double GetOffer(IDictionary<Item, int> items, Person seller)
+  public double GetOffer(IDictionary<Item, int> items, IInventoryContext seller)
   {
     // TODO(chmeyers): Implement buyer/seller relationships.
     // Get the utility of having the items.
@@ -183,7 +184,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   // Get the price this person wants for a set of items.
   // In this case the other person (the buyer) is assumed to be the one initiating the trade.
   // The offer may depend on the buyer, such as the buyer's relationship with the seller.
-  public double GetPrice(IDictionary<Item, int> items, Person buyer)
+  public double GetPrice(IDictionary<Item, int> items, IInventoryContext buyer)
   {
     // TODO(chmeyers): Implement buyer/seller relationships.
     // Get the utility of removing the items.
@@ -195,29 +196,6 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
     return offer;
   }
-
-  // Propose a trade with another person.
-  // The offer is the set of items this person is offering to the other person.
-  // The price is the set of items this person is requesting from the other person.
-  // The other person can accept or reject the trade based on their Price List.
-  // Returns true if the trade is accepted, false otherwise.
-  public bool ProposeTrade(Person otherPerson, IDictionary<Item, int> offer, IDictionary<Item, int> price)
-  {
-    // Check that the other person is not this person.
-    if (otherPerson == this)
-    {
-      throw new System.ArgumentException("Cannot trade with self.");
-    }
-    // Check that the offer value is >= the price value.
-    double offerValue = otherPerson.GetOffer(offer, this);
-    double priceValue = otherPerson.GetPrice(price, this);
-    if (offerValue < priceValue)
-    {
-      return false;
-    }
-    return inventory.Trade(otherPerson.inventory, offer, price);
-  }
-
 
   // Constructor for a person.
   public Person(string id, string name, Household? household = null, Role? role = null)

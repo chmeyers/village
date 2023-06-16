@@ -3,9 +3,44 @@ using Village.Abilities;
 namespace Village.Items;
 
 
-public interface IInventoryContext
+public interface IInventoryContext : Effects.IEffectTargetContext
 {
   public Inventory inventory { get; }
+  public double GetOffer(IDictionary<Item, int> items, IInventoryContext seller);
+  // Return values should be negative.
+  public double GetPrice(IDictionary<Item, int> items, IInventoryContext buyer);
+
+  // Propose a trade with another inventory.
+  // The offer is the set of items this inventory is offering to the other inventory.
+  // The price is the set of items this inventory is requesting from the other inventory.
+  // The other inventory can accept or reject the trade based on their Price List.
+  // Returns true if the trade is accepted, false otherwise.
+  public static bool ProposeTrade(IInventoryContext inventory, IInventoryContext counterparty, IDictionary<Item, int> offer, IDictionary<Item, int> price)
+  {
+    // Check that the other person is not this person.
+    if (counterparty == inventory)
+    {
+      throw new System.ArgumentException("Cannot trade with self.");
+    }
+    // Check that the offer value is >= the price value.
+    double offerValue = counterparty.GetOffer(offer, inventory);
+    double priceValue = -counterparty.GetPrice(price, inventory);
+    if (offerValue < priceValue || priceValue >= double.MaxValue)
+    {
+      return false;
+    }
+    return inventory.inventory.Trade(counterparty.inventory, offer, price);
+  }
+
+  public static bool ProposePurchase(IInventoryContext inventory, IInventoryContext counterparty, ItemType itemType, int quantity, int coinPrice)
+  {
+    // TODO(chmeyers): Don't let sellers foist off degraded items on buyers.
+    var theirItems = counterparty.inventory.Get(itemType, quantity);
+    if (theirItems == null || theirItems.Count == 0) return false;
+    var myItems = inventory.inventory.Get(ItemType.Coin, coinPrice);
+    if (myItems == null || myItems.Count == 0) return false;
+    return ProposeTrade(inventory, counterparty, myItems, theirItems);
+  }
 }
 
 public class InventoryEntry : SortedDictionary<Item, int>
@@ -360,6 +395,14 @@ public class Inventory : IInventoryContext, IAbilityCollection
     lock (_itemsLock)
     {
       return _ContainsNoLock(item, 0);
+    }
+  }
+
+  public bool Contains(Item item, int quantity)
+  {
+    lock (_itemsLock)
+    {
+      return _ContainsNoLock(item, quantity);
     }
   }
 
@@ -900,5 +943,17 @@ public class Inventory : IInventoryContext, IAbilityCollection
       }
     }
     return false;
+  }
+
+  double IInventoryContext.GetOffer(IDictionary<Item, int> items, IInventoryContext seller)
+  {
+    // Non-sapient inventories don't make offers.
+    return 0;
+  }
+
+  double IInventoryContext.GetPrice(IDictionary<Item, int> items, IInventoryContext buyer)
+  {
+    // Non-sapient inventories don't have prices.
+    return double.MinValue;
   }
 }
