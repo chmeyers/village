@@ -55,8 +55,7 @@ public class UtilityUnitTest
     return task!.task;
   }
 
-  [TestMethod]
-  public void TestUtility()
+  public void LoadTestConfig()
   {
     {
       AbilityType.Clear();
@@ -362,6 +361,12 @@ public class UtilityUnitTest
     ItemType.InitializeAll();
     WeatherAttributes.Init();
     Calendar.Reset();
+  }
+
+  [TestMethod]
+  public void TestUtility()
+  {
+    LoadTestConfig();
 
     Household household = new Household();
     Person person = new Person("Bob", "bob", household, Role.HeadOfHousehold);
