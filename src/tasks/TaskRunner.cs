@@ -16,7 +16,7 @@ public class TaskRunner
   // Choose a target for the given effect target.
   // This will return a ChosenEffectTarget if the target is valid, or null otherwise.
   // This will throw an exception if the target is invalid.
-  public static ChosenEffectTarget? ChooseEffectTarget(EffectTarget effectTarget, Effect effect, Dictionary<string, ChosenEffectTarget>? chosenTargets, IInventoryContext? targetContext, IAbilityContext? runningContext, string taskName)
+  public static ChosenEffectTarget? ChooseEffectTarget(EffectTarget effectTarget, Effect effect, Dictionary<string, ChosenEffectTarget>? chosenTargets, IEffectTargetContext? targetContext, IAbilityContext? runningContext, string taskName)
   {
     ChosenEffectTarget? chosenTarget = null;
     if (EffectTarget.IsTargetString(effectTarget.target))

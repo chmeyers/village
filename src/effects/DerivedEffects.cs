@@ -44,7 +44,12 @@ public class DegradeEffect : Effect
     // Get the item from the chosen target.
     Item item = (Item)chosenEffectTarget.target!;
     // Get the person from the context.
-    IInventoryContext targetInventory = chosenEffectTarget.targetContext!;
+    IInventoryContext? targetInventory = chosenEffectTarget.targetContext! as IInventoryContext;
+    if (targetInventory == null)
+    {
+      // Effect is optional, so we don't throw an exception.
+      return;
+    }
     // We are only degrading a single item, so if the item is a stack, we need to split the stack.
     // So we create a new item that is a copy of the original item, remove it from the inventory,
     // degrade it, then add it back to the inventory.

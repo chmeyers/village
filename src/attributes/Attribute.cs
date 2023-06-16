@@ -407,7 +407,7 @@ public class Attribute : IAbilityCollection
   // target for effects
   private object? target;
   // target Context for effects
-  private IInventoryContext? targetContext;
+  private IEffectTargetContext? targetContext;
   // context for effects and abilityValues.
   private IAbilityContext? abilityContext;
   // Set of Abilities that can trigger value updates.
@@ -422,7 +422,7 @@ public class Attribute : IAbilityCollection
 
   public event AbilitiesChanged? AbilitiesChanged;
 
-  public Attribute(AttributeType attributeType, object? effectTarget, IInventoryContext? targetContext, IAbilityContext? abilityContext)
+  public Attribute(AttributeType attributeType, object? effectTarget, IEffectTargetContext? targetContext, IAbilityContext? abilityContext)
   {
     this.attributeType = attributeType;
     this.value = attributeType.initialValue.GetValue(abilityContext);

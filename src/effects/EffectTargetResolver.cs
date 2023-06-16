@@ -9,7 +9,7 @@ public class EffectTargetResolver
 {
   // Resolve a given effect target, given a person.
   // Returns a ChosenEffectTarget.
-  public static ChosenEffectTarget? ResolveEffectTarget(Effect effect, EffectTarget effectTarget, IInventoryContext? targetContext, IAbilityContext? runningContext)
+  public static ChosenEffectTarget? ResolveEffectTarget(Effect effect, EffectTarget effectTarget, IEffectTargetContext? targetContext, IAbilityContext? runningContext)
   {
     switch (effectTarget.effectTargetType)
     {

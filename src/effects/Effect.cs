@@ -128,6 +128,9 @@ public class EffectTarget
 
 }
 
+public interface IEffectTargetContext
+{}
+
 // The ChosenEffectTarget represents an EffectTarget that has been resolved
 // to a specific target.
 public class ChosenEffectTarget
@@ -141,12 +144,12 @@ public class ChosenEffectTarget
   // but could be the person who owns the item being used for the task, or a
   // building that owns the item being used for the task,
   // or the household that owns the building being constructed, etc.
-  public IInventoryContext? targetContext;
+  public IEffectTargetContext? targetContext;
   // Context of the object that is running the effect, typically the person performing the task.
   // Used to see what abilities the person has.
   public IAbilityContext? runningContext;
   // The effect target constructor.
-  public ChosenEffectTarget(EffectTargetType effectTargetType, object? target, IInventoryContext? targetContext, IAbilityContext? runningContext)
+  public ChosenEffectTarget(EffectTargetType effectTargetType, object? target, IEffectTargetContext? targetContext, IAbilityContext? runningContext)
   {
     this.effectTargetType = effectTargetType;
     this.target = target;

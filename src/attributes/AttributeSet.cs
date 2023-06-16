@@ -1,5 +1,6 @@
 using Village.Abilities;
 using Village.Base;
+using Village.Effects;
 using Village.Items;
 
 namespace Village.Attributes;
@@ -42,7 +43,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
   // The target and context for any effects run.
   // Typically this will be the person the attributes belong to.
   private object? _target;
-  private IInventoryContext? _targetContext;
+  private IEffectTargetContext? _targetContext;
   private IAbilityContext? _abilityContext;
 
   // Other attribute sets that this attribute inherits from.
@@ -55,7 +56,7 @@ public class AttributeSet : IAbilityCollection, IAttributeContext
   private long _lastAdvanceTick = 0;
 
   // Constructor for an AttributeSet.
-  public AttributeSet(object? target, IInventoryContext? effectTarget, IAbilityContext? effectContext)
+  public AttributeSet(object? target, IEffectTargetContext? effectTarget, IAbilityContext? effectContext)
   {
     this._target = target;
     this._targetContext = effectTarget;

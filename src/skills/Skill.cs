@@ -223,7 +223,7 @@ public class Skill
   }
 }
 
-public interface ISkillContext : IAbilityContext, IInventoryContext
+public interface ISkillContext : IAbilityContext, IInventoryContext, IEffectTargetContext
 {
   // Grant xp to the given skill.
   // Returns true if xp was granted.
