@@ -14,7 +14,7 @@ using Village.Tasks;
 
 namespace Village.Households;
 
-public interface IHouseholdContext
+public interface IHouseholdContext : IEffectTargetContext
 {
   // Returns which household the context is in.
   Household household { get; }
@@ -57,12 +57,23 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     global_households.Add(this);
   }
 
+  public Market? market { get; private set; }
+
   // The default context for the household will typically be the head of household.
   // If there is no head of household, it will be a void context.
   public IAbilityContext defaultContext { get; private set; } = ConcreteAbilityContext.voidContext;
   // list of people in the household.
   public HashSet<ITaskRunner> people { get; private set; } = new HashSet<ITaskRunner>();
   public double householdSize { get { return people.Count; } }
+
+  public void JoinMarket(Market market)
+  {
+    this.market = market;
+  }
+  public void LeaveMarket()
+  {
+    this.market = null;
+  }
 
   public void AddPerson(ITaskRunner person, Role role)
   {
@@ -253,6 +264,64 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     return 0;
   }
 
+  private UtilityQuantity? _MarginalQuantity(UtilityQuantityList desiredStockpile, int have, bool adding, UtilityQuantityList valueList)
+  {
+    // Note that unlike _MarginalUtility(), we never ignore items that we have from the valueList.
+    // This is because we don't want to sell items that we might want to use.
+    UtilityQuantityList allValues = desiredStockpile.Clone().Merge(valueList);
+    // Find the interval that includes have.
+    for (int i = 0; i < allValues.Count; i++)
+    {
+      if (have < allValues[i].totalQuantity)
+      {
+        // We're in this interval.
+        if (adding)
+        {
+          int toNextInterval = allValues[i].totalQuantity - have;
+          return new UtilityQuantity(toNextInterval, toNextInterval, allValues[i].marginalUtility);
+        }
+        else
+        {
+          int toNextInterval = (i == 0 ? have : have - allValues[i-1].totalQuantity);
+          return new UtilityQuantity(toNextInterval, toNextInterval, -allValues[i].marginalUtility);
+        }
+      }
+    }
+    // If we have more than the last interval, we have zero marginal utility.
+    return null;
+  }
+
+  // Return the quantity of an item that share the lowest marginal utility.
+  public UtilityQuantity? MarginalQuantity(ItemType itemType, bool adding, UtilityQuantityList? childStockpile = null)
+  {
+    UtilityQuantityList stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType), childStockpile);
+    UtilityQuantity? quantity = _MarginalQuantity(stockpile, inventory.Count(itemType), adding, ValuePrice(itemType));
+    // Add in the utility for the parents/ancestors of this item, as it can
+    // also be used as any of them.
+    foreach (var parent in itemType.parentTypes)
+    {
+      // We pass in null for the costPrice here, because we don't want to
+      // double count the cost.
+      var parentQuantity = MarginalQuantity(parent, adding, stockpile);
+      if (quantity == null)
+      {
+        quantity = parentQuantity;
+        continue;
+      }
+      if (parentQuantity == null)
+      {
+        continue;
+      }
+      quantity.marginalUtility += parentQuantity.marginalUtility;
+      if (parentQuantity.totalQuantity < quantity.totalQuantity)
+      {
+        quantity.totalQuantity = parentQuantity.totalQuantity;
+        quantity.marginalQuantity = parentQuantity.marginalQuantity;
+      }
+    }
+    return quantity;
+  }
+
   private object _DesiredStockpileLock = new object();
   // TODO(chmeyers): Occasionally clear out the cache.
   private Dictionary<ItemType, KeyValuePair<long, UtilityQuantityList>> _CachedDesiredStockpile = new Dictionary<ItemType, KeyValuePair<long, UtilityQuantityList>>();
@@ -352,7 +421,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   }
 
 
-  private double _Utility(ITaskRunner runner, ItemType itemType, int quantity, int days, UtilityQuantityList? cost, UtilityQuantityList? childStockpile)
+  private double _Utility(ItemType itemType, int quantity, int days, UtilityQuantityList? cost, UtilityQuantityList? childStockpile)
   {
     UtilityQuantityList stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType, days), childStockpile);
     double utility = _MarginalUtility(stockpile, inventory.Count(itemType), quantity, ValuePrice(itemType), cost);
@@ -362,7 +431,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     {
       // We pass in null for the costPrice here, because we don't want to
       // double count the cost.
-      utility += _Utility(runner, parent, quantity, days, null, stockpile);
+      utility += _Utility(parent, quantity, days, null, stockpile);
     }
     return utility;
   }
@@ -372,9 +441,14 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // Returned units are in currency.
   // Note that this household should be willing to buy items
   // for it's utility value minus epsilon, and sell them for plus epsilon.
+  public double Utility(ItemType itemType, int quantity)
+  {
+    return _Utility(itemType, quantity, 0, (quantity < 0 ? CostPrice(itemType) : null), null);
+  }
+
   public double Utility(ITaskRunner runner, ItemType itemType, int quantity)
   {
-    return _Utility(runner, itemType, quantity, 0, (quantity < 0 ? CostPrice(itemType) : null), null);
+    return Utility(itemType, quantity);
   }
 
   // Utility of a quantity of an item expected to be produced in the future.
@@ -384,7 +458,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     // at future stockpile utility, but assuming static market prices.
     // TODO(chmeyers): Do we need to simulate a burn down rate for the household's current
     // inventory? Currently this just assumes we'll have the same amount of everything as now.
-    return _Utility(runner, itemType, quantity, days, (quantity < 0 ? CostPrice(itemType) : null), null);
+    return _Utility(itemType, quantity, days, (quantity < 0 ? CostPrice(itemType) : null), null);
   }
 
   // Time Utility
@@ -397,9 +471,170 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     return runner.TimeUtility() * time;
   }
 
+  // TODO(chmeyers): Make profit adjustable.
+  public const double market_profit = 0.05;
+
+  // Submit ask prices to the market.
+  public void SubmitAskPrices()
+  {
+    if (market == null)
+    {
+      return;
+    }
+    // We are willing to sell every item in our inventory for it's utility value plus a profit.
+    foreach (var itemType in inventory.items)
+    {
+      // TODO(chmeyers): Deal with sales of degraded items.
+      var quantity = MarginalQuantity(itemType.Key, false);
+      if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == double.MinValue || quantity.totalQuantity == int.MaxValue) continue;
+      quantity.marginalUtility *= (1 + market_profit);
+      UtilityQuantityList price = new UtilityQuantityList();
+      price.Add(quantity);
+      market.AddAsk(itemType.Key, this, price);
+    }
+  }
+
+  private class PurchasePriority : IComparable<PurchasePriority>
+  {
+    public ItemType itemType;
+    public UtilityQuantity utility;
+    public double percentage;
+    public UtilityQuantity ourUtility;
+
+    public PurchasePriority(ItemType itemType, UtilityQuantity marketUtility, UtilityQuantity ourUtility)
+    {
+      this.itemType = itemType;
+      this.utility = marketUtility;
+      this.ourUtility = ourUtility;
+      // Calculate the percentage difference between the market price and our utility.
+      // Flip the sign so that the percentage is positive.
+      this.percentage = -(marketUtility.marginalUtility - ourUtility.marginalUtility) / ourUtility.marginalUtility;
+    }
+
+    // Sort by highest percentage first, then most negative individual utility,
+    // then highest total quantity, and finally by item type.
+    public int CompareTo(PurchasePriority? other)
+    {
+      if (other == null) return 1;
+      int result = other.percentage.CompareTo(percentage);
+      if (result != 0) return result;
+      result = utility.marginalUtility.CompareTo(other.utility.marginalUtility);
+      if (result != 0) return result;
+      result = other.utility.totalQuantity.CompareTo(utility.totalQuantity);
+      if (result != 0) return result;
+      return itemType.itemType.CompareTo(other.itemType.itemType);
+    } 
+  }
+
+  public void MakePurchases()
+  {
+    if (market == null)
+    {
+      return;
+    }
+    // We are willing to purchase any item that is for sale for less than it's utility value.
+    // We'll prioritize items that are most underpriced on a percentage basis.
+    
+    // Get our budget.
+    double budget = inventory.Count(ItemType.Coin);
+
+    if (budget <= 0) return;
+
+    // Store things we are considering buying sorted by priority.
+    List<PurchasePriority> purchases = new List<PurchasePriority>();
+
+    foreach (var ask in market.Asks)
+    {
+      UtilityQuantity marketUtility = ask.Value.bestPrice;
+      // Get our utility for this item.
+      UtilityQuantity? ourUtility = MarginalQuantity(ask.Key, true);
+      // Ignore anything that's not worth buying.
+      // Asks are negative numbers, so we want to buy things that are less negative.
+      if (ourUtility == null || ourUtility.marginalUtility == 0 || ourUtility.marginalUtility > marketUtility.marginalUtility) continue;
+      // Ignore anything out of our budget.
+      if (-marketUtility.marginalUtility > budget) continue;
+      // Add this item to our list of potential purchases.
+      purchases.Add(new PurchasePriority(ask.Key, marketUtility, ourUtility));
+    }
+
+    // Sort the list of potential purchases by priority.
+    purchases.Sort();
+
+    // Buy the items in order of priority, until we run out of budget.
+    foreach (var purchase in purchases)
+    {
+      UtilityQuantity ourUtility = purchase.ourUtility;
+      bool purchaseMore = true;
+      while(purchaseMore)
+      {
+        purchaseMore = false;
+        // Get the counterparty for this ask.
+        IInventoryContext? seller = market.AskCounterparty(purchase.itemType, out UtilityQuantity? marketUtility);
+        if (seller == null || marketUtility == null || seller == this || -marketUtility.marginalUtility > budget) break;
+        // The marketUtility might have changed since we calculated our utility, so make sure we're
+        // still willing to buy it. Note that we don't attempt to re-sort the priorities.
+        if (ourUtility.marginalUtility > marketUtility.marginalUtility) break;
+        // Buy as much as we can afford.
+        int quantity = (int)Math.Floor(budget / -marketUtility.marginalUtility);
+        quantity = Math.Min(quantity, ourUtility.marginalQuantity);
+        quantity = Math.Min(quantity, marketUtility.totalQuantity);
+        if (quantity <= 0) break;
+        int purchaseCost = (int)Math.Ceiling(-marketUtility.marginalUtility * quantity);
+        // Ensure that rounding didn't cause the purchaseCost to exceed our utility.
+        if (purchaseCost > ourUtility.marginalUtility * quantity) break;
+        // Make the trade offer
+        if(!IInventoryContext.ProposePurchase(this, seller, purchase.itemType, quantity, purchaseCost))
+        {
+          // For some reason the trade offer was rejected. We could inform the market and
+          // try again, but for now we'll just give up.
+          break;
+        }
+        
+        // If the trade offer was accepted, update our budget.
+        budget -= purchaseCost;
+        // Inform the market of the trade so that prices can be updated.
+        market.CollectNewAsks(purchase.itemType);
+        // Update our utility.
+        ourUtility.marginalQuantity -= quantity;
+        
+        // Purchase more from another seller if we are unsatiated.
+        if (ourUtility.marginalQuantity > 0) purchaseMore = true;
+      }
+      
+    }
+
+  }
+
+  public void SubmitBidPrices()
+  {
+    // TODO
+  }
+
+  public double GetOffer(IDictionary<Item, int> items, IInventoryContext seller)
+  {
+    // Get the utility of having the items.
+    double offer = 0;
+    foreach (KeyValuePair<Item, int> item in items)
+    {
+      offer += Utility(item.Key.itemType, item.Value);
+    }
+    return offer;
+  }
+
+  public double GetPrice(IDictionary<Item, int> items, IInventoryContext buyer)
+  {
+    // Get the utility of removing the items.
+    double offer = 0;
+    foreach (KeyValuePair<Item, int> item in items)
+    {
+      // Price will be negative.
+      offer += Utility(item.Key.itemType, -item.Value);
+    }
+    return offer;
+  }
+
   private void UpdateAbilities(IAbilityProvider? addedProvider, IEnumerable<AbilityType>? added, IAbilityProvider? removedProvider, IEnumerable<AbilityType>? removed)
   {
     IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, addedProvider, added, removedProvider, removed, AbilitiesChanged);
   }
-
 }

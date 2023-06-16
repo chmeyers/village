@@ -1,4 +1,5 @@
 using Village.Households;
+using Village.Items;
 using Village.Persons;
 using Village.Tasks;
 
@@ -100,6 +101,53 @@ public class GameLoop
     // Degrade household buildings.
   }
 
+  // Do pre-phase work for this household.
+  public void StartHousehold(Household household)
+  {
+    // Buy stuff.
+    household.MakePurchases();
+    // Submit market bids.
+    household.SubmitBidPrices();
+  }
+
+  // Do pre-phase work for this tick.
+  public void StartTick()
+  {
+    // Clear all the markets bids.
+    foreach (var market in Market.global_markets)
+    {
+      market.ClearBids();
+    }
+    foreach (var household in Household.global_households)
+    {
+      // TODO(chmeyers): Do this in a thread pool.
+      StartHousehold(household);
+    }
+  }
+
+  // Prepare the household for the next tick.
+  public void FinishHousehold(Household household)
+  {
+    // Submit market ask prices.
+    household.SubmitAskPrices();
+  }
+
+  // Prepare for the next tick.
+  public void FinishTick()
+  {
+    // Clear all the markets.
+    foreach (var market in Market.global_markets)
+    {
+      market.ClearAsks();
+    }
+    // Finish each household.
+    foreach (var household in Household.global_households)
+    {
+      // TODO(chmeyers): Do this in a thread pool.
+      FinishHousehold(household);
+    }
+  }
+
   // Advance the game by one tick.
   public void Advance()
   {
@@ -110,12 +158,14 @@ public class GameLoop
     {
       WeatherAttributes.AdvanceWeather();
     }
+    StartTick();
     // Advance the households.
     foreach (var household in Household.global_households)
     {
       // TODO(chmeyers): Do this in a thread pool.
       AdvanceHousehold(household);
     }
+    FinishTick();
   }
 
   public void Run()
