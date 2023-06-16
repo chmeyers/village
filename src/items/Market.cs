@@ -85,6 +85,10 @@ public class Market : IPriceList
 
   public void AddAsk(ItemType itemType, IInventoryContext participant, UtilityQuantityList ask)
   {
+    if (itemType == ItemType.Coin)
+    {
+      return;
+    }
     // If the ask is empty, ignore.
     if (ask.Count == 0)
     {
@@ -107,6 +111,10 @@ public class Market : IPriceList
 
   public void AddBid(ItemType itemType, IInventoryContext participant, UtilityQuantityList bid)
   {
+    if (itemType == ItemType.Coin)
+    {
+      return;
+    }
     // If the bid is empty, ignore it.
     if (bid.Count == 0)
     {

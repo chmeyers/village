@@ -672,6 +672,18 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
   }
 
+  public IEnumerable<ItemType> GetDesiredItems()
+  {
+    // Return all the items that we have a non-empty worth cache for.
+    lock (_cacheLock)
+    {
+      foreach (var worthPair in _worthCache)
+      {
+        if (worthPair.Value.values.Count > 0) yield return worthPair.Key;
+      }
+    }
+  }
+
   // How much is this person's time worth?
   public double TimeUtility()
   {

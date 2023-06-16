@@ -607,7 +607,37 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
 
   public void SubmitBidPrices()
   {
-    // TODO
+    if (market == null) return;
+    double budget = inventory.Count(ItemType.Coin);
+    if (budget <= 0) return;
+    // Determine what items we will place bids for.
+    // This will be the union of items we want a stockpile of, our people's
+    // worth caches, and all items for sale.
+    HashSet<ItemType> bidItems = new HashSet<ItemType>();
+    foreach (var item in _CachedDesiredStockpile)
+    {
+      if (item.Value.Value.Count > 0) bidItems.Add(item.Key);
+    }
+    foreach (var person in people)
+    {
+      bidItems.UnionWith(person.GetDesiredItems());
+    }
+    bidItems.UnionWith(market.Asks.Keys);
+    foreach (var itemType in bidItems)
+    {
+      var quantity = MarginalQuantity(itemType, true);
+      if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == 0 || quantity.totalQuantity == 0) continue;
+      quantity.marginalUtility *= (1 - market_profit);
+      // Cap the quantity at our budget.
+      quantity.marginalQuantity = Math.Min(quantity.marginalQuantity, (int)Math.Floor(budget / -quantity.marginalUtility));
+      if (quantity.marginalQuantity <= 0) continue;
+      quantity.totalQuantity = quantity.marginalQuantity;
+      UtilityQuantityList price = new UtilityQuantityList();
+      price.Add(quantity);
+      // Note that we don't actually check to see if the bid is less than the current ask.
+      // It shouldn't be unless we were unable to purchase the item for some reason.
+      market.AddBid(itemType, this, price);
+    }
   }
 
   public double GetOffer(IDictionary<Item, int> items, IInventoryContext seller)
