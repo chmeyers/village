@@ -20,7 +20,7 @@ public interface IHouseholdContext : IEffectTargetContext
   Household household { get; }
 }
 
-public class Household : IInventoryContext, IHouseholdContext, IAbilityCollection
+public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollection
 {
   // Registry of all the households.
   public static HashSet<Household> global_households = new HashSet<Household>();
@@ -474,56 +474,27 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
   // TODO(chmeyers): Make profit adjustable.
   public const double market_profit = 0.05;
 
+  public void SubmitAsk(ItemType itemType)
+  {
+    // TODO(chmeyers): Deal with sales of degraded items.
+    if (market == null) return;
+    var quantity = MarginalQuantity(itemType, false);
+    if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == double.MinValue || quantity.totalQuantity == int.MaxValue) return;
+    quantity.marginalUtility *= (1 + market_profit);
+    UtilityQuantityList price = new UtilityQuantityList();
+    price.Add(quantity);
+    market.AddAsk(itemType, this, price);
+  }
+
   // Submit ask prices to the market.
   public void SubmitAskPrices()
   {
-    if (market == null)
-    {
-      return;
-    }
+    if (market == null) return;
     // We are willing to sell every item in our inventory for it's utility value plus a profit.
     foreach (var itemType in inventory.items)
     {
-      // TODO(chmeyers): Deal with sales of degraded items.
-      var quantity = MarginalQuantity(itemType.Key, false);
-      if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == double.MinValue || quantity.totalQuantity == int.MaxValue) continue;
-      quantity.marginalUtility *= (1 + market_profit);
-      UtilityQuantityList price = new UtilityQuantityList();
-      price.Add(quantity);
-      market.AddAsk(itemType.Key, this, price);
+      SubmitAsk(itemType.Key);
     }
-  }
-
-  private class PurchasePriority : IComparable<PurchasePriority>
-  {
-    public ItemType itemType;
-    public UtilityQuantity utility;
-    public double percentage;
-    public UtilityQuantity ourUtility;
-
-    public PurchasePriority(ItemType itemType, UtilityQuantity marketUtility, UtilityQuantity ourUtility)
-    {
-      this.itemType = itemType;
-      this.utility = marketUtility;
-      this.ourUtility = ourUtility;
-      // Calculate the percentage difference between the market price and our utility.
-      // Flip the sign so that the percentage is positive.
-      this.percentage = -(marketUtility.marginalUtility - ourUtility.marginalUtility) / ourUtility.marginalUtility;
-    }
-
-    // Sort by highest percentage first, then most negative individual utility,
-    // then highest total quantity, and finally by item type.
-    public int CompareTo(PurchasePriority? other)
-    {
-      if (other == null) return 1;
-      int result = other.percentage.CompareTo(percentage);
-      if (result != 0) return result;
-      result = utility.marginalUtility.CompareTo(other.utility.marginalUtility);
-      if (result != 0) return result;
-      result = other.utility.totalQuantity.CompareTo(utility.totalQuantity);
-      if (result != 0) return result;
-      return itemType.itemType.CompareTo(other.itemType.itemType);
-    } 
   }
 
   public void MakePurchases()
@@ -536,12 +507,12 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     // We'll prioritize items that are most underpriced on a percentage basis.
     
     // Get our budget.
-    double budget = inventory.Count(ItemType.Coin);
+    int budget = inventory.Count(ItemType.Coin);
 
     if (budget <= 0) return;
 
     // Store things we are considering buying sorted by priority.
-    List<PurchasePriority> purchases = new List<PurchasePriority>();
+    PurchaseList purchases = new PurchaseList();
 
     foreach (var ask in market.Asks)
     {
@@ -556,59 +527,39 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
       // Add this item to our list of potential purchases.
       purchases.Add(new PurchasePriority(ask.Key, marketUtility, ourUtility));
     }
+    
+    purchases.MakePurchases(this, market, budget);
 
-    // Sort the list of potential purchases by priority.
-    purchases.Sort();
+  }
 
-    // Buy the items in order of priority, until we run out of budget.
-    foreach (var purchase in purchases)
-    {
-      UtilityQuantity ourUtility = purchase.ourUtility;
-      bool purchaseMore = true;
-      while(purchaseMore)
-      {
-        purchaseMore = false;
-        // Get the counterparty for this ask.
-        IInventoryContext? seller = market.AskCounterparty(purchase.itemType, out UtilityQuantity? marketUtility);
-        if (seller == null || marketUtility == null || seller == this || -marketUtility.marginalUtility > budget) break;
-        // The marketUtility might have changed since we calculated our utility, so make sure we're
-        // still willing to buy it. Note that we don't attempt to re-sort the priorities.
-        if (ourUtility.marginalUtility > marketUtility.marginalUtility) break;
-        // Buy as much as we can afford.
-        int quantity = (int)Math.Floor(budget / -marketUtility.marginalUtility);
-        quantity = Math.Min(quantity, ourUtility.marginalQuantity);
-        quantity = Math.Min(quantity, marketUtility.totalQuantity);
-        if (quantity <= 0) break;
-        int purchaseCost = (int)Math.Ceiling(-marketUtility.marginalUtility * quantity);
-        // Ensure that rounding didn't cause the purchaseCost to exceed our utility.
-        if (purchaseCost > ourUtility.marginalUtility * quantity) break;
-        // Make the trade offer
-        if(!IInventoryContext.ProposePurchase(this, seller, purchase.itemType, quantity, purchaseCost))
-        {
-          // For some reason the trade offer was rejected. We could inform the market and
-          // try again, but for now we'll just give up.
-          break;
-        }
-        
-        // If the trade offer was accepted, update our budget.
-        budget -= purchaseCost;
-        // Inform the market of the trade so that prices can be updated.
-        market.CollectNewAsks(purchase.itemType);
-        // Update our utility.
-        ourUtility.marginalQuantity -= quantity;
-        
-        // Purchase more from another seller if we are unsatiated.
-        if (ourUtility.marginalQuantity > 0) purchaseMore = true;
-      }
-      
-    }
+  private void SubmitBid(ItemType itemType, ref int budget)
+  {
+    var quantity = MarginalQuantity(itemType, true);
+    if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == 0 || quantity.totalQuantity == 0) return;
+    quantity.marginalUtility *= (1 - market_profit);
+    // Cap the quantity at our budget.
+    quantity.marginalQuantity = Math.Min(quantity.marginalQuantity, (int)Math.Floor(budget / -quantity.marginalUtility));
+    if (quantity.marginalQuantity <= 0) return;
+    quantity.totalQuantity = quantity.marginalQuantity;
+    UtilityQuantityList price = new UtilityQuantityList();
+    price.Add(quantity);
+    // Note that we don't actually check to see if the bid is less than the current ask.
+    // It shouldn't be unless we were unable to purchase the item for some reason.
+    market!.AddBid(itemType, this, price);
+  }
 
+  public void SubmitBid(ItemType itemType)
+  {
+    if (market == null) return;
+    int budget = inventory.Count(ItemType.Coin);
+    if (budget <= 0) return;
+    SubmitBid(itemType, ref budget);
   }
 
   public void SubmitBidPrices()
   {
     if (market == null) return;
-    double budget = inventory.Count(ItemType.Coin);
+    int budget = inventory.Count(ItemType.Coin);
     if (budget <= 0) return;
     // Determine what items we will place bids for.
     // This will be the union of items we want a stockpile of, our people's
@@ -625,18 +576,7 @@ public class Household : IInventoryContext, IHouseholdContext, IAbilityCollectio
     bidItems.UnionWith(market.Asks.Keys);
     foreach (var itemType in bidItems)
     {
-      var quantity = MarginalQuantity(itemType, true);
-      if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == 0 || quantity.totalQuantity == 0) continue;
-      quantity.marginalUtility *= (1 - market_profit);
-      // Cap the quantity at our budget.
-      quantity.marginalQuantity = Math.Min(quantity.marginalQuantity, (int)Math.Floor(budget / -quantity.marginalUtility));
-      if (quantity.marginalQuantity <= 0) continue;
-      quantity.totalQuantity = quantity.marginalQuantity;
-      UtilityQuantityList price = new UtilityQuantityList();
-      price.Add(quantity);
-      // Note that we don't actually check to see if the bid is less than the current ask.
-      // It shouldn't be unless we were unable to purchase the item for some reason.
-      market.AddBid(itemType, this, price);
+      SubmitBid(itemType, ref budget);
     }
   }
 

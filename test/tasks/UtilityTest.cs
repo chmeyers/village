@@ -537,7 +537,21 @@ public class UtilityUnitTest
 
     // Time to harvest the wheat.
     Assert.AreEqual("harvest_wheat", NextTask(person, household, dailyTasks));
-    
-    
+  }
+
+  [TestMethod]
+  public void TestMarketUtility()
+  {
+    LoadTestConfig();
+
+    Household household = new Household();
+    Person person = new Person("Bob", "bob", household, Role.HeadOfHousehold);
+    // Give the household a field so they can plant stuff.
+    household.AddField(BuildingType.Find("field")!);
+
+    // Abilities for field work.
+    person.GrantAbility(AbilityType.Find("hoe_1")!);
+    person.GrantAbility(AbilityType.Find("plow_1")!);
+    person.GrantAbility(AbilityType.Find("sickle_1")!);
   }
 }

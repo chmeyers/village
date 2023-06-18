@@ -5,6 +5,13 @@ using Village.Households;
 
 namespace Village.Items;
 
+public interface IMarketParticipant : IInventoryContext
+{
+  // Callbacks for the market to request a new bid or ask.
+  public void SubmitBid(ItemType itemType);
+  public void SubmitAsk(ItemType itemType);
+}
+
 public class Market : IPriceList
 {
   public static HashSet<Market> global_markets = new HashSet<Market>();
@@ -38,7 +45,7 @@ public class Market : IPriceList
   public UtilityQuantityList BidPrice(Item item) => BidPrice(item.itemType);
 
   // Given an item, return the counterparty that is willing to sell the item for the lowest price.
-  public IInventoryContext? AskCounterparty(ItemType itemType, out UtilityQuantity? ask)
+  public IMarketParticipant? AskCounterparty(ItemType itemType, out UtilityQuantity? ask)
   {
     if (!_askCache.TryGetValue(itemType, out var asks))
     {
@@ -51,7 +58,7 @@ public class Market : IPriceList
 
   // Given an item, return the counterparty that is willing to buy the item for the highest price.
   // Is the counterparty guaranteed to have enough money to buy the item?
-  public IInventoryContext? BidCounterparty(ItemType itemType, out UtilityQuantity? bid)
+  public IMarketParticipant? BidCounterparty(ItemType itemType, out UtilityQuantity? bid)
   {
     if (!_bidCache.TryGetValue(itemType, out var bids))
     {
@@ -63,13 +70,13 @@ public class Market : IPriceList
   }
   
   // Add delegate for ConcurrentDictionary.AddOrUpdate
-  private MarketCacheValue AddCacheValue(UtilityQuantityList input, IInventoryContext participant)
+  private MarketCacheValue AddCacheValue(UtilityQuantityList input, IMarketParticipant participant)
   {
     return new MarketCacheValue(input, participant, input[0]);
   }
 
   // Update delegate for ConcurrentDictionary.AddOrUpdate
-  private MarketCacheValue UpdateCacheValue(MarketCacheValue oldValue, UtilityQuantityList input, IInventoryContext participant)
+  private MarketCacheValue UpdateCacheValue(MarketCacheValue oldValue, UtilityQuantityList input, IMarketParticipant participant)
   {
     if (input[0] < oldValue.bestPrice)
     {
@@ -83,7 +90,7 @@ public class Market : IPriceList
     return oldValue;
   }
 
-  public void AddAsk(ItemType itemType, IInventoryContext participant, UtilityQuantityList ask)
+  public void AddAsk(ItemType itemType, IMarketParticipant participant, UtilityQuantityList ask)
   {
     if (itemType == ItemType.Coin)
     {
@@ -109,7 +116,7 @@ public class Market : IPriceList
 
   }
 
-  public void AddBid(ItemType itemType, IInventoryContext participant, UtilityQuantityList bid)
+  public void AddBid(ItemType itemType, IMarketParticipant participant, UtilityQuantityList bid)
   {
     if (itemType == ItemType.Coin)
     {
@@ -172,11 +179,11 @@ public class Market : IPriceList
       // No existing participants.
       return;
     }
-    HashSet<IInventoryContext> participants = removed.participants;
+    HashSet<IMarketParticipant> participants = removed.participants;
     // Ask all the participants to re-submit their bids.
-    foreach (IInventoryContext participant in participants)
+    foreach (IMarketParticipant participant in participants)
     {
-      // TODO
+      participant.SubmitBid(itemType);
     }
   }
 
@@ -188,21 +195,21 @@ public class Market : IPriceList
       // No existing participants.
       return;
     }
-    HashSet<IInventoryContext> participants = removed.participants;
+    HashSet<IMarketParticipant> participants = removed.participants;
     // Ask all the participants to re-submit their asks.
-    foreach (IInventoryContext participant in participants)
+    foreach (IMarketParticipant participant in participants)
     {
-      // TODO
+      participant.SubmitAsk(itemType);
     }
   }
 
   public class MarketCacheValue
   {
     public UtilityQuantityList orderBook;
-    public IInventoryContext bestCounterparty;
+    public IMarketParticipant bestCounterparty;
     public UtilityQuantity bestPrice;
-    public HashSet<IInventoryContext> participants = new HashSet<IInventoryContext>();
-    public MarketCacheValue(UtilityQuantityList orderBook, IInventoryContext bestCounterparty, UtilityQuantity bestPrice)
+    public HashSet<IMarketParticipant> participants = new HashSet<IMarketParticipant>();
+    public MarketCacheValue(UtilityQuantityList orderBook, IMarketParticipant bestCounterparty, UtilityQuantity bestPrice)
     {
       this.orderBook = orderBook.Clone();
       this.bestCounterparty = bestCounterparty;
@@ -218,4 +225,89 @@ public class Market : IPriceList
   private ConcurrentDictionary<ItemType, MarketCacheValue> _askCache = new ConcurrentDictionary<ItemType, MarketCacheValue>();
 
   private ConcurrentDictionary<ItemType, MarketCacheValue> _bidCache = new ConcurrentDictionary<ItemType, MarketCacheValue>();
+}
+
+public class PurchasePriority : IComparable<PurchasePriority>
+{
+  public ItemType itemType;
+  public UtilityQuantity utility;
+  public double percentage;
+  public UtilityQuantity ourUtility;
+
+  public PurchasePriority(ItemType itemType, UtilityQuantity marketUtility, UtilityQuantity ourUtility)
+  {
+    this.itemType = itemType;
+    this.utility = marketUtility;
+    this.ourUtility = ourUtility;
+    // Calculate the percentage difference between the market price and our utility.
+    // Flip the sign so that the percentage is positive.
+    this.percentage = -(marketUtility.marginalUtility - ourUtility.marginalUtility) / ourUtility.marginalUtility;
+  }
+
+  // Sort by highest percentage first, then most negative individual utility,
+  // then highest total quantity, and finally by item type.
+  public int CompareTo(PurchasePriority? other)
+  {
+    if (other == null) return 1;
+    int result = other.percentage.CompareTo(percentage);
+    if (result != 0) return result;
+    result = utility.marginalUtility.CompareTo(other.utility.marginalUtility);
+    if (result != 0) return result;
+    result = other.utility.totalQuantity.CompareTo(utility.totalQuantity);
+    if (result != 0) return result;
+    return itemType.itemType.CompareTo(other.itemType.itemType);
+  }
+}
+
+public class PurchaseList : List<PurchasePriority>
+{
+  public PurchaseList() : base() { }
+
+  public void MakePurchases(IMarketParticipant buyer, Market market, int budget)
+  {
+    this.Sort();
+
+    // Buy the items in order of priority, until we run out of budget.
+    foreach (var purchase in this)
+    {
+      UtilityQuantity ourUtility = purchase.ourUtility;
+      bool purchaseMore = true;
+      while (purchaseMore)
+      {
+        purchaseMore = false;
+        // Get the counterparty for this ask.
+        IMarketParticipant? seller = market.AskCounterparty(purchase.itemType, out UtilityQuantity? marketUtility);
+        if (seller == null || marketUtility == null || seller == buyer || -marketUtility.marginalUtility > budget) break;
+        // The marketUtility might have changed since we calculated our utility, so make sure we're
+        // still willing to buy it. Note that we don't attempt to re-sort the priorities.
+        if (ourUtility.marginalUtility > marketUtility.marginalUtility) break;
+        // Buy as much as we can afford.
+        int quantity = (int)Math.Floor(budget / -marketUtility.marginalUtility);
+        quantity = Math.Min(quantity, ourUtility.marginalQuantity);
+        quantity = Math.Min(quantity, marketUtility.totalQuantity);
+        if (quantity <= 0) break;
+        int purchaseCost = (int)Math.Ceiling(-marketUtility.marginalUtility * quantity);
+        // Ensure that rounding didn't cause the purchaseCost to exceed our utility.
+        if (purchaseCost > ourUtility.marginalUtility * quantity) break;
+        // Make the trade offer
+        if (!IMarketParticipant.ProposePurchase(buyer, seller, purchase.itemType, quantity, purchaseCost))
+        {
+          // For some reason the trade offer was rejected. We could inform the market and
+          // try again, but for now we'll just give up.
+          break;
+        }
+
+        // If the trade offer was accepted, update our budget.
+        budget -= purchaseCost;
+        // Inform the market of the trade so that prices can be updated.
+        market.CollectNewAsks(purchase.itemType);
+        // Update our utility.
+        ourUtility.marginalQuantity -= quantity;
+
+        // Purchase more from another seller if we are unsatiated.
+        if (ourUtility.marginalQuantity > 0) purchaseMore = true;
+      }
+
+    }
+  }
 }

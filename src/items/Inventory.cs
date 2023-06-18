@@ -77,6 +77,15 @@ public class Inventory : IInventoryContext, IAbilityCollection
   // Items of the same type are sorted so that the "worst" items are used first.
   public Dictionary<ItemType, InventoryEntry> items { get; private set; } = new Dictionary<ItemType, InventoryEntry>();
 
+  public void Clear()
+  {
+    lock (_itemsLock)
+    {
+      items.Clear();
+      _RefreshAbilityProviders();
+    }
+  }
+
   // Event handler for when the abilities of a person change.
   public event AbilitiesChanged? AbilitiesChanged;
 
