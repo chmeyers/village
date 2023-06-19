@@ -272,15 +272,19 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     // Find the interval that includes have.
     for (int i = 0; i < allValues.Count; i++)
     {
-      if (have < allValues[i].totalQuantity)
+      if (adding)
       {
-        // We're in this interval.
-        if (adding)
+        // Check whether we're in this interval, note that if we have exactly the total quantity,
+        // we're in the next interval for adding, but the current interval for removing.
+        if (have < allValues[i].totalQuantity)
         {
-          int toNextInterval = allValues[i].totalQuantity - have;
-          return new UtilityQuantity(toNextInterval, toNextInterval, allValues[i].marginalUtility);
+        int toNextInterval = allValues[i].totalQuantity - have;
+        return new UtilityQuantity(toNextInterval, toNextInterval, allValues[i].marginalUtility);
         }
-        else
+      }
+      else
+      {
+        if (have <= allValues[i].totalQuantity)
         {
           int toNextInterval = (i == 0 ? have : have - allValues[i-1].totalQuantity);
           return new UtilityQuantity(toNextInterval, toNextInterval, -allValues[i].marginalUtility);
@@ -378,8 +382,7 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
   // costs and a desired profit.
   public UtilityQuantityList ValuePrice(ItemType itemType)
   {
-    // TODO(chmeyers): Use a market instead of a price list.
-    IPriceList priceList = ConfigPriceList.Default;
+    IPriceList priceList = market == null ? ConfigPriceList.Default : market;
     UtilityQuantityList bestValue = priceList.BidPrice(itemType);
     // See if any people in the household can beat the market price.
     // The BidPrice above probably includes this household's market offers,
@@ -406,8 +409,7 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
   // TODO(chmeyers): Make sure we are dealing correctly with vendor "overstock".
   public UtilityQuantityList CostPrice(ItemType itemType)
   {
-    // TODO(chmeyers): Use a market instead of a price list.
-    IPriceList priceList = ConfigPriceList.Default;
+    IPriceList priceList = market == null ? ConfigPriceList.Default : market;
     UtilityQuantityList bestPrice = priceList.AskPrice(itemType);
     // See if any people in the household can beat the market price.
     // The AskPrice above probably includes this household's market offers,
@@ -520,8 +522,8 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
       // Get our utility for this item.
       UtilityQuantity? ourUtility = MarginalQuantity(ask.Key, true);
       // Ignore anything that's not worth buying.
-      // Asks are negative numbers, so we want to buy things that are less negative.
-      if (ourUtility == null || ourUtility.marginalUtility == 0 || ourUtility.marginalUtility > marketUtility.marginalUtility) continue;
+      // Asks are negative numbers and ourUtility is positive.
+      if (ourUtility == null || ourUtility.marginalUtility == 0 || ourUtility.marginalUtility < -marketUtility.marginalUtility) continue;
       // Ignore anything out of our budget.
       if (-marketUtility.marginalUtility > budget) continue;
       // Add this item to our list of potential purchases.
@@ -538,7 +540,7 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == 0 || quantity.totalQuantity == 0) return;
     quantity.marginalUtility *= (1 - market_profit);
     // Cap the quantity at our budget.
-    quantity.marginalQuantity = Math.Min(quantity.marginalQuantity, (int)Math.Floor(budget / -quantity.marginalUtility));
+    quantity.marginalQuantity = Math.Min(quantity.marginalQuantity, (int)Math.Floor(budget / quantity.marginalUtility));
     if (quantity.marginalQuantity <= 0) return;
     quantity.totalQuantity = quantity.marginalQuantity;
     UtilityQuantityList price = new UtilityQuantityList();

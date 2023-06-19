@@ -961,5 +961,11 @@ public class Item : IComparable<Item>, IAbilityProvider
     // Sort by item type.
     return this.itemType.itemType.CompareTo(other.itemType.itemType);
   }
+
+  public override string ToString()
+  {
+    // For friendly printing.
+    return itemType.itemType + (originalQuality == quality ? "" : ":" + quality + "");
+  }
 }
 

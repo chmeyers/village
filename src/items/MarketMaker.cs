@@ -14,7 +14,7 @@ public class MarketMaker : IMarketParticipant
   private long _refreshRate;
   private long _lastRefresh = 0;
 
-  private Dictionary<ItemType, int> desiredItems = new Dictionary<ItemType, int>();
+  private Dictionary<ItemType, int> maxItems = new Dictionary<ItemType, int>();
   private Dictionary<ItemType, int> haveItems = new Dictionary<ItemType, int>();
 
   public MarketMaker(IPriceList priceList, Market market, long refreshRate = Calendar.ticksPerWeek)
@@ -24,15 +24,15 @@ public class MarketMaker : IMarketParticipant
     this._refreshRate = refreshRate;
   }
 
-  public void SetDesire(ItemType itemType, int amount)
+  public void SetMax(ItemType itemType, int amount)
   {
     if (amount == 0)
     {
-      desiredItems.Remove(itemType);
+      maxItems.Remove(itemType);
     }
     else
     {
-      desiredItems[itemType] = amount;
+      maxItems[itemType] = amount;
     }
   }
 
@@ -68,10 +68,19 @@ public class MarketMaker : IMarketParticipant
 
   public double Utility(ItemType itemType, int quantity)
   {
+    if (itemType == ItemType.Coin)
+    {
+      return quantity;
+    }
     int have = inventory.Count(itemType);
+    int max = maxItems.ContainsKey(itemType) ? maxItems[itemType] : 0;
     if (quantity > 0)
     {
-      quantity = Math.Min(quantity, desiredItems[itemType] - have);
+      if (have >= max)
+      {
+        return 0;
+      }
+      quantity = Math.Min(quantity, max - have);
       UtilityQuantityList bid = _priceList.BidPrice(itemType);
       if (bid.Count == 0)
       {
@@ -82,17 +91,16 @@ public class MarketMaker : IMarketParticipant
     }
     else
     {
-      if (have - desiredItems[itemType] + quantity < 0)
+      if (-quantity > have)
       {
-        return double.MinValue;
+        return 0;
       }
-      quantity = Math.Min(-quantity, have - desiredItems[itemType]);
       UtilityQuantityList ask = _priceList.AskPrice(itemType);
       if (ask.Count == 0)
       {
         return 0;
       }
-      quantity = Math.Min(quantity, ask[0].totalQuantity);
+      quantity = Math.Min(-quantity, ask[0].totalQuantity);
       return quantity * ask[0].marginalUtility;
     }
   }
@@ -118,27 +126,33 @@ public class MarketMaker : IMarketParticipant
     return offer;
   }
 
-  private void SubmitBid(ItemType itemType, int desired)
+  private void SubmitBid(ItemType itemType, int max, ref int budget)
   {
     int have = inventory.Count(itemType);
-    if (have >= desired) return;
+    if (have >= max) return;
     UtilityQuantityList bid = _priceList.BidPrice(itemType).Clone();
     if (bid.Count == 0) return;
-    bid[0].totalQuantity = bid[0].marginalQuantity = desired - have;
+    bid[0].marginalQuantity = max - have;
+    bid[0].marginalQuantity = Math.Min(bid[0].marginalQuantity, (int)Math.Floor(budget / bid[0].marginalUtility));
+    if (bid[0].marginalQuantity <= 0) return;
+    bid[0].totalQuantity = bid[0].marginalQuantity;
     _market.AddBid(itemType, this, bid);
   }
 
   public void SubmitBid(ItemType itemType)
   {
-    if (!desiredItems.ContainsKey(itemType)) return;
-    SubmitBid(itemType, desiredItems[itemType]);
+    if (!maxItems.ContainsKey(itemType)) return;
+    int budget = inventory.Count(ItemType.Coin);
+    if (!maxItems.ContainsKey(itemType)) return;
+    SubmitBid(itemType, maxItems[itemType], ref budget);
   }
 
   public void SubmitBidPrices()
   {
-    foreach (var itemType in desiredItems)
+    int budget = inventory.Count(ItemType.Coin);
+    foreach (var itemType in maxItems)
     {
-      SubmitBid(itemType.Key, itemType.Value);
+      SubmitBid(itemType.Key, itemType.Value, ref budget);
     }
   }
 
@@ -153,14 +167,14 @@ public class MarketMaker : IMarketParticipant
     foreach (var ask in _market.Asks)
     {
       var have = inventory.Count(ask.Key);
-      var desired = desiredItems.ContainsKey(ask.Key) ? desiredItems[ask.Key] : 0;
-      if ( have >= desired) continue;
+      var max = maxItems.ContainsKey(ask.Key) ? maxItems[ask.Key] : 0;
+      if (have >= max) continue;
       UtilityQuantityList bid = _priceList.BidPrice(ask.Key);
       if (bid.Count == 0) continue;
       UtilityQuantity ourPrice = bid[0].Clone();
-      ourPrice.totalQuantity = ourPrice.marginalQuantity = desired - have;
+      ourPrice.totalQuantity = ourPrice.marginalQuantity = max - have;
       UtilityQuantity marketUtility = ask.Value.bestPrice;
-      if (ourPrice.marginalUtility <= 0 || ourPrice.marginalUtility < marketUtility.marginalUtility) continue;
+      if (ourPrice.marginalUtility <= 0 || ourPrice.marginalUtility < -marketUtility.marginalUtility) continue;
       purchases.Add(new PurchasePriority(ask.Key, ourPrice, marketUtility));
     }
 
@@ -170,11 +184,10 @@ public class MarketMaker : IMarketParticipant
   public void SubmitAsk(ItemType itemType)
   {
     var have = inventory.Count(itemType);
-    var desired = desiredItems.ContainsKey(itemType) ? desiredItems[itemType] : 0;
-    if (have == 0 || have < desired) return;
+    if (have == 0) return;
     var price = Utility(itemType, -1);
-    if (price == 0 || price == double.MinValue) return;
-    UtilityQuantity ask = new UtilityQuantity(have - desired, have - desired, price);
+    if (price == 0) return;
+    UtilityQuantity ask = new UtilityQuantity(have, have, price);
     UtilityQuantityList priceList = new UtilityQuantityList();
     priceList.Add(ask);
     _market.AddAsk(itemType, this, priceList);

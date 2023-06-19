@@ -123,7 +123,7 @@ public class UtilityUnitTest
   "grain": { "group": "FOOD", "parents" : ["food"], "stockpile": [{"perPerson": 3000, "utility": 1}]},
   "wheat": { "group": "FOOD", "parents" : ["grain"], "weight": 0.5, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 4, "minSoilQuality": 5, "minPlantingTemp": 40, "frostTolerance": 30, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 20, "initDays": 20, "devDays": 25, "midDays": 60, "lateDays": 30, "kcInit": 0.3, "kcMid": 1.15, "kcEnd": 0.25, "perTickYieldGrowth": 0.4444, "targetYieldPerAcre": 600, "seedPerAcre": 150, "hasHarvestableStraw": true, "nitrogenPerYield": 0.025, "phosphorusPerYield": 0.004142, "potassiumPerYield": 0.004565, "strawPerYield": 1.417, "nitrogenPerStraw": 0.0085, "phosphorusPerStraw": 0.000807, "potassiumPerStraw": 0.012035, "fieldCrop": true, "temperatePlantingMonths": [0,1], "harvestItems": { "wheat" : 1 , "straw": 1.417 }, "cropAttribute": "crop_wheat_growing"} },
   "tricorn": { "group": "FOOD", "parents" : ["wheat"], "stockpile": [{"perPerson": 2000, "utility": 2}]},
-  "hay": { "group": "FOOD", "parents" : ["food"], "weight": 1, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 1, "minSoilQuality": 0, "minPlantingTemp": 32, "frostTolerance": 20, "heatTolerance": 100, "droughtTolerance": 0.75, "weedSusceptibleDays": 10, "initDays": 10, "devDays": 15, "midDays": 75, "lateDays": 35, "kcInit": 0.4, "kcMid": 0.85, "kcEnd": 0.85, "perTickYieldGrowth": 2.963, "targetYieldPerAcre": 4000, "seedPerAcre": 10, "nitrogenPerYield": 0.019, "phosphorusPerYield": 0.0025, "potassiumPerYield": 0.018, "strawPerYield": 1, "nitrogenPerStraw": 0.006, "phosphorusPerStraw": 0, "potassiumPerStraw": 0, "nitrogenFixing": 0.8, "fieldCrop": true, "temperatePlantingMonths": [0,1], "harvestItems": { "hay" : 1 }, "cropAttribute": "crop_hay_growing"} },
+  "hay": { "group": "FOOD", "weight": 1, "cropSettings": {"cropSkill": "cereals", "cropSkillLevel": 1, "minSoilQuality": 0, "minPlantingTemp": 32, "frostTolerance": 20, "heatTolerance": 100, "droughtTolerance": 0.75, "weedSusceptibleDays": 10, "initDays": 10, "devDays": 15, "midDays": 75, "lateDays": 35, "kcInit": 0.4, "kcMid": 0.85, "kcEnd": 0.85, "perTickYieldGrowth": 2.963, "targetYieldPerAcre": 4000, "seedPerAcre": 10, "nitrogenPerYield": 0.019, "phosphorusPerYield": 0.0025, "potassiumPerYield": 0.018, "strawPerYield": 1, "nitrogenPerStraw": 0.006, "phosphorusPerStraw": 0, "potassiumPerStraw": 0, "nitrogenFixing": 0.8, "fieldCrop": true, "temperatePlantingMonths": [0,1], "harvestItems": { "hay" : 1 }, "cropAttribute": "crop_hay_growing"} },
   "field_peas": { "group": "FOOD", "parents" : ["food"], "weight": 0.5, "cropSettings": {"cropSkill": "legumes", "cropSkillLevel": 1, "minSoilQuality": 2, "minPlantingTemp": 40, "frostTolerance": 28, "heatTolerance": 85, "droughtTolerance": 0.5, "weedSusceptibleDays": 40, "initDays": 20, "devDays": 30, "midDays": 40, "lateDays": 25, "kcInit": 0.4, "kcMid": 1.15, "kcEnd": 0.3, "perTickYieldGrowth": 0.5739, "targetYieldPerAcre": 660, "seedPerAcre": 180, "hasHarvestableStraw": true, "nitrogenPerYield": 0.04, "phosphorusPerYield": 0.008717, "potassiumPerYield": 0.009817, "strawPerYield": 1.5, "nitrogenPerStraw": 0.008, "phosphorusPerStraw": 0.0007, "potassiumPerStraw": 0.009, "nitrogenFixing": 0.6, "temperatePlantingMonths": [0,1], "fieldCrop": true, "harvestItems": { "field_peas" : 1 , "straw": 1.5 }, "cropAttribute": "crop_field_peas_growing"} },
   "wood": { "group": "RESOURCE" },
   "logs": { "group": "RESOURCE" },
@@ -524,34 +524,177 @@ public class UtilityUnitTest
     validTasks.Add("make_charcoal_1");
     validTasks.Add("craft_brick");
     validTasks.Add("craft_tile");
-    
+
     // validTasks.Add("craft_unfired_pottery");
     // validTasks.Add("craft_pottery");
     // validTasks.Add("smelt_iron_1");
-    for (int i = 0; i < 209; ++i) {
+    for (int i = 0; i < 209; ++i)
+    {
       string task = NextTask(person, household, dailyTasks);
       // print the task so we can see what's going on.
       //Console.WriteLine(task);
-      Assert.IsTrue(validTasks.Contains(task), "Task ("+ i + ") " + task + " is not in valid set.");
+      Assert.IsTrue(validTasks.Contains(task), "Task (" + i + ") " + task + " is not in valid set.");
     }
 
     // Time to harvest the wheat.
     Assert.AreEqual("harvest_wheat", NextTask(person, household, dailyTasks));
   }
 
+
+  public void Advance(Household[] households, Market market, MarketMaker maker, HashSet<WorkTask> dailyTasks, uint days)
+  {
+    for (int i = 0; i < days * 10; i++)
+    {
+      Calendar.Advance(1);
+      WeatherAttributes.AdvanceWeather();
+      market.ClearBids();
+      maker.Advance();
+      maker.MakePurchases();
+      maker.SubmitBidPrices();
+      foreach (var household in households)
+      {
+        household.MakePurchases();
+        household.SubmitBidPrices();
+      }
+      // loop through all households, and advance each person.
+      foreach (var household in households)
+      {
+        household.AdvanceBuildings();
+        foreach (var person in Person.global_persons[household])
+        {
+          if (Calendar.StartOfDay)
+          {
+            person.PickTaskFromSet(dailyTasks, true);
+          }
+          TaskRunner.AdvanceTask(person);
+          person.attributes.Advance();
+          if (person.runningTasks.Count == 0)
+          {
+            person.PickTask();
+          }
+        }
+      }
+      market.ClearAsks();
+      maker.SubmitAskPrices();
+      foreach (var household in households)
+      {
+        household.SubmitAskPrices();
+      }
+    }
+  }
+
   [TestMethod]
   public void TestMarketUtility()
   {
     LoadTestConfig();
+    // Set a new price list for this test.
+    {
+      string json = """
+{
+  "coin": { "bid":1, "ask":1 },
+  "straw": { "bid":30, "ask":100 },
+  "wheat": { "bid":210, "ask":250 },
+  "field_peas": { "bid":150, "ask":200 },
+  "hay": { "bid":40, "ask":100 },
+  "wood": { "bid":30, "ask":40 },
+  "logs": { "bid":60, "ask":80 },
+  "clay": { "bid":15, "ask":30 },
+  "stone": { "bid":150, "ask":200 },
+  "iron": { "bid":90, "ask":150 },
+  "charcoal": { "bid":80, "ask":100 },
+  "rattan": { "bid":10, "ask":20 },
+  "basket": { "bid":120, "ask":150 },
+  "pottery": { "bid":130, "ask":150 },
+  "brick": { "bid":65, "ask":90 },
+  "tile": { "bid":65, "ask":90 },
+  "lumber": { "bid":150, "ask":200 },
+  "iron_anvil": { "bid":5000, "ask":20000 },
+  "chest": { "bid":600, "ask":1000 },
+  "quern": { "bid":800, "ask":1500 },
+}
+""";
+      // Load the default prices.
+      ConfigPriceList.LoadDefaultFromString(json);
+    }
 
-    Household household = new Household();
-    Person person = new Person("Bob", "bob", household, Role.HeadOfHousehold);
-    // Give the household a field so they can plant stuff.
-    household.AddField(BuildingType.Find("field")!);
+    Market market = new Market();
+    HashSet<WorkTask> dailyTasks = TaskSet.Find("daily")!;
 
-    // Abilities for field work.
+    Household[] households = new Household[2];
+
+    // Make a household, so we can test buying and selling.
+    households[0] = new Household();
+    Person person = new Person("Bob", "bob", households[0], Role.HeadOfHousehold);
+    households[0].AddField(BuildingType.Find("field")!);
+    households[0].JoinMarket(market);
     person.GrantAbility(AbilityType.Find("hoe_1")!);
     person.GrantAbility(AbilityType.Find("plow_1")!);
     person.GrantAbility(AbilityType.Find("sickle_1")!);
+
+    // Make a second household, so we can test buying and selling.
+    households[1] = new Household();
+    Person person2 = new Person("John", "john", households[1], Role.HeadOfHousehold);
+    households[1].AddField(BuildingType.Find("field")!);
+    households[1].JoinMarket(market);
+    person2.GrantAbility(AbilityType.Find("hoe_1")!);
+    person2.GrantAbility(AbilityType.Find("plow_1")!);
+    person2.GrantAbility(AbilityType.Find("sickle_1")!);
+
+    // Give Bob and John different starting skills.
+    person.GrantLevel(Skill.Find("cereals")!, 5);
+    person.GrantLevel(Skill.Find("pottery")!, 5);
+    person.GrantLevel(Skill.Find("kiln_firing")!, 5);
+
+    person2.GrantLevel(Skill.Find("legumes")!, 5);
+    person2.GrantLevel(Skill.Find("quarrying")!, 5);
+    person2.GrantLevel(Skill.Find("joinery")!, 5);
+
+    // Give both households some starting coin for liquidity.
+    households[0].inventory.AddItem(new Item(ItemType.Coin), 30000);
+    households[1].inventory.AddItem(new Item(ItemType.Coin), 30000);
+
+    // Create a MarketMaker and add it to the market.
+    MarketMaker marketMaker = new MarketMaker(ConfigPriceList.Default, market);
+    marketMaker.SetHave(ItemType.Find("coin")!, 1000000);
+    marketMaker.SetHave(ItemType.Find("wheat")!, 1000);
+    marketMaker.SetHave(ItemType.Find("hay")!, 1000);
+    marketMaker.SetHave(ItemType.Find("field_peas")!, 1000);
+    marketMaker.SetHave(ItemType.Find("clay")!, 100);
+    marketMaker.SetHave(ItemType.Find("stone")!, 20);
+    marketMaker.SetHave(ItemType.Find("wood")!, 100);
+    marketMaker.SetHave(ItemType.Find("logs")!, 10);
+    marketMaker.SetHave(ItemType.Find("rattan")!, 50);
+    marketMaker.SetHave(ItemType.Find("lumber")!, 20);
+    marketMaker.SetHave(ItemType.Find("iron_anvil")!, 1);
+    marketMaker.SetHave(ItemType.Find("iron")!, 50);
+
+    marketMaker.SetMax(ItemType.Find("basket")!, 10);
+    marketMaker.SetMax(ItemType.Find("pottery")!, 10);
+    marketMaker.SetMax(ItemType.Find("brick")!, 20);
+    marketMaker.SetMax(ItemType.Find("tile")!, 30);
+    marketMaker.SetMax(ItemType.Find("charcoal")!, 200);
+    marketMaker.SetMax(ItemType.Find("iron")!, 200);
+    marketMaker.SetMax(ItemType.Find("chest")!, 2);
+    marketMaker.SetMax(ItemType.Find("quern")!, 2);
+    marketMaker.SetMax(ItemType.Find("lumber")!, 50);
+    marketMaker.SetMax(ItemType.Find("logs")!, 50);
+    marketMaker.SetMax(ItemType.Find("wood")!, 500);
+    marketMaker.SetMax(ItemType.Find("stone")!, 200);
+    marketMaker.SetMax(ItemType.Find("clay")!, 200);
+    marketMaker.SetMax(ItemType.Find("field_peas")!, 2000);
+    marketMaker.SetMax(ItemType.Find("hay")!, 2000);
+    marketMaker.SetMax(ItemType.Find("wheat")!, 2000);
+    marketMaker.SetMax(ItemType.Find("rattan")!, 60);
+    marketMaker.SetMax(ItemType.Find("iron_anvil")!, 2);
+
+
+    // Run for six months.
+    Advance(households, market, marketMaker, dailyTasks, 180);
+
+    // Check the market's ask/bids
+    Assert.AreEqual(9, market.Asks.Count());
+    Assert.IsFalse(market.Asks.ContainsKey(ItemType.Find("coin")!));
+    Assert.IsTrue(market.Asks.ContainsKey(ItemType.Find("coin")!));
+    Assert.AreEqual(1, market.Asks[ItemType.Find("wheat")!].bestPrice);
   }
 }

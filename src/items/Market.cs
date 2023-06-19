@@ -203,6 +203,20 @@ public class Market : IPriceList
     }
   }
 
+  public void ReportSale(ItemType itemType, int quantity, int price)
+  {
+    CollectNewAsks(itemType);
+    // Note: We don't care about overflows here. The sales info is just for debugging.
+    if (!totalSales.ContainsKey(itemType))
+    {
+      totalSales[itemType] = quantity;
+    }
+    else
+    {
+      totalSales[itemType] += quantity;
+    }
+  }
+
   public class MarketCacheValue
   {
     public UtilityQuantityList orderBook;
@@ -216,6 +230,11 @@ public class Market : IPriceList
       this.bestPrice = bestPrice.Clone();
       participants.Add(bestCounterparty);
     }
+
+    public override string ToString()
+    {
+      return $"{bestPrice}, {bestCounterparty}, {orderBook}";
+    }
   }
 
   public IReadOnlyDictionary<ItemType, MarketCacheValue> Asks => _askCache;
@@ -225,6 +244,8 @@ public class Market : IPriceList
   private ConcurrentDictionary<ItemType, MarketCacheValue> _askCache = new ConcurrentDictionary<ItemType, MarketCacheValue>();
 
   private ConcurrentDictionary<ItemType, MarketCacheValue> _bidCache = new ConcurrentDictionary<ItemType, MarketCacheValue>();
+
+  public ConcurrentDictionary<ItemType, long> totalSales = new ConcurrentDictionary<ItemType, long>();
 }
 
 public class PurchasePriority : IComparable<PurchasePriority>
@@ -240,8 +261,8 @@ public class PurchasePriority : IComparable<PurchasePriority>
     this.utility = marketUtility;
     this.ourUtility = ourUtility;
     // Calculate the percentage difference between the market price and our utility.
-    // Flip the sign so that the percentage is positive.
-    this.percentage = -(marketUtility.marginalUtility - ourUtility.marginalUtility) / ourUtility.marginalUtility;
+    // Add the market utility as it is negative.
+    this.percentage = (ourUtility.marginalUtility + marketUtility.marginalUtility) / ourUtility.marginalUtility;
   }
 
   // Sort by highest percentage first, then most negative individual utility,
@@ -280,7 +301,7 @@ public class PurchaseList : List<PurchasePriority>
         if (seller == null || marketUtility == null || seller == buyer || -marketUtility.marginalUtility > budget) break;
         // The marketUtility might have changed since we calculated our utility, so make sure we're
         // still willing to buy it. Note that we don't attempt to re-sort the priorities.
-        if (ourUtility.marginalUtility > marketUtility.marginalUtility) break;
+        if (ourUtility.marginalUtility < -marketUtility.marginalUtility) break;
         // Buy as much as we can afford.
         int quantity = (int)Math.Floor(budget / -marketUtility.marginalUtility);
         quantity = Math.Min(quantity, ourUtility.marginalQuantity);
@@ -300,7 +321,7 @@ public class PurchaseList : List<PurchasePriority>
         // If the trade offer was accepted, update our budget.
         budget -= purchaseCost;
         // Inform the market of the trade so that prices can be updated.
-        market.CollectNewAsks(purchase.itemType);
+        market.ReportSale(purchase.itemType, quantity, purchaseCost);
         // Update our utility.
         ourUtility.marginalQuantity -= quantity;
 
