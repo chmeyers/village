@@ -266,6 +266,21 @@ public class UtilityQuantityList : List<UtilityQuantity>
     return this[0].marginalUtility;
   }
 
+  public double? GetUtility(int quantity)
+  {
+    double total = 0;
+    foreach (var element in this)
+    {
+      total += element.marginalUtility * Math.Min(element.marginalQuantity, quantity);
+      quantity -= element.marginalQuantity;
+      if (quantity <= 0)
+      {
+        return total;
+      }
+    }
+    return null;
+  }
+
   public double GetTotalUtility()
   {
     // Add up all the marginal utilities.

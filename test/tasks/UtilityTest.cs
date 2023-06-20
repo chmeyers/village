@@ -528,7 +528,7 @@ public class UtilityUnitTest
     // validTasks.Add("craft_unfired_pottery");
     // validTasks.Add("craft_pottery");
     // validTasks.Add("smelt_iron_1");
-    for (int i = 0; i < 209; ++i)
+    for (int i = 0; i < 215; ++i)
     {
       string task = NextTask(person, household, dailyTasks);
       // print the task so we can see what's going on.
@@ -541,7 +541,7 @@ public class UtilityUnitTest
   }
 
 
-  public void Advance(Household[] households, Market market, MarketMaker maker, HashSet<WorkTask> dailyTasks, uint days)
+  public void Advance(List<Household> households, Market market, MarketMaker maker, HashSet<WorkTask> dailyTasks, uint days)
   {
     for (int i = 0; i < days * 10; i++)
     {
@@ -583,78 +583,8 @@ public class UtilityUnitTest
     }
   }
 
-  [TestMethod]
-  public void TestMarketUtility()
+  public void SetMakerSettings(MarketMaker marketMaker)
   {
-    LoadTestConfig();
-    // Set a new price list for this test.
-    {
-      string json = """
-{
-  "coin": { "bid":1, "ask":1 },
-  "straw": { "bid":30, "ask":100 },
-  "wheat": { "bid":210, "ask":250 },
-  "field_peas": { "bid":150, "ask":200 },
-  "hay": { "bid":40, "ask":100 },
-  "wood": { "bid":30, "ask":40 },
-  "logs": { "bid":60, "ask":80 },
-  "clay": { "bid":15, "ask":30 },
-  "stone": { "bid":150, "ask":200 },
-  "iron": { "bid":90, "ask":150 },
-  "charcoal": { "bid":80, "ask":100 },
-  "rattan": { "bid":10, "ask":20 },
-  "basket": { "bid":120, "ask":150 },
-  "pottery": { "bid":130, "ask":150 },
-  "brick": { "bid":65, "ask":90 },
-  "tile": { "bid":65, "ask":90 },
-  "lumber": { "bid":150, "ask":200 },
-  "iron_anvil": { "bid":5000, "ask":20000 },
-  "chest": { "bid":600, "ask":1000 },
-  "quern": { "bid":800, "ask":1500 },
-}
-""";
-      // Load the default prices.
-      ConfigPriceList.LoadDefaultFromString(json);
-    }
-
-    Market market = new Market();
-    HashSet<WorkTask> dailyTasks = TaskSet.Find("daily")!;
-
-    Household[] households = new Household[2];
-
-    // Make a household, so we can test buying and selling.
-    households[0] = new Household();
-    Person person = new Person("Bob", "bob", households[0], Role.HeadOfHousehold);
-    households[0].AddField(BuildingType.Find("field")!);
-    households[0].JoinMarket(market);
-    person.GrantAbility(AbilityType.Find("hoe_1")!);
-    person.GrantAbility(AbilityType.Find("plow_1")!);
-    person.GrantAbility(AbilityType.Find("sickle_1")!);
-
-    // Make a second household, so we can test buying and selling.
-    households[1] = new Household();
-    Person person2 = new Person("John", "john", households[1], Role.HeadOfHousehold);
-    households[1].AddField(BuildingType.Find("field")!);
-    households[1].JoinMarket(market);
-    person2.GrantAbility(AbilityType.Find("hoe_1")!);
-    person2.GrantAbility(AbilityType.Find("plow_1")!);
-    person2.GrantAbility(AbilityType.Find("sickle_1")!);
-
-    // Give Bob and John different starting skills.
-    person.GrantLevel(Skill.Find("cereals")!, 5);
-    person.GrantLevel(Skill.Find("pottery")!, 5);
-    person.GrantLevel(Skill.Find("kiln_firing")!, 5);
-
-    person2.GrantLevel(Skill.Find("legumes")!, 5);
-    person2.GrantLevel(Skill.Find("quarrying")!, 5);
-    person2.GrantLevel(Skill.Find("joinery")!, 5);
-
-    // Give both households some starting coin for liquidity.
-    households[0].inventory.AddItem(new Item(ItemType.Coin), 30000);
-    households[1].inventory.AddItem(new Item(ItemType.Coin), 30000);
-
-    // Create a MarketMaker and add it to the market.
-    MarketMaker marketMaker = new MarketMaker(ConfigPriceList.Default, market);
     marketMaker.SetHave(ItemType.Find("coin")!, 1000000);
     marketMaker.SetHave(ItemType.Find("wheat")!, 1000);
     marketMaker.SetHave(ItemType.Find("hay")!, 1000);
@@ -686,15 +616,126 @@ public class UtilityUnitTest
     marketMaker.SetMax(ItemType.Find("wheat")!, 2000);
     marketMaker.SetMax(ItemType.Find("rattan")!, 60);
     marketMaker.SetMax(ItemType.Find("iron_anvil")!, 2);
+  }
 
+  [TestMethod]
+  public void TestMarketUtility()
+  {
+    LoadTestConfig();
+
+    Market market = new Market();
+    HashSet<WorkTask> dailyTasks = TaskSet.Find("daily")!;
+
+    List<Household> households = new List<Household>();
+
+    // Make a household, so we can test buying and selling.
+    households.Add(new Household());
+    Person person = new Person("Bob", "bob", households[0], Role.HeadOfHousehold);
+    households[0].AddField(BuildingType.Find("field")!);
+    households[0].JoinMarket(market);
+    person.GrantAbility(AbilityType.Find("hoe_1")!);
+    person.GrantAbility(AbilityType.Find("plow_1")!);
+    person.GrantAbility(AbilityType.Find("sickle_1")!);
+
+    // Create a MarketMaker and add it to the market.
+    MarketMaker marketMaker = new MarketMaker(ConfigPriceList.Default, market);
+    SetMakerSettings(marketMaker);
+
+    marketMaker.Refresh();
+    marketMaker.SubmitAskPrices();
+    marketMaker.SubmitBidPrices();
+
+    ItemType food = ItemType.Find("food")!;
+    ItemType grain = ItemType.Find("grain")!;
+    ItemType wheat = ItemType.Find("wheat")!;
+    ItemType tricorn = ItemType.Find("tricorn")!;
+    ItemType hay = ItemType.Find("hay")!;
+    ItemType peas = ItemType.Find("field_peas")!;
+    ItemType basket = ItemType.Find("basket")!;
+    ItemType iron_anvil = ItemType.Find("iron_anvil")!;
+
+    // Check the person's time utility.
+    // This will recursively check all the tasks they can do.
+    Assert.AreEqual(20, person.DetermineTimeUtility(), 0.5);
+
+    Household household = households[0];
+
+    // Check DesiresStockpile functionality.
+    var foodStockpile = household.DesiredStockpile(food);
+    Assert.AreEqual(1, foodStockpile.Count);
+    Assert.AreEqual(200, foodStockpile[0].totalQuantity);
+    Assert.AreEqual(200, foodStockpile[0].marginalUtility);
+    // Food value should come from the utility of making a meal.
+    var foodValue = household.ValuePrice(food);
+    Assert.AreEqual(3, foodValue.Count);
+    Assert.AreEqual(1, foodValue[0].totalQuantity);
+    Assert.AreEqual(199900, foodValue[0].marginalUtility);
+    Assert.AreEqual(3, foodValue[1].totalQuantity);
+    Assert.AreEqual(69933.3, foodValue[1].marginalUtility, 0.1);
+    Assert.AreEqual(15, foodValue[2].totalQuantity);
+    Assert.AreEqual(15974.6, foodValue[2].marginalUtility, 0.1);
+
+    var grainStockpile = household.DesiredStockpile(grain);
+    Assert.AreEqual(1, grainStockpile.Count);
+    Assert.AreEqual(3000, grainStockpile[0].totalQuantity);
+    Assert.AreEqual(1, grainStockpile[0].marginalUtility);
+    // Grain value should be empty.
+    var grainValue = household.ValuePrice(grain);
+    Assert.AreEqual(0, grainValue.Count);
+
+    var wheatStockpile = household.DesiredStockpile(wheat);
+    Assert.AreEqual(0, wheatStockpile.Count);
+    // Wheat value should be based on market price.
+    var wheatValue = household.ValuePrice(wheat);
+    Assert.AreEqual(1, wheatValue.Count);
+    Assert.AreEqual(160, wheatValue[0].marginalUtility);
+
+    var tricornStockpile = household.DesiredStockpile(tricorn);
+    Assert.AreEqual(1, tricornStockpile.Count);
+    Assert.AreEqual(2000, tricornStockpile[0].totalQuantity);
+    Assert.AreEqual(2, tricornStockpile[0].marginalUtility);
+
+
+    // We don't have any food, so the entire wheat-tricorn chain has high utility.
+    // Food is based on just the Value Price
+    Assert.AreEqual(199900, household.Utility(person, food, 1), 1);
+    Assert.AreEqual(-199900, household.Utility(person, food, -1), 1);
+    // Grain inherits from food, but is unpurchasable.
+    Assert.AreEqual(199901, household.Utility(person, grain, 1), 1);
+    Assert.AreEqual(double.MinValue, household.Utility(person, grain, -1), 1);
+    // Wheat inherits from grain, but adds in the purchase/sale price.
+    Assert.AreEqual(200061, household.Utility(person, wheat, 1), 1);
+    Assert.AreEqual(-200250, household.Utility(person, wheat, -1), 1);
+    Assert.AreEqual(200064, household.Utility(person, tricorn, 1), 1);
+    Assert.AreEqual(double.MinValue, household.Utility(person, tricorn, -1), 1);
+
+    // Basket's utility is solely based on the market price.
+    Assert.AreEqual(45, household.Utility(person, basket, 1), 0.5);
+    // Since we don't have any, we would need to buy one or produce one.
+    // It's cheaper to produce one, so the utility is based on that.
+    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
+    household.inventory.AddItem(new Item(basket), 1);
+    // Now that we have one, utility is based on sell price.
+    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
+    Assert.AreEqual(-90, household.Utility(person, basket, -2), 0.5);
+
+    // Unlike baskets, it's cheaper to buy an anvil than to produce one.
+    Assert.AreEqual(5000, household.Utility(person, iron_anvil, 1), 0.5);
+    Assert.AreEqual(-20000, household.Utility(person, iron_anvil, -1), 0.5);
+    household.inventory.AddItem(new Item(iron_anvil), 1);
+    // Now that we have one, utility is based on sell price.
+    Assert.AreEqual(-5000, household.Utility(person, iron_anvil, -1), 0.5);
+    Assert.AreEqual(-25000, household.Utility(person, iron_anvil, -2), 0.5);
 
     // Run for six months.
     Advance(households, market, marketMaker, dailyTasks, 180);
 
     // Check the market's ask/bids
-    Assert.AreEqual(9, market.Asks.Count());
-    Assert.IsFalse(market.Asks.ContainsKey(ItemType.Find("coin")!));
-    Assert.IsTrue(market.Asks.ContainsKey(ItemType.Find("coin")!));
-    Assert.AreEqual(1, market.Asks[ItemType.Find("wheat")!].bestPrice);
+    Assert.AreEqual(12, market.totalSales.Count);
+    Assert.AreEqual(205, market.totalSales[ItemType.Find("wheat")!]);
+    Assert.AreEqual(329, market.totalSales[ItemType.Find("field_peas")!]);
+    Assert.AreEqual(3914, market.totalSales[ItemType.Find("wood")!]);
+    Assert.AreEqual(29, market.totalSales[ItemType.Find("quern")!]);
+    Assert.AreEqual(17, market.totalSales[ItemType.Find("chest")!]);
   }
 }

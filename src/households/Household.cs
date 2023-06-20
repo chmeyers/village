@@ -201,41 +201,30 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     if (delta < 0)
     {
       // Removing items.
-
-      // When removing items, we don't consider the values if we have that total quantity,
-      // as that is the expected use of the item. Instead we compare against the next best value.
-      // We DO consider all the desired stockpile values, as the expected use of the stockpile
-      // is to keep the item.
-      // TODO(chmeyers): We should only remove them if the associated task is available to run.
-      UtilityQuantityList allValues = desiredStockpile.Clone().MergeExceptQuantity(valueList, have);
+      UtilityQuantityList allValues = desiredStockpile.Clone().Merge(valueList);
 
       double utility = 0;
-      double price = valueList.GetLastUtility() ?? 0;
       for (int i = allValues.Count - 1; i >= 0; i--)
       {
-        // TODO(chmeyers): This could be refactored to skip entries for better performance.
-        int totalDesired = allValues[i].totalQuantity;
-        int excess = Math.Max(have - totalDesired, 0);
+        int intervalMin = i > 0 ? allValues[i - 1].totalQuantity : 0;
+        if (intervalMin >= have) continue;
+        int excess = have - intervalMin;
         int undesired_amount = Math.Min(-delta, excess);
         delta += undesired_amount;
-        utility += price * -undesired_amount;  // +/- epsilon?
+        utility += allValues[i].marginalUtility * -undesired_amount;  // +/- epsilon?
         if (delta == 0)
         {
           return utility;
         }
-        // Desired Utilities should be higher than the price,
-        // but the price might be more up to date, so we use
-        // that as a lower bound.
-        price = Math.Max(allValues[i].marginalUtility, price);
-        have = Math.Min(have, totalDesired);
+        have = intervalMin;
       }
       int from_inventory = Math.Min(-delta, have);
       int need_to_buy = -delta - from_inventory;
+      double price = allValues.GetFirstUtility() ?? 0;
       utility += price * -from_inventory;  // +/- epsilon?
       // An null costPrice means we'll use a zero, an empty one means min value.
-      double aquirePrice = costPrice == null ? 0 : costPrice.GetLastUtility() ?? double.MinValue;
-      price = Math.Max(-aquirePrice, price);
-      utility += price * -need_to_buy;  // +/- epsilon?
+      double aquirePrice = costPrice == null ? 0 : costPrice.GetUtility(need_to_buy) ?? double.MinValue;
+      utility += Math.Min(price * -need_to_buy, aquirePrice);  // +/- epsilon?
       return utility;
     }
     else if (delta > 0)
@@ -245,8 +234,9 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
       double utility = 0;
       for (int i = 0; i < allValues.Count; i++)
       {
-        int totalDesired = allValues[i].totalQuantity;
-        int needed = Math.Max(totalDesired - have, 0);
+        int intervalMax = allValues[i].totalQuantity;
+        if (intervalMax <= have) continue;
+        int needed = intervalMax - have;
         int desired_amount = Math.Min(delta, needed);
         delta -= desired_amount;
         utility += Math.Max(allValues[i].marginalUtility, 0) * desired_amount;
@@ -254,7 +244,7 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
         {
           return utility;
         }
-        have = Math.Max(have, totalDesired);
+        have = intervalMax;
       }
       // Fallback to the lowest ValuePrice, NOT the desire stockpile.
       double fallbackValue = valueList.GetLastUtility() ?? 0;
@@ -300,6 +290,10 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
   {
     UtilityQuantityList stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType), childStockpile);
     UtilityQuantity? quantity = _MarginalQuantity(stockpile, inventory.Count(itemType), adding, ValuePrice(itemType));
+    if (quantity == null && !adding)
+    {
+      return quantity;
+    }
     // Add in the utility for the parents/ancestors of this item, as it can
     // also be used as any of them.
     foreach (var parent in itemType.parentTypes)
@@ -395,6 +389,26 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     return bestValue;
   }
 
+  public UtilityQuantityList ValuePriceExceptAvailable(ItemType itemType, int have)
+  {
+    IPriceList priceList = market == null ? ConfigPriceList.Default : market;
+    UtilityQuantityList bestValue = priceList.BidPrice(itemType);
+    // See if any people in the household can beat the market price.
+    // The BidPrice above probably includes this household's market offers,
+    // but that's fine, as those offers are always epsilon worse than
+    // what WorthAsInput will return, so Merge will remove them.
+    foreach (var person in people)
+    {
+      // When removing items, we don't consider the values if we have that total quantity,
+      // as that is the expected use of the item. Instead we compare against the next best value.
+      // We DO consider all the desired stockpile values, as the expected use of the stockpile
+      // is to keep the item.
+      // TODO(chmeyers): We should only remove them if the associated task is available to run.
+      bestValue.MergeExceptQuantity(person.WorthAsInput(itemType), have);
+    }
+    return bestValue;
+  }
+
   // The actual price of the item on the local market not
   // including offers from this household, or
   // the cost to produce it yourself plus a desired profit.
@@ -426,7 +440,9 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
   private double _Utility(ItemType itemType, int quantity, int days, UtilityQuantityList? cost, UtilityQuantityList? childStockpile)
   {
     UtilityQuantityList stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType, days), childStockpile);
-    double utility = _MarginalUtility(stockpile, inventory.Count(itemType), quantity, ValuePrice(itemType), cost);
+    int have = inventory.Count(itemType);
+    UtilityQuantityList valuePrice = quantity >=0 ? ValuePrice(itemType) : ValuePriceExceptAvailable(itemType, have);
+    double utility = _MarginalUtility(stockpile, have, quantity, valuePrice, cost);
     // Add in the utility for the parents/ancestors of this item, as it can
     // also be used as any of them.
     foreach (var parent in itemType.parentTypes)
@@ -473,16 +489,13 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     return runner.TimeUtility() * time;
   }
 
-  // TODO(chmeyers): Make profit adjustable.
-  public const double market_profit = 0.05;
 
   public void SubmitAsk(ItemType itemType)
   {
     // TODO(chmeyers): Deal with sales of degraded items.
     if (market == null) return;
     var quantity = MarginalQuantity(itemType, false);
-    if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == double.MinValue || quantity.totalQuantity == int.MaxValue) return;
-    quantity.marginalUtility *= (1 + market_profit);
+    if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == double.MinValue || quantity.totalQuantity == int.MaxValue || quantity.totalQuantity == 0) return;
     UtilityQuantityList price = new UtilityQuantityList();
     price.Add(quantity);
     market.AddAsk(itemType, this, price);
@@ -538,7 +551,6 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
   {
     var quantity = MarginalQuantity(itemType, true);
     if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == 0 || quantity.totalQuantity == 0) return;
-    quantity.marginalUtility *= (1 - market_profit);
     // Cap the quantity at our budget.
     quantity.marginalQuantity = Math.Min(quantity.marginalQuantity, (int)Math.Floor(budget / quantity.marginalUtility));
     if (quantity.marginalQuantity <= 0) return;

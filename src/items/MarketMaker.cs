@@ -175,7 +175,7 @@ public class MarketMaker : IMarketParticipant
       ourPrice.totalQuantity = ourPrice.marginalQuantity = max - have;
       UtilityQuantity marketUtility = ask.Value.bestPrice;
       if (ourPrice.marginalUtility <= 0 || ourPrice.marginalUtility < -marketUtility.marginalUtility) continue;
-      purchases.Add(new PurchasePriority(ask.Key, ourPrice, marketUtility));
+      purchases.Add(new PurchasePriority(ask.Key, marketUtility, ourPrice));
     }
 
     purchases.MakePurchases(this, _market, budget);
