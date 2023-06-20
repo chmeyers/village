@@ -447,9 +447,6 @@ public class ToolUtilityUnitTest
     Person person = new Person("Bob", "bob", households[0], Role.HeadOfHousehold);
     households[0].AddField(BuildingType.Find("field")!);
     households[0].JoinMarket(market);
-    person.GrantAbility(AbilityType.Find("hoe_1")!);
-    person.GrantAbility(AbilityType.Find("plow_1")!);
-    person.GrantAbility(AbilityType.Find("sickle_1")!);
 
     // Create a MarketMaker and add it to the market.
     MarketMaker marketMaker = new MarketMaker(ConfigPriceList.Default, market);
@@ -470,17 +467,17 @@ public class ToolUtilityUnitTest
     ItemType hoe = ItemType.Find("hoe")!;
     ItemType plow = ItemType.Find("plow")!;
 
+    Household household = households[0];
+
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
     Assert.AreEqual(0, person.DetermineTimeUtility(), 0.5);
     Assert.AreEqual(420, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("axe_1")!}), 0.5);
     Assert.AreEqual(50, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("shovel_1")!}), 0.5);
-    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("hoe_1")!}), 0.5);
+    Assert.AreEqual(70, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("hoe_1")!}), 0.5);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("sickle_1")!}), 0.5);
     Assert.AreEqual(195, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("pickaxe_1")!}), 0.5);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("plow_1")!}), 0.5);
-
-    Household household = households[0];
 
 
     Assert.AreEqual(42000, household.Utility(person, axe, 1), 0.5);
@@ -488,7 +485,7 @@ public class ToolUtilityUnitTest
     Assert.AreEqual(5000, household.Utility(person, shovel, 1), 0.5);
     // Since our time utility is zero, shovels are basically free.
     Assert.AreEqual(0, household.Utility(person, shovel, -1), 0.5);
-    Assert.AreEqual(0, household.Utility(person, hoe, 1), 0.5);
+    Assert.AreEqual(7000, household.Utility(person, hoe, 1), 0.5);
     Assert.AreEqual(double.MinValue, household.Utility(person, hoe, -1), 0.5);
     Assert.AreEqual(0, household.Utility(person, plow, 1), 0.5);
     Assert.AreEqual(double.MinValue, household.Utility(person, plow, -1), 0.5);
@@ -531,34 +528,66 @@ public class ToolUtilityUnitTest
     Assert.AreEqual("craft_shovel", GetNext(next));
     Assert.AreEqual("craft_unfired_brick", GetNext(next));
 
-    Assert.AreEqual(3.6, person.DetermineTimeUtility(), 0.5);
-    Assert.AreEqual(346.6, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("axe_1")! }), 0.5);
-    Assert.AreEqual(34666, household.Utility(person, axe, 1), 1.0);
-    household.SubmitBidPrices();
-    household.MakePurchases();
+    Assert.AreEqual(3.0, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(360, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("axe_1")! }), 0.5);
+    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("shovel_1")! }), 0.5);
+    Assert.AreEqual(25, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("hoe_1")! }), 0.5);
+    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("plow_1")! }), 0.5);
+    Assert.AreEqual(36000, household.Utility(person, axe, 1), 0.5);
+    Assert.AreEqual(double.MinValue, household.Utility(person, axe, -1), 0.5);
+    Assert.AreEqual(0, household.Utility(person, shovel, 1), 0.5);
+    Assert.AreEqual(0, household.Utility(person, shovel, -1), 0.5);
+    Assert.AreEqual(2500, household.Utility(person, hoe, 1), 0.5);
+    Assert.AreEqual(double.MinValue, household.Utility(person, hoe, -1), 0.5);
+    Assert.AreEqual(0, household.Utility(person, plow, 1), 0.5);
+    Assert.AreEqual(double.MinValue, household.Utility(person, plow, -1), 0.5);
+
+    // Give them money to buy seeds and tools.
+    household.inventory.AddItem(new Item(ItemType.Coin), 60000);
+    household.ReevaluateCropWorth();
+
+    // Now that we have the money to buy seeds, plows are very useful.
+    Assert.AreEqual(1700, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("plow_1")! }), 0.5);
+    Assert.AreEqual(170000, household.Utility(person, plow, 1), 0.5);
+    Assert.AreEqual(-500, household.Utility(person, plow, -1), 0.5);
+
+    Assert.AreEqual("plow_field", GetNext(next));
 
     HashSet<string> validTasks = new HashSet<string>();
     validTasks.Add("hunt");
     validTasks.Add("cook_meals");
-    validTasks.Add("gather_clay");
-    validTasks.Add("craft_unfired_brick");
-    validTasks.Add("craft_basket");
-    validTasks.Add("craft_shovel");
-    validTasks.Add("craft_unfired_tile");
-    validTasks.Add("craft_unfired_pottery");
-    validTasks.Add("weed_field");
     validTasks.Add("gather_logs_3");
+    validTasks.Add("plant_peas");
+    validTasks.Add("weed_field");
     validTasks.Add("gather_wood_1");
+    validTasks.Add("craft_basket");
     validTasks.Add("make_charcoal_1");
-    validTasks.Add("craft_pottery");
-    validTasks.Add("craft_brick");
     validTasks.Add("mine_iron_1");
+    validTasks.Add("craft_unfired_pottery");
     validTasks.Add("");
 
-    for (int i = 0; i < 240; ++i)
+    for (int i = 0; i < 200; ++i)
     {
       string task = GetNext(next);
+      if (task == "harvest_peas") break;
       Assert.IsTrue(validTasks.Contains(task), "Task (" + i + ") " + task + " is not in valid set.");
     }
+
+    Assert.AreEqual(11, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("axe_1")! }), 0.5);
+    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("hoe_1")! }), 0.5);
+    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("sickle_1")! }), 0.5);
+    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("plow_1")! }), 0.5);
+
+
+    Assert.AreEqual(0, household.Utility(person, axe, 1), 0.5);
+    Assert.AreEqual(-500, household.Utility(person, axe, -1), 0.5);
+    Assert.AreEqual(0, household.Utility(person, shovel, 1), 0.5);
+    // Since our time utility is zero, shovels are basically free.
+    Assert.AreEqual(0, household.Utility(person, shovel, -1), 0.5);
+    Assert.AreEqual(0, household.Utility(person, hoe, 1), 0.5);
+    Assert.AreEqual(-500, household.Utility(person, hoe, -1), 0.5);
+    Assert.AreEqual(0, household.Utility(person, plow, 1), 0.5);
+    Assert.AreEqual(-500, household.Utility(person, plow, -1), 0.5);
   }
 }
