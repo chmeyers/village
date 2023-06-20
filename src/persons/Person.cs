@@ -766,6 +766,43 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
   }
 
+  public double AbilityUtility(HashSet<AbilityType> abilities)
+  {
+    // The utility of an ability is dependent on improvement in salary the person could get
+    // with all the potential tasks that could be run with that ability.
+    if (Abilities.IsSupersetOf(abilities)) return 0;
+
+    double currentSalary = TimeUtility();
+
+    HashSet<AbilityType> newAbilities = new HashSet<AbilityType>(Abilities);
+    newAbilities.UnionWith(abilities);
+    HashSet<WorkTask> newTasks = WorkTask.GetAdditionalTasks(newAbilities, abilities);
+    if (newTasks.Count == 0) return 0;
+
+    double utility = 0;
+    foreach (var task in newTasks)
+    {
+      if (task.compulsory) continue;
+      double rawTime = task.timeCost.GetValue(this);
+      if (rawTime <= 0) continue;
+      // Get the utility score for the task.
+      Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
+      double scale = 1.0;
+      double score = task.PotentialTimeUtility(this, this.household, ref targets, ref scale);
+      int time = (int)Math.Ceiling(rawTime * scale);
+      score -= time * currentSalary;
+      if (score <= 0)
+      {
+        // If the task is not better than the current salary, then we don't care about it.
+        continue;
+      }
+      // Note that the utility is per task, not per time since things that grant abilities
+      // will generally degrade once per task.
+      utility = Math.Max(utility, score);
+    }
+    return utility;
+  }
+
 
   // Cache of work tasks the person can do, based on their abilities.
   // They may not have the required item inputs to do the task.

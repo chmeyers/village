@@ -284,6 +284,17 @@ public class PurchaseList : List<PurchasePriority>
 {
   public PurchaseList() : base() { }
 
+  public void FilterByPercentage(double percentage)
+  {
+    for (int i = Count - 1; i >= 0; i--)
+    {
+      if (this[i].percentage < percentage)
+      {
+        RemoveAt(i);
+      }
+    }
+  }
+
   public void MakePurchases(IMarketParticipant buyer, Market market, int budget)
   {
     this.Sort();

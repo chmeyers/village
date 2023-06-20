@@ -70,11 +70,24 @@ public class UtilityQuantity : IComparable<UtilityQuantity>
   {
     // For friendly debugging, print the total quantity and
     // marginal utility, rounded to 2 decimal places.
+    string utility = "";
+    if (marginalUtility >= int.MaxValue)
+    {
+      utility = "∞";
+    }
+    else if (marginalUtility <= int.MinValue)
+    {
+      utility = "-∞";
+    }
+    else
+    {
+      utility = $"{marginalUtility:F2}";
+    }
     if (totalQuantity >= int.MaxValue)
     {
-      return $"(∞, {marginalUtility:F2})";
+      return $"(∞, {utility})";
     }
-    return $"({totalQuantity}, {marginalUtility:F2})";
+    return $"({totalQuantity}, {utility})";
   }
 
 }

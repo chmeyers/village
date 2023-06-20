@@ -317,6 +317,22 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
         quantity.marginalQuantity = parentQuantity.marginalQuantity;
       }
     }
+    // If we are adding an item with a useful ability, the first unit gets the utility of
+    // the ability, which will make that the marginal unit.
+    if (adding)
+    {
+      double abilityUtility = _AbilityUtility(itemType);
+      if (abilityUtility > 0)
+      {
+        if (quantity == null)
+        {
+          return new UtilityQuantity(1, 1, abilityUtility);
+        }
+        quantity.marginalUtility += abilityUtility;
+        quantity.totalQuantity = 1;
+        quantity.marginalQuantity = 1;
+      }
+    }
     return quantity;
   }
 
@@ -456,6 +472,20 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     return bestPrice;
   }
 
+  private double _AbilityUtility(ItemType itemType)
+  {
+    if (itemType.abilities.Count == 0)
+    {
+      return 0;
+    }
+    double utility = 0;
+    foreach (var person in people)
+    {
+      utility = Math.Max(person.AbilityUtility(itemType.abilities), utility);
+    }
+    // TODO(chmeyers): Base this on the actual quality of the item.
+    return utility * itemType.craftQuality.GetBaseValue();
+  }
 
   private double _Utility(ItemType itemType, int quantity, int days, UtilityQuantityList? cost, UtilityQuantityList? childStockpile)
   {
@@ -481,7 +511,8 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
   // for it's utility value minus epsilon, and sell them for plus epsilon.
   public double Utility(ItemType itemType, int quantity)
   {
-    return _Utility(itemType, quantity, 0, (quantity < 0 ? CostPrice(itemType) : null), null);
+    int have = inventory.Count(itemType);
+    return _Utility(itemType, quantity, 0, (quantity < 0 ? CostPrice(itemType) : null), null) + ( quantity > 0 ?_AbilityUtility(itemType) : 0);
   }
 
   public double Utility(ITaskRunner runner, ItemType itemType, int quantity)
@@ -532,6 +563,10 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     }
   }
 
+  // Items that cost more than this per item will be considered high value purchases.
+  public const double highValuePurchaseThreshold = 50000;
+  // Items that aren't at least this much as good as the best item we want to buy will be ignored.
+  public const double minRelativeValueToPurchase = 0.8;
   public void MakePurchases()
   {
     if (market == null)
@@ -549,6 +584,8 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     // Store things we are considering buying sorted by priority.
     PurchaseList purchases = new PurchaseList();
 
+    double bestItemPercentage = 0;
+
     foreach (var ask in market.Asks)
     {
       UtilityQuantity marketUtility = ask.Value.bestPrice;
@@ -557,11 +594,19 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
       // Ignore anything that's not worth buying.
       // Asks are negative numbers and ourUtility is positive.
       if (ourUtility == null || ourUtility.marginalUtility == 0 || ourUtility.marginalUtility < -marketUtility.marginalUtility) continue;
+      if (marketUtility.marginalUtility < highValuePurchaseThreshold)
+      {
+        // Keep track of the best low value item we can buy, even if they are out of our budget.
+        bestItemPercentage = Math.Max(bestItemPercentage, (ourUtility.marginalUtility + marketUtility.marginalUtility) / ourUtility.marginalUtility);
+      }
       // Ignore anything out of our budget.
       if (-marketUtility.marginalUtility > budget) continue;
       // Add this item to our list of potential purchases.
       purchases.Add(new PurchasePriority(ask.Key, marketUtility, ourUtility));
     }
+
+    // Filter out the the lower profitability items so we can save up for the best ones.
+    purchases.FilterByPercentage(bestItemPercentage * minRelativeValueToPurchase);
     
     purchases.MakePurchases(this, market, budget);
 

@@ -26,6 +26,7 @@ namespace Village.Tasks
     public UtilityQuantityList WorthAsInput(ItemType itemType, double minWorth = 0);
     public IEnumerable<ItemType> GetDesiredItems();
     public void InvalidateWorthCache(ItemType itemType);
+    public double AbilityUtility(HashSet<AbilityType> abilities);
   }
 
   // Named WorkTask instead of Task to avoid conflict with System.Task
@@ -81,6 +82,31 @@ namespace Village.Tasks
           {
             // If the task has no requirements, or all the requirements are met, add it to the set.
             if (abilities.IsSupersetOf(task.requirements))
+            {
+              tasks.Add(task);
+            }
+          }
+        }
+      }
+      // Return the list of tasks.
+      return tasks;
+    }
+
+    // Get additional tasks that could be done if the given ability was acquired.
+    public static HashSet<WorkTask> GetAdditionalTasks(HashSet<AbilityType> abilitiesIncludingNew, HashSet<AbilityType> newAbilities)
+    {
+      // Create a set to store the tasks.
+      HashSet<WorkTask> tasks = new HashSet<WorkTask>();
+      foreach (AbilityType newAbility in newAbilities)
+      {
+        // If the ability is in the tasksByAbility dictionary, add the tasks to the list.
+        if (tasksByAbility.ContainsKey(newAbility))
+        {
+          // For each task, check that all the requirements are met.
+          foreach (WorkTask task in tasksByAbility[newAbility])
+          {
+            // If the task has no requirements, or all the requirements are met, add it to the set.
+            if (abilitiesIncludingNew.IsSupersetOf(task.requirements))
             {
               tasks.Add(task);
             }

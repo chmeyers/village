@@ -13,48 +13,8 @@ using Village.Tasks;
 namespace VillageTest;
 
 [TestClass]
-public class UtilityUnitTest
+public class ToolUtilityUnitTest
 {
-  public void Advance(Household household, HashSet<WorkTask> dailyTasks, uint days, bool untilIdle = false)
-  {
-    bool done = false;
-    for (int i = 0; i < days * 10; i++)
-    {
-      Calendar.Advance(1);
-      WeatherAttributes.AdvanceWeather();
-      household.AdvanceBuildings();
-      foreach (var person in Person.global_persons[household])
-      {
-        if (Calendar.StartOfDay)
-        {
-          person.PickTaskFromSet(dailyTasks, true);
-        }
-        TaskRunner.AdvanceTask(person);
-        person.attributes.Advance();
-        if (untilIdle && person.runningTasks.Count == 0)
-        {
-          done = true;
-        }
-      }
-      if (done)
-      {
-        break;
-      }
-    }
-  }
-
-  public string NextTask(Person person, Household household, HashSet<WorkTask> dailyTasks)
-  {
-    Advance(household, dailyTasks, 5, true);
-    WorkTask? task = person.PickTask();
-    if (task == null)
-    {
-      return "";
-    }
-    Assert.IsNotNull(task);
-    return task!.task;
-  }
-
   public void LoadTestConfig()
   {
     {
@@ -110,6 +70,9 @@ public class UtilityUnitTest
         'hunting' : { levels: 7 },
         'cooking' : { levels: 7 },
         'smelting' : { levels: 7 },
+        'axe' : { levels: 7 },
+        'pickaxe' : { levels: 7 },
+        'shovel' : { levels: 7 },
       }";
       // Load the ability types.
       AbilityType.LoadString(json);
@@ -147,6 +110,12 @@ public class UtilityUnitTest
   "chest": { "group": "HOUSEHOLD", "flammable": true },
   "quern": { "group": "HOUSEHOLD" },
   "meal":  { "group": "FOOD", "stockpile": [{"perPerson": 10, "utility": 20000},{"perPerson": 20, "utility": 500},{ "perPerson": 100, "perHousehold": 50, "utility": 250}] },
+  "axe": { "group": "TOOL", "abilities": ["axe_1"], "craftQuality": {"val": 100}},
+  "shovel": { "group": "TOOL", "abilities": ["shovel_1"], "craftQuality": {"val": 100}},
+  "pickaxe": { "group": "TOOL", "abilities": ["pickaxe_1"], "craftQuality": {"val": 100}},
+  "plow": { "group": "TOOL", "abilities": ["plow_1"], "craftQuality": {"val": 100}},
+  "hoe": { "group": "TOOL", "abilities": ["hoe_1"], "craftQuality": {"val": 100}},
+  "sickle": { "group": "TOOL", "abilities": ["sickle_1"], "craftQuality": {"val": 100}},
 }
 """;
       // Load the item types.
@@ -296,14 +265,14 @@ public class UtilityUnitTest
 "craft_chest": { "timeCost": {"val": 20, "min":1, "modifiers": { "dexterity_10":{ "mult":0.9},"dexterity_15":{ "mult":0.9}, "joinery_1":{ "mult":0.8},"joinery_2":{ "mult":0.8}}}, "requirements": [], "inputs": {"lumber" : 8}, "outputs": {"chest" : 1 }, "effects": {"skill_joinery_1": [""]} },
 "craft_iron_anvil": { "timeCost": {"val": 50, "min":1, "modifiers": { "strength_10":{ "mult":0.9},"strength_15":{ "mult":0.9}, "blacksmithing_1":{ "mult":0.8},"blacksmithing_2":{ "mult":0.8}}}, "requirements": [], "inputs": {"iron" : 320}, "outputs": {"iron_anvil" : 1 }, "effects": {"skill_blacksmithing_4": [""]} },
 "make_charcoal_1": { "timeCost": 50, "requirements": [], "inputs": {"wood" : 240}, "outputs": {"charcoal" : {"val": 200, "modifiers": { "intelligence_10":{ "mult":1.1},"intelligence_15":{ "mult":1.1}  ,"charcoalmaking_1":{ "mult":1},"charcoalmaking_2":{ "mult":1.1}}} }, "effects": {"skill_charcoalmaking_1": [""]} },
-"hew_lumber_1": { "timeCost": 20, "requirements": [], "inputs": {"logs" : 50}, "outputs": {"lumber" : {"val": 10, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1}  ,"lumberjacking_1":{ "mult":1},"lumberjacking_2":{ "mult":1.1}}} }, "effects": {"skill_lumberjacking_1": [""]} },
+"hew_lumber_1": { "timeCost": 20, "requirements": ["axe_1"], "inputs": {"logs" : 50}, "outputs": {"lumber" : {"val": 10, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1}  ,"lumberjacking_1":{ "mult":1},"lumberjacking_2":{ "mult":1.1}}} }, "effects": {"skill_lumberjacking_1": [""]} },
 "smelt_iron_1": { "timeCost": 30, "requirements": [], "inputs": {"iron_ore" : 120, "charcoal" : 250}, "outputs": {"iron" : {"val": 300, "modifiers": { "intelligence_10":{ "mult":1.1},"intelligence_15":{ "mult":1.1}  ,"smelting_1":{ "mult":1},"smelting_2":{ "mult":1.1}}} }, "effects": {"skill_smelting_4": [""]} },
-"gather_wood_1": { "timeCost": 10, "requirements": [],  "outputs": {"wood" : {"val": 10, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"lumberjacking_1":{ "mult":3},"lumberjacking_2":{ "mult":1.5}}} }, "effects": {"skill_lumberjacking_1": [""]} },
-"gather_logs_3": { "timeCost": 20, "requirements": [],  "outputs": {"logs" : {"val": 20, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"lumberjacking_1":{ "mult":3},"lumberjacking_2":{ "mult":1.5}}} }, "effects": {"skill_lumberjacking_3": [""]} },
-"gather_clay_by_hand": { "timeCost": 10, "requirements": [],  "outputs": {"clay" : {"val": 20, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} }} }, "effects": {} },
-"gather_stone_1": { "timeCost": 10, "requirements": [],  "outputs": {"stone" : {"val": 1, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"quarrying_1":{ "mult":3},"quarrying_2":{ "mult":1.5}}} }, "effects": {"skill_quarrying_1": [""]} },
-"mine_iron_1": { "timeCost": 10, "requirements": [],  "outputs": {"iron_ore" : {"val": 10, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"mining_1":{ "mult":3},"mining_2":{ "mult":1.5}}} }, "effects": {"skill_mining_1": [""]} },
-"gather_rattan_1": { "timeCost": 10, "requirements": [],  "outputs": {"rattan" : {"val": 35, "modifiers": { "dexterity_10":{ "mult":1.1},"dexterity_15":{ "mult":1.1} ,"foraging_1":{ "mult":3},"foraging_2":{ "mult":1.5}}} }, "effects": {"skill_foraging_3": [""]} },
+"gather_wood_1": { "timeCost": 10, "requirements": ["axe_1"],  "outputs": {"wood" : {"val": 10, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"lumberjacking_1":{ "mult":3},"lumberjacking_2":{ "mult":1.5}}} }, "effects": {"skill_lumberjacking_1": [""]} },
+"gather_logs_3": { "timeCost": 20, "requirements": ["axe_1"],  "outputs": {"logs" : {"val": 20, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"lumberjacking_1":{ "mult":3},"lumberjacking_2":{ "mult":1.5}}} }, "effects": {"skill_lumberjacking_3": [""]} },
+"gather_clay": { "timeCost": 10, "requirements": ["shovel_1"],  "outputs": {"clay" : {"val": 20, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} }} }, "effects": {} },
+"gather_stone_1": { "timeCost": 10, "requirements": ["pickaxe_1"],  "outputs": {"stone" : {"val": 1, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"quarrying_1":{ "mult":3},"quarrying_2":{ "mult":1.5}}} }, "effects": {"skill_quarrying_1": [""]} },
+"mine_iron_1": { "timeCost": 10, "requirements": ["pickaxe_1"],  "outputs": {"iron_ore" : {"val": 10, "modifiers": { "strength_10":{ "mult":1.1},"strength_15":{ "mult":1.1} ,"mining_1":{ "mult":3},"mining_2":{ "mult":1.5}}} }, "effects": {"skill_mining_1": [""]} },
+"gather_rattan_1": { "timeCost": 10, "requirements": ["axe_1"],  "outputs": {"rattan" : {"val": 35, "modifiers": { "dexterity_10":{ "mult":1.1},"dexterity_15":{ "mult":1.1} ,"foraging_1":{ "mult":3},"foraging_2":{ "mult":1.5}}} }, "effects": {"skill_foraging_3": [""]} },
 "go_hungry": { "timeCost": 0, "compulsory": true, "inputs": {}, "outputs": { }, "effects": {} },
 "scrounge_for_food": { "timeCost": {"val": 1, "min":1, "modifiers": { }}, "compulsory": true,"supercedes": ["go_hungry"], "requirements": ["not_winter","not_spring"], "inputs": {}, "outputs": { }, "effects": {} },
 "forage_to_eat": { "timeCost": {"val": 1, "min":1, "modifiers": { "intelligence_10":{ "mult":0.9},"intelligence_15":{ "mult":0.9}, "foraging_1":{ "mult":0.8},"foraging_2":{ "mult":0.8}}}, "compulsory": true, "supercedes": ["scrounge_for_food"], "requirements": ["foraging_2","not_winter"], "inputs": {}, "outputs": {"food" : 1 }, "effects": {"skill_foraging_2": [""],} },
@@ -314,6 +283,7 @@ public class UtilityUnitTest
 "quick_cook_meal": { "timeCost": 1, "inputs": {"food" : 1}, "outputs": {"meal" : 10 } },
 "quick_cook_meals": { "timeCost": 2, "supercedes": ["quick_cook_meal"], "inputs": {"food" : 3}, "outputs": {"meal" : 30 } },
 "cook_meals": { "timeCost": {"val": 5, "min":1, "modifiers": { "dexterity_10":{ "mult":0.9},"dexterity_15":{ "mult":0.9}, "cooking_1":{ "mult":0.8},"cooking_2":{ "mult":0.8}}}, "supercedes": ["quick_cook_meals"], "inputs": {"food" : 15}, "outputs": {"meal" : 150 }, "effects": {"skill_cooking_1": [""]} },
+"craft_shovel": { "timeCost": {"val": 10, "min":1, "modifiers": { "dexterity_10":{ "mult":0.9},"dexterity_15":{ "mult":0.9}, "stone_tools_1":{ "mult":0.8},"stone_tools_2":{ "mult":0.8}}}, "requirements": [], "inputs": {}, "outputs": {"shovel" : 1 }, "effects": {"skill_stone_tools_1": [""]} },
 }
 """;
       // Load the tasks.
@@ -351,6 +321,12 @@ public class UtilityUnitTest
   "iron_anvil": { "bid":5000, "ask":20000 },
   "chest": { "bid":300, "ask":2000 },
   "quern": { "bid":400, "ask":2500 },
+  "axe": { "bid":200, "ask":500 },
+  "shovel": { "bid":4, "ask":500 },
+  "hoe": { "bid":200, "ask":500 },
+  "sickle": { "bid":200, "ask":500 },
+  "pickaxe": { "bid":200, "ask":500 },
+  "plow": { "bid":400, "ask":500 },
 }
 """;
       // Load the default prices.
@@ -361,187 +337,6 @@ public class UtilityUnitTest
     ItemType.InitializeAll();
     WeatherAttributes.Init();
     Calendar.Reset();
-  }
-
-  [TestMethod]
-  public void TestUtility()
-  {
-    LoadTestConfig();
-
-    Household household = new Household();
-    Person person = new Person("Bob", "bob", household, Role.HeadOfHousehold);
-    // Give the household a field so they can plant stuff.
-    household.AddField(BuildingType.Find("field")!);
-
-    // Abilities for field work.
-    person.GrantAbility(AbilityType.Find("hoe_1")!);
-    person.GrantAbility(AbilityType.Find("plow_1")!);
-    person.GrantAbility(AbilityType.Find("sickle_1")!);
-
-    HashSet<WorkTask> dailyTasks = TaskSet.Find("daily")!;
-    ItemType food = ItemType.Find("food")!;
-    ItemType grain = ItemType.Find("grain")!;
-    ItemType wheat = ItemType.Find("wheat")!;
-    ItemType tricorn = ItemType.Find("tricorn")!;
-    ItemType hay = ItemType.Find("hay")!;
-    ItemType peas = ItemType.Find("field_peas")!;
-    ItemType basket = ItemType.Find("basket")!;
-    ItemType iron_anvil = ItemType.Find("iron_anvil")!;
-
-    // Check the person's time utility.
-    // This will recursively check all the tasks they can do.
-    Assert.AreEqual(18.5, person.DetermineTimeUtility(), 0.5);
-
-    // Check DesiresStockpile functionality.
-    var foodStockpile = household.DesiredStockpile(food);
-    Assert.AreEqual(1, foodStockpile.Count);
-    Assert.AreEqual(200, foodStockpile[0].totalQuantity);
-    Assert.AreEqual(200, foodStockpile[0].marginalUtility);
-    // Food value should come from the utility of making a meal.
-    var foodValue = household.ValuePrice(food);
-    Assert.AreEqual(3, foodValue.Count);
-    Assert.AreEqual(1, foodValue[0].totalQuantity);
-    Assert.AreEqual(199900, foodValue[0].marginalUtility);
-    Assert.AreEqual(3, foodValue[1].totalQuantity);
-    Assert.AreEqual(69933.3, foodValue[1].marginalUtility, 0.1);
-    Assert.AreEqual(15, foodValue[2].totalQuantity);
-    Assert.AreEqual(15974.6, foodValue[2].marginalUtility, 0.1);
-
-    var grainStockpile = household.DesiredStockpile(grain);
-    Assert.AreEqual(1, grainStockpile.Count);
-    Assert.AreEqual(3000, grainStockpile[0].totalQuantity);
-    Assert.AreEqual(1, grainStockpile[0].marginalUtility);
-    // Grain value should be empty.
-    var grainValue = household.ValuePrice(grain);
-    Assert.AreEqual(0, grainValue.Count);
-
-    var wheatStockpile = household.DesiredStockpile(wheat);
-    Assert.AreEqual(0, wheatStockpile.Count);
-    // Wheat value should be based on market price.
-    var wheatValue = household.ValuePrice(wheat);
-    Assert.AreEqual(1, wheatValue.Count);
-    Assert.AreEqual(160, wheatValue[0].marginalUtility);
-
-    var tricornStockpile = household.DesiredStockpile(tricorn);
-    Assert.AreEqual(1, tricornStockpile.Count);
-    Assert.AreEqual(2000, tricornStockpile[0].totalQuantity);
-    Assert.AreEqual(2, tricornStockpile[0].marginalUtility);
-
-    // Give the household some coin so that it thinks it can buy things.
-    household.inventory.AddItem(new Item(ItemType.Coin), 20000);
-
-    // We don't have any food, so the entire wheat-tricorn chain has high utility.
-    // Food is based on just the Value Price
-    Assert.AreEqual(199900, household.Utility(person, food, 1), 1);
-    Assert.AreEqual(-199900, household.Utility(person, food, -1), 1);
-    // Grain inherits from food, but is unpurchasable.
-    Assert.AreEqual(199901, household.Utility(person, grain, 1), 1);
-    Assert.AreEqual(double.MinValue, household.Utility(person, grain, -1), 1);
-    // Wheat inherits from grain, but adds in the purchase/sale price.
-    Assert.AreEqual(200061, household.Utility(person, wheat, 1), 1);
-    Assert.AreEqual(-200250, household.Utility(person, wheat, -1), 1);
-    Assert.AreEqual(200064, household.Utility(person, tricorn, 1), 1);
-    Assert.AreEqual(double.MinValue, household.Utility(person, tricorn, -1), 1);
-
-    // Basket's utility is solely based on the market price.
-    Assert.AreEqual(45, household.Utility(person, basket, 1), 0.5);
-    // Since we don't have any, we would need to buy one or produce one.
-    // It's cheaper to produce one, so the utility is based on that.
-    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
-    household.inventory.AddItem(new Item(basket), 1);
-    // Now that we have one, utility is based on sell price.
-    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
-    Assert.AreEqual(-90, household.Utility(person, basket, -2), 0.5);
-
-    // Unlike baskets, it's cheaper to buy an anvil than to produce one.
-    Assert.AreEqual(5000, household.Utility(person, iron_anvil, 1), 0.5);
-    Assert.AreEqual(-20000, household.Utility(person, iron_anvil, -1), 0.5);
-    household.inventory.AddItem(new Item(iron_anvil), 1);
-    // Now that we have one, utility is based on sell price.
-    Assert.AreEqual(-5000, household.Utility(person, iron_anvil, -1), 0.5);
-    Assert.AreEqual(-25000, household.Utility(person, iron_anvil, -2), 0.5);
-
-    // Pick a task. They need food, so they'll pick "hunt".
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    // They have food, so they'll cook it.
-    Assert.AreEqual("quick_cook_meals", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    // Enough food for a big cooking job.
-    Assert.AreEqual("cook_meals", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("cook_meals", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("cook_meals", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
-
-    // Give them enough coin to think they can buy seed.
-    household.inventory.AddItem(new Item(ItemType.Coin), 60000);
-    household.ReevaluateCropWorth();
-
-    // They've filled up their food stockpile, so they'll do something else.
-    // They'll plow the field, even though they don't have any seed, because
-    // they assume they can buy some.
-    Assert.AreEqual("plow_field", NextTask(person, household, dailyTasks));
-    // Buying not implemented, so they do something else instead of planting.
-    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
-
-    // Give them wheat, hayseed, and peas so they can plant.
-    household.inventory.AddItem(new Item(wheat), 300);
-    household.inventory.AddItem(new Item(hay), 300);
-    household.inventory.AddItem(new Item(peas), 300);
-
-    Assert.AreEqual("plant_wheat", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("weed_field", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("weed_field", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("gather_wood_1", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("gather_wood_1", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("weed_field", NextTask(person, household, dailyTasks));
-
-    HashSet<string> validTasks = new HashSet<string>();
-    validTasks.Add("mine_iron_1");
-    validTasks.Add("weed_field");
-    validTasks.Add("hunt");
-    validTasks.Add("cook_meals");
-    validTasks.Add("");
-    validTasks.Add("gather_clay_by_hand");
-    validTasks.Add("craft_unfired_brick");
-    validTasks.Add("craft_unfired_tile");
-    validTasks.Add("gather_rattan_1");
-    validTasks.Add("craft_basket");
-    validTasks.Add("gather_wood_1");
-    validTasks.Add("make_charcoal_1");
-    validTasks.Add("craft_brick");
-    validTasks.Add("craft_tile");
-
-    // validTasks.Add("craft_unfired_pottery");
-    // validTasks.Add("craft_pottery");
-    // validTasks.Add("smelt_iron_1");
-    for (int i = 0; i < 211; ++i)
-    {
-      string task = NextTask(person, household, dailyTasks);
-      // print the task so we can see what's going on.
-      //Console.WriteLine(task);
-      Assert.IsTrue(validTasks.Contains(task), "Task (" + i + ") " + task + " is not in valid set.");
-    }
-
-    // Time to harvest the wheat.
-    Assert.AreEqual("harvest_wheat", NextTask(person, household, dailyTasks));
   }
 
 
@@ -574,6 +369,7 @@ public class UtilityUnitTest
           person.attributes.Advance();
           if (person.runningTasks.Count == 0)
           {
+            person.TakeNeedsFromHousehold();
             yield return person.PickTask()?.task ?? "";
           }
         }
@@ -608,6 +404,12 @@ public class UtilityUnitTest
     marketMaker.SetHave(ItemType.Find("lumber")!, 20);
     marketMaker.SetHave(ItemType.Find("iron_anvil")!, 1);
     marketMaker.SetHave(ItemType.Find("iron")!, 50);
+    marketMaker.SetHave(ItemType.Find("axe")!, 1);
+    marketMaker.SetHave(ItemType.Find("shovel")!, 1);
+    marketMaker.SetHave(ItemType.Find("hoe")!, 1);
+    marketMaker.SetHave(ItemType.Find("sickle")!, 1);
+    marketMaker.SetHave(ItemType.Find("pickaxe")!, 1);
+    marketMaker.SetHave(ItemType.Find("plow")!, 1);
 
     marketMaker.SetMax(ItemType.Find("basket")!, 10);
     marketMaker.SetMax(ItemType.Find("pottery")!, 10);
@@ -663,83 +465,36 @@ public class UtilityUnitTest
     ItemType tricorn = ItemType.Find("tricorn")!;
     ItemType hay = ItemType.Find("hay")!;
     ItemType peas = ItemType.Find("field_peas")!;
-    ItemType basket = ItemType.Find("basket")!;
-    ItemType iron_anvil = ItemType.Find("iron_anvil")!;
+    ItemType axe = ItemType.Find("axe")!;
+    ItemType shovel = ItemType.Find("shovel")!;
+    ItemType hoe = ItemType.Find("hoe")!;
+    ItemType plow = ItemType.Find("plow")!;
 
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
-    Assert.AreEqual(18.5, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(0, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(420, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("axe_1")!}), 0.5);
+    Assert.AreEqual(50, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("shovel_1")!}), 0.5);
+    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("hoe_1")!}), 0.5);
+    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("sickle_1")!}), 0.5);
+    Assert.AreEqual(195, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("pickaxe_1")!}), 0.5);
+    Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("plow_1")!}), 0.5);
 
     Household household = households[0];
 
-    // Check DesiresStockpile functionality.
-    var foodStockpile = household.DesiredStockpile(food);
-    Assert.AreEqual(1, foodStockpile.Count);
-    Assert.AreEqual(200, foodStockpile[0].totalQuantity);
-    Assert.AreEqual(200, foodStockpile[0].marginalUtility);
-    // Food value should come from the utility of making a meal.
-    var foodValue = household.ValuePrice(food);
-    Assert.AreEqual(3, foodValue.Count);
-    Assert.AreEqual(1, foodValue[0].totalQuantity);
-    Assert.AreEqual(199900, foodValue[0].marginalUtility);
-    Assert.AreEqual(3, foodValue[1].totalQuantity);
-    Assert.AreEqual(69933.3, foodValue[1].marginalUtility, 0.1);
-    Assert.AreEqual(15, foodValue[2].totalQuantity);
-    Assert.AreEqual(15974.6, foodValue[2].marginalUtility, 0.1);
 
-    var grainStockpile = household.DesiredStockpile(grain);
-    Assert.AreEqual(1, grainStockpile.Count);
-    Assert.AreEqual(3000, grainStockpile[0].totalQuantity);
-    Assert.AreEqual(1, grainStockpile[0].marginalUtility);
-    // Grain value should be empty.
-    var grainValue = household.ValuePrice(grain);
-    Assert.AreEqual(0, grainValue.Count);
-
-    var wheatStockpile = household.DesiredStockpile(wheat);
-    Assert.AreEqual(0, wheatStockpile.Count);
-    // Wheat value should be based on market price.
-    var wheatValue = household.ValuePrice(wheat);
-    Assert.AreEqual(1, wheatValue.Count);
-    Assert.AreEqual(160, wheatValue[0].marginalUtility);
-
-    var tricornStockpile = household.DesiredStockpile(tricorn);
-    Assert.AreEqual(1, tricornStockpile.Count);
-    Assert.AreEqual(2000, tricornStockpile[0].totalQuantity);
-    Assert.AreEqual(2, tricornStockpile[0].marginalUtility);
+    Assert.AreEqual(42000, household.Utility(person, axe, 1), 0.5);
+    Assert.AreEqual(double.MinValue, household.Utility(person, axe, -1), 0.5);
+    Assert.AreEqual(5000, household.Utility(person, shovel, 1), 0.5);
+    // Since our time utility is zero, shovels are basically free.
+    Assert.AreEqual(0, household.Utility(person, shovel, -1), 0.5);
+    Assert.AreEqual(0, household.Utility(person, hoe, 1), 0.5);
+    Assert.AreEqual(double.MinValue, household.Utility(person, hoe, -1), 0.5);
+    Assert.AreEqual(0, household.Utility(person, plow, 1), 0.5);
+    Assert.AreEqual(double.MinValue, household.Utility(person, plow, -1), 0.5);
 
 
-    // We don't have any food, so the entire wheat-tricorn chain has high utility.
-    // Food is based on just the Value Price
-    Assert.AreEqual(199900, household.Utility(person, food, 1), 1);
-    Assert.AreEqual(-199900, household.Utility(person, food, -1), 1);
-    // Grain inherits from food, but is unpurchasable.
-    Assert.AreEqual(199901, household.Utility(person, grain, 1), 1);
-    Assert.AreEqual(double.MinValue, household.Utility(person, grain, -1), 1);
-    // Wheat inherits from grain, but adds in the purchase/sale price.
-    Assert.AreEqual(200061, household.Utility(person, wheat, 1), 1);
-    // They have no money to purchase, so it's impossible to buy.
-    Assert.AreEqual(double.MinValue, household.Utility(person, wheat, -1), 1);
-    Assert.AreEqual(200064, household.Utility(person, tricorn, 1), 1);
-    Assert.AreEqual(double.MinValue, household.Utility(person, tricorn, -1), 1);
 
-    // Basket's utility is solely based on the market price.
-    Assert.AreEqual(45, household.Utility(person, basket, 1), 0.5);
-    // Since we don't have any, we would need to buy one or produce one.
-    // It's cheaper to produce one, so the utility is based on that.
-    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
-    household.inventory.AddItem(new Item(basket), 1);
-    // Now that we have one, utility is based on sell price.
-    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
-    Assert.AreEqual(-90, household.Utility(person, basket, -2), 0.5);
-
-    // Unlike baskets, it's cheaper to buy an anvil than to produce one,
-    // but since they don't have the coin to buy one, they have to make it.
-    Assert.AreEqual(5000, household.Utility(person, iron_anvil, 1), 0.5);
-    Assert.AreEqual(-49807.6, household.Utility(person, iron_anvil, -1), 0.5);
-    household.inventory.AddItem(new Item(iron_anvil), 1);
-    // Now that we have one, utility is based on sell price.
-    Assert.AreEqual(-5000, household.Utility(person, iron_anvil, -1), 0.5);
-    Assert.AreEqual(-54807.6, household.Utility(person, iron_anvil, -2), 0.5);
 
     IEnumerable<string> nextTasks = Advance(households, market, marketMaker, dailyTasks, 240);
     IEnumerator<string> next = nextTasks.GetEnumerator();
@@ -747,27 +502,11 @@ public class UtilityUnitTest
     // Pick a task. They need food, so they'll pick "hunt".
     Assert.AreEqual("hunt", GetNext(next));
     household.SubmitAskPrices();
-    // They should have listed the anvil and basket from above for sale,
-    // but they won't have sold yet.
-    Assert.AreEqual(0, market.totalSales.Count);
-    Assert.IsTrue(market.Asks.ContainsKey(iron_anvil));
-    Assert.AreEqual(household, market.Asks[iron_anvil].bestCounterparty);
-    Assert.AreEqual(-5000, market.Asks[iron_anvil].bestPrice.marginalUtility);
-    Assert.IsTrue(market.Asks.ContainsKey(basket));
-    Assert.AreEqual(household, market.Asks[basket].bestCounterparty);
-    Assert.AreEqual(-45, market.Asks[basket].bestPrice.marginalUtility);
-    // They'll manage to sell the stuff and buy food, so they'll cook it.
+    Assert.AreEqual("quick_cook_meals", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
     Assert.AreEqual("cook_meals", GetNext(next));
-    Assert.AreEqual(4, market.totalSales.Count);
-    Assert.AreEqual(1, market.totalSales[iron_anvil]);
-    Assert.AreEqual(1, market.totalSales[basket]);
-    Assert.AreEqual(3, market.totalSales[wheat]);
-    Assert.AreEqual(13, market.totalSales[peas]);
-
-    // They don't have any more money and still want to fill their stockpile,
-    // so they'll go back to hunting.
     Assert.AreEqual("hunt", GetNext(next));
-    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("craft_shovel", GetNext(next));
     Assert.AreEqual("cook_meals", GetNext(next));
     Assert.AreEqual("hunt", GetNext(next));
     Assert.AreEqual("hunt", GetNext(next));
@@ -787,35 +526,39 @@ public class UtilityUnitTest
     Assert.AreEqual("hunt", GetNext(next));
     Assert.AreEqual("hunt", GetNext(next));
     Assert.AreEqual("hunt", GetNext(next));
-    // They've filled up their food stockpile, so they'll do something else.
-    // They won't plow the field because they have no money to buy seed if they did.
-    // They'll either gather wood or mine iron.
-    string nextTask = GetNext(next);
-    Assert.IsTrue(nextTask == "gather_wood_1" || nextTask == "mine_iron_1");
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("gather_clay", GetNext(next));
+    Assert.AreEqual("craft_shovel", GetNext(next));
+    Assert.AreEqual("craft_unfired_brick", GetNext(next));
 
-    // 54k coin is enough to buy 180 peas or 150 wheat, enough to plant an acre.
-    household.inventory.AddItem(new Item(ItemType.Coin), 54000);
-    household.ReevaluateCropWorth();
+    Assert.AreEqual(3.6, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(346.6, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("axe_1")! }), 0.5);
+    Assert.AreEqual(34666, household.Utility(person, axe, 1), 1.0);
+    household.SubmitBidPrices();
+    household.MakePurchases();
 
-    Assert.AreEqual("plow_field", GetNext(next));
-    // Instantly finishing plowing so we can check the utility.
-    while(person.runningTasks.Count > 0) TaskRunner.AdvanceTask(person);
+    HashSet<string> validTasks = new HashSet<string>();
+    validTasks.Add("hunt");
+    validTasks.Add("cook_meals");
+    validTasks.Add("gather_clay");
+    validTasks.Add("craft_unfired_brick");
+    validTasks.Add("craft_basket");
+    validTasks.Add("craft_shovel");
+    validTasks.Add("craft_unfired_tile");
+    validTasks.Add("craft_unfired_pottery");
+    validTasks.Add("weed_field");
+    validTasks.Add("gather_logs_3");
+    validTasks.Add("gather_wood_1");
+    validTasks.Add("make_charcoal_1");
+    validTasks.Add("craft_pottery");
+    validTasks.Add("craft_brick");
+    validTasks.Add("mine_iron_1");
+    validTasks.Add("");
 
-    Assert.AreEqual(78452, household.Utility(person, wheat, 150), 1000.0);
-    Assert.AreEqual(-107803, household.Utility(person, wheat, -150), 1000.0);
-    Assert.AreEqual(67501, household.Utility(person, peas, 180), 1000.0);
-    Assert.AreEqual(-116775, household.Utility(person, peas, -180), 1000.0);
-
-    // They should have bought the seed and planted it.
-    Assert.AreEqual("plant_wheat", GetNext(next));
-
-    Assert.IsTrue(market.totalSales.Count >= 5);
-    Assert.AreEqual(150, market.totalSales[ItemType.Find("wheat")!]);
-
-    // Run until the enumerator is exhausted.
-    while(next.MoveNext()) { }
-
-    // Check the market's ask/bids
-    Assert.IsTrue(market.totalSales.Count >= 10);
+    for (int i = 0; i < 240; ++i)
+    {
+      string task = GetNext(next);
+      Assert.IsTrue(validTasks.Contains(task), "Task (" + i + ") " + task + " is not in valid set.");
+    }
   }
 }
