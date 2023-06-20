@@ -409,6 +409,22 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     return bestValue;
   }
 
+  public void InvalidateWorthCaches(ItemType itemType)
+  {
+    foreach (var person in people)
+    {
+      person.InvalidateWorthCache(itemType);
+    }
+  }
+
+  public void ReevaluateCropWorth()
+  {
+    foreach (var crop in ItemType.fieldCrops)
+    {
+      InvalidateWorthCaches(crop);
+    }
+  }
+
   // The actual price of the item on the local market not
   // including offers from this household, or
   // the cost to produce it yourself plus a desired profit.
@@ -425,6 +441,10 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
   {
     IPriceList priceList = market == null ? ConfigPriceList.Default : market;
     UtilityQuantityList bestPrice = priceList.AskPrice(itemType);
+    // The market price does us no good if we don't have the coin to buy it.
+    int budget = inventory.Count(ItemType.Coin);
+    bestPrice.FilterByBudget(budget);
+
     // See if any people in the household can beat the market price.
     // The AskPrice above probably includes this household's market offers,
     // but that's fine, as those offers are always epsilon worse than

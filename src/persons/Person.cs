@@ -672,6 +672,14 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
   }
 
+  public void InvalidateWorthCache(ItemType itemType)
+  {
+    lock (_cacheLock)
+    {
+      _worthCache.Remove(itemType);
+    }
+  }
+
   public IEnumerable<ItemType> GetDesiredItems()
   {
     // Return all the items that we have a non-empty worth cache for.

@@ -133,6 +133,8 @@ public class Field : Building, IAbilityContext, IEffectTargetContext, IHousehold
       _crops.Clear();
       cropCount = 0;
       lastPlowedTick = Calendar.Ticks;
+      // The household needs to reevaluate crop worth now that it has a plowed field.
+      household.ReevaluateCropWorth();
     }
   }
 

@@ -511,6 +511,7 @@ public class KillCropEffect : Effect
     // To early to harvest, so the utility is the max of the yield or the seed cost.
     // This is a bit simplistic, but it really only has to be a rough estimate to avoid
     // the AI plowing under valuable crops.
+    yield += (1 - cropDay / (double)totalDays) * crop.cropSettings!.targetYieldPerAcre * health;
     int minQuantity = (int)(yield / crop.weight);
     if (health > 0) {
       minQuantity = Math.Max(minQuantity, (int)(scaler * crop.cropSettings!.seedPerAcre));
@@ -526,12 +527,14 @@ public class KillCropEffect : Effect
       // The field is already plowed, so plowing it again has no utility.
       return double.MinValue;
     }
+    double bestUtility = double.MinValue;
     foreach (var crop in ItemType.fieldCrops)
     {
       double utility = 0;
       int seedNeeded = (int)Math.Ceiling(scaler * crop.cropSettings!.seedPerAcre);
       // Cost to buy/use the seed.
-      utility -= household.household.Utility(runner, crop, -seedNeeded);
+      utility += household.household.Utility(runner, crop, -seedNeeded);
+      if (utility == double.MinValue) continue;
       double expectedYield = YieldEstimator.EstimateYield(field, crop, household, scaler);
       foreach (var harvestItem in crop.cropSettings!.harvestItems)
       {
@@ -539,8 +542,9 @@ public class KillCropEffect : Effect
         if (quantity <= 0) continue;
         utility += household.household.FutureUtility(runner, harvestItem.Key, quantity, crop.cropSettings!.totalDays);
       }
+      bestUtility = Math.Max(bestUtility, utility);
     }
-    return 0;
+    return bestUtility;
   }
 
   public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)

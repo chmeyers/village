@@ -191,6 +191,37 @@ public class UtilityQuantityList : List<UtilityQuantity>
     return this;
   }
 
+  public UtilityQuantityList FilterByBudget(double budget)
+  {
+    for (int i = 0; i < this.Count; i++)
+    {
+      if (-this[i].marginalUtility * this[i].marginalQuantity <= budget)
+      {
+        budget -= -this[i].marginalUtility * this[i].marginalQuantity;
+      }
+      else
+      {
+        // Keep a fractional amount of the last element.
+        int inBudget = (int)(budget / -this[i].marginalUtility);
+        if (inBudget > 0)
+        {
+          this[i].totalQuantity -= this[i].marginalQuantity - inBudget;
+          this[i].marginalQuantity = inBudget;
+        }
+        else
+        {
+          // Decrement i so that this element is removed.
+          i--;
+        }
+        // Completely remove all subsequent elements.
+        this.RemoveRange(i + 1, this.Count - i - 1);
+        break;
+      }
+    }
+    return this;
+  
+  }
+
   // Stack the two lists, adding the marginal quantities together.
   public static UtilityQuantityList Stack(UtilityQuantityList? a, UtilityQuantityList? b)
   {

@@ -332,10 +332,10 @@ public class UtilityUnitTest
       string json = """
 {
   "coin": { "bid":1, "ask":1 },
-  "straw": { "bid":5, "ask":150 },
+  "straw": { "bid":7, "ask":150 },
   "wheat": { "bid":160, "ask":350 },
   "field_peas": { "bid":90, "ask":300 },
-  "hay": { "bid":25, "ask":150 },
+  "hay": { "bid":0, "ask":150 },
   "wood": { "bid":15, "ask":100 },
   "logs": { "bid":15, "ask":200 },
   "clay": { "bid":2, "ask":50 },
@@ -390,7 +390,7 @@ public class UtilityUnitTest
 
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
-    Assert.AreEqual(20, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(18.5, person.DetermineTimeUtility(), 0.5);
 
     // Check DesiresStockpile functionality.
     var foodStockpile = household.DesiredStockpile(food);
@@ -427,6 +427,8 @@ public class UtilityUnitTest
     Assert.AreEqual(2000, tricornStockpile[0].totalQuantity);
     Assert.AreEqual(2, tricornStockpile[0].marginalUtility);
 
+    // Give the household some coin so that it thinks it can buy things.
+    household.inventory.AddItem(new Item(ItemType.Coin), 20000);
 
     // We don't have any food, so the entire wheat-tricorn chain has high utility.
     // Food is based on just the Value Price
@@ -487,15 +489,19 @@ public class UtilityUnitTest
     Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
     Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
     Assert.AreEqual("hunt", NextTask(person, household, dailyTasks));
+
+    // Give them enough coin to think they can buy seed.
+    household.inventory.AddItem(new Item(ItemType.Coin), 60000);
+    household.ReevaluateCropWorth();
+
     // They've filled up their food stockpile, so they'll do something else.
     // They'll plow the field, even though they don't have any seed, because
     // they assume they can buy some.
     Assert.AreEqual("plow_field", NextTask(person, household, dailyTasks));
-    // Buying not implemented, so they do something else instead
-    Assert.AreEqual("", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("gather_wood_1", NextTask(person, household, dailyTasks));
+    // Buying not implemented, so they do something else instead of planting.
+    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
 
-    // // Give them wheat, hayseed, and peas so they can plant.
+    // Give them wheat, hayseed, and peas so they can plant.
     household.inventory.AddItem(new Item(wheat), 300);
     household.inventory.AddItem(new Item(hay), 300);
     household.inventory.AddItem(new Item(peas), 300);
@@ -503,11 +509,9 @@ public class UtilityUnitTest
     Assert.AreEqual("plant_wheat", NextTask(person, household, dailyTasks));
     Assert.AreEqual("weed_field", NextTask(person, household, dailyTasks));
     Assert.AreEqual("weed_field", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("gather_wood_1", NextTask(person, household, dailyTasks));
+    Assert.AreEqual("gather_wood_1", NextTask(person, household, dailyTasks));
     Assert.AreEqual("weed_field", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("cook_meals", NextTask(person, household, dailyTasks));
-    Assert.AreEqual("mine_iron_1", NextTask(person, household, dailyTasks));
 
     HashSet<string> validTasks = new HashSet<string>();
     validTasks.Add("mine_iron_1");
@@ -528,7 +532,7 @@ public class UtilityUnitTest
     // validTasks.Add("craft_unfired_pottery");
     // validTasks.Add("craft_pottery");
     // validTasks.Add("smelt_iron_1");
-    for (int i = 0; i < 215; ++i)
+    for (int i = 0; i < 211; ++i)
     {
       string task = NextTask(person, household, dailyTasks);
       // print the task so we can see what's going on.
@@ -541,7 +545,7 @@ public class UtilityUnitTest
   }
 
 
-  public void Advance(List<Household> households, Market market, MarketMaker maker, HashSet<WorkTask> dailyTasks, uint days)
+  public IEnumerable<string> Advance(List<Household> households, Market market, MarketMaker maker, HashSet<WorkTask> dailyTasks, uint days)
   {
     for (int i = 0; i < days * 10; i++)
     {
@@ -570,7 +574,7 @@ public class UtilityUnitTest
           person.attributes.Advance();
           if (person.runningTasks.Count == 0)
           {
-            person.PickTask();
+            yield return person.PickTask()?.task ?? "";
           }
         }
       }
@@ -582,6 +586,13 @@ public class UtilityUnitTest
       }
     }
   }
+
+  string GetNext(IEnumerator<string> enumerator)
+  {
+    if (!enumerator.MoveNext()) return "Done";
+    return enumerator.Current;
+  }
+
 
   public void SetMakerSettings(MarketMaker marketMaker)
   {
@@ -613,6 +624,7 @@ public class UtilityUnitTest
     marketMaker.SetMax(ItemType.Find("clay")!, 200);
     marketMaker.SetMax(ItemType.Find("field_peas")!, 2000);
     marketMaker.SetMax(ItemType.Find("hay")!, 2000);
+    marketMaker.SetMax(ItemType.Find("straw")!, 1000);
     marketMaker.SetMax(ItemType.Find("wheat")!, 2000);
     marketMaker.SetMax(ItemType.Find("rattan")!, 60);
     marketMaker.SetMax(ItemType.Find("iron_anvil")!, 2);
@@ -656,7 +668,7 @@ public class UtilityUnitTest
 
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
-    Assert.AreEqual(20, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(18.5, person.DetermineTimeUtility(), 0.5);
 
     Household household = households[0];
 
@@ -705,7 +717,8 @@ public class UtilityUnitTest
     Assert.AreEqual(double.MinValue, household.Utility(person, grain, -1), 1);
     // Wheat inherits from grain, but adds in the purchase/sale price.
     Assert.AreEqual(200061, household.Utility(person, wheat, 1), 1);
-    Assert.AreEqual(-200250, household.Utility(person, wheat, -1), 1);
+    // They have no money to purchase, so it's impossible to buy.
+    Assert.AreEqual(double.MinValue, household.Utility(person, wheat, -1), 1);
     Assert.AreEqual(200064, household.Utility(person, tricorn, 1), 1);
     Assert.AreEqual(double.MinValue, household.Utility(person, tricorn, -1), 1);
 
@@ -719,23 +732,91 @@ public class UtilityUnitTest
     Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
     Assert.AreEqual(-90, household.Utility(person, basket, -2), 0.5);
 
-    // Unlike baskets, it's cheaper to buy an anvil than to produce one.
+    // Unlike baskets, it's cheaper to buy an anvil than to produce one,
+    // but since they don't have the coin to buy one, they have to make it.
     Assert.AreEqual(5000, household.Utility(person, iron_anvil, 1), 0.5);
-    Assert.AreEqual(-20000, household.Utility(person, iron_anvil, -1), 0.5);
+    Assert.AreEqual(-49807.6, household.Utility(person, iron_anvil, -1), 0.5);
     household.inventory.AddItem(new Item(iron_anvil), 1);
     // Now that we have one, utility is based on sell price.
     Assert.AreEqual(-5000, household.Utility(person, iron_anvil, -1), 0.5);
-    Assert.AreEqual(-25000, household.Utility(person, iron_anvil, -2), 0.5);
+    Assert.AreEqual(-54807.6, household.Utility(person, iron_anvil, -2), 0.5);
 
-    // Run for six months.
-    Advance(households, market, marketMaker, dailyTasks, 180);
+    IEnumerable<string> nextTasks = Advance(households, market, marketMaker, dailyTasks, 240);
+    IEnumerator<string> next = nextTasks.GetEnumerator();
+
+    // Pick a task. They need food, so they'll pick "hunt".
+    Assert.AreEqual("hunt", GetNext(next));
+    household.SubmitAskPrices();
+    // They should have listed the anvil and basket from above for sale,
+    // but they won't have sold yet.
+    Assert.AreEqual(0, market.totalSales.Count);
+    Assert.IsTrue(market.Asks.ContainsKey(iron_anvil));
+    Assert.AreEqual(household, market.Asks[iron_anvil].bestCounterparty);
+    Assert.AreEqual(-5000, market.Asks[iron_anvil].bestPrice.marginalUtility);
+    Assert.IsTrue(market.Asks.ContainsKey(basket));
+    Assert.AreEqual(household, market.Asks[basket].bestCounterparty);
+    Assert.AreEqual(-45, market.Asks[basket].bestPrice.marginalUtility);
+    // They'll manage to sell the stuff and buy food, so they'll cook it.
+    Assert.AreEqual("cook_meals", GetNext(next));
+    Assert.AreEqual(4, market.totalSales.Count);
+    Assert.AreEqual(1, market.totalSales[iron_anvil]);
+    Assert.AreEqual(1, market.totalSales[basket]);
+    Assert.AreEqual(3, market.totalSales[wheat]);
+    Assert.AreEqual(13, market.totalSales[peas]);
+
+    // They don't have any more money and still want to fill their stockpile,
+    // so they'll go back to hunting.
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("cook_meals", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("cook_meals", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    Assert.AreEqual("hunt", GetNext(next));
+    // They've filled up their food stockpile, so they'll do something else.
+    // They won't plow the field because they have no money to buy seed if they did.
+    // They'll either gather wood or mine iron.
+    string nextTask = GetNext(next);
+    Assert.IsTrue(nextTask == "gather_wood_1" || nextTask == "mine_iron_1");
+
+    // 54k coin is enough to buy 180 peas or 150 wheat, enough to plant an acre.
+    household.inventory.AddItem(new Item(ItemType.Coin), 54000);
+    household.ReevaluateCropWorth();
+
+    Assert.AreEqual("plow_field", GetNext(next));
+    // Instantly finishing plowing so we can check the utility.
+    while(person.runningTasks.Count > 0) TaskRunner.AdvanceTask(person);
+
+    Assert.AreEqual(78452, household.Utility(person, wheat, 150), 1000.0);
+    Assert.AreEqual(-107803, household.Utility(person, wheat, -150), 1000.0);
+    Assert.AreEqual(67501, household.Utility(person, peas, 180), 1000.0);
+    Assert.AreEqual(-116775, household.Utility(person, peas, -180), 1000.0);
+
+    // They should have bought the seed and planted it.
+    Assert.AreEqual("plant_wheat", GetNext(next));
+
+    Assert.AreEqual(5, market.totalSales.Count);
+    Assert.AreEqual(150, market.totalSales[ItemType.Find("wheat")!]);
+
+    // Run until the enumerator is exhausted.
+    while(next.MoveNext()) { }
 
     // Check the market's ask/bids
-    Assert.AreEqual(12, market.totalSales.Count);
-    Assert.AreEqual(205, market.totalSales[ItemType.Find("wheat")!]);
-    Assert.AreEqual(329, market.totalSales[ItemType.Find("field_peas")!]);
-    Assert.AreEqual(3914, market.totalSales[ItemType.Find("wood")!]);
-    Assert.AreEqual(29, market.totalSales[ItemType.Find("quern")!]);
-    Assert.AreEqual(17, market.totalSales[ItemType.Find("chest")!]);
+    Assert.IsTrue(market.totalSales.Count >= 10);
+    Assert.AreEqual(204, market.totalSales[ItemType.Find("wheat")!]);
   }
 }

@@ -25,6 +25,7 @@ namespace Village.Tasks
     // How much is this item worth to the runner as input.
     public UtilityQuantityList WorthAsInput(ItemType itemType, double minWorth = 0);
     public IEnumerable<ItemType> GetDesiredItems();
+    public void InvalidateWorthCache(ItemType itemType);
   }
 
   // Named WorkTask instead of Task to avoid conflict with System.Task
