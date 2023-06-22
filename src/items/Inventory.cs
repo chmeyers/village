@@ -24,6 +24,7 @@ public interface IInventoryContext : Effects.IEffectTargetContext
     }
     // Check that the offer value is >= the price value.
     double offerValue = counterparty.GetOffer(offer, inventory);
+    if (offerValue <= 0) return false;
     double priceValue = -counterparty.GetPrice(price, inventory);
     if (offerValue < priceValue || priceValue >= double.MaxValue)
     {

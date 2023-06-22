@@ -206,14 +206,17 @@ public class Market : IPriceList
   public void ReportSale(ItemType itemType, int quantity, int price)
   {
     CollectNewAsks(itemType);
+    if (quantity == 0) return;
     // Note: We don't care about overflows here. The sales info is just for debugging.
     if (!totalSales.ContainsKey(itemType))
     {
       totalSales[itemType] = quantity;
+      lastPrice[itemType] = (double)price/quantity;
     }
     else
     {
       totalSales[itemType] += quantity;
+      lastPrice[itemType] = (double)price/quantity;
     }
   }
 
@@ -246,6 +249,7 @@ public class Market : IPriceList
   private ConcurrentDictionary<ItemType, MarketCacheValue> _bidCache = new ConcurrentDictionary<ItemType, MarketCacheValue>();
 
   public ConcurrentDictionary<ItemType, long> totalSales = new ConcurrentDictionary<ItemType, long>();
+  public ConcurrentDictionary<ItemType, double> lastPrice = new ConcurrentDictionary<ItemType, double>();
 }
 
 public class PurchasePriority : IComparable<PurchasePriority>

@@ -30,7 +30,7 @@ namespace Village.Tasks
   }
 
   // Named WorkTask instead of Task to avoid conflict with System.Task
-  public class WorkTask
+  public class WorkTask : IComparable<WorkTask>
   {
     // Dictionary to store the loaded Tasks
     public static Dictionary<string, WorkTask> tasks { get; private set; } = new Dictionary<string, WorkTask>();
@@ -652,6 +652,12 @@ namespace Village.Tasks
     {
       // For friendly printing.
       return this.task;
+    }
+
+    public int CompareTo(WorkTask? other)
+    {
+      if (other == null) return 1;
+      return this.task.CompareTo(other.task);
     }
 
 
