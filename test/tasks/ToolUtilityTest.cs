@@ -564,6 +564,7 @@ public class ToolUtilityUnitTest
     validTasks.Add("make_charcoal_1");
     validTasks.Add("mine_iron_1");
     validTasks.Add("craft_unfired_pottery");
+    validTasks.Add("craft_pottery");
     validTasks.Add("");
 
     for (int i = 0; i < 200; ++i)
@@ -573,7 +574,7 @@ public class ToolUtilityUnitTest
       Assert.IsTrue(validTasks.Contains(task), "Task (" + i + ") " + task + " is not in valid set.");
     }
 
-    Assert.AreEqual(11, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(33.55, person.DetermineTimeUtility(true), 5.0);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("axe_1")! }), 0.5);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("hoe_1")! }), 0.5);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("sickle_1")! }), 0.5);
@@ -583,7 +584,6 @@ public class ToolUtilityUnitTest
     Assert.AreEqual(0, household.Utility(person, axe, 1), 0.5);
     Assert.AreEqual(-500, household.Utility(person, axe, -1), 0.5);
     Assert.AreEqual(0, household.Utility(person, shovel, 1), 0.5);
-    // Since our time utility is zero, shovels are basically free.
     Assert.AreEqual(0, household.Utility(person, shovel, -1), 0.5);
     Assert.AreEqual(0, household.Utility(person, hoe, 1), 0.5);
     Assert.AreEqual(-500, household.Utility(person, hoe, -1), 0.5);

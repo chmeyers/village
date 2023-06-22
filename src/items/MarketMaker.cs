@@ -7,6 +7,8 @@ namespace Village.Items;
 
 public class MarketMaker : IMarketParticipant
 {
+  // Registry of all MarketMakers.
+  public static HashSet<MarketMaker> global_marketMakers = new HashSet<MarketMaker>();
   public Inventory inventory { get; protected set; } = new Inventory();
 
   private IPriceList _priceList;
@@ -22,6 +24,23 @@ public class MarketMaker : IMarketParticipant
     this._priceList = priceList;
     this._market = market;
     this._refreshRate = refreshRate;
+    global_marketMakers.Add(this);
+  }
+
+  public void SetDefaults()
+  {
+    // By default we have 1M coins, 1000 of each field crop, and 10 of everything else.
+    foreach (var itemtype in ItemType.itemTypes)
+    {
+      SetMax(itemtype.Value, 20);
+      SetHave(itemtype.Value, 10);
+    }
+    foreach (var crop in ItemType.fieldCrops)
+    {
+      SetMax(crop, 2000);
+      SetHave(crop, 1000);
+    }
+    SetHave(ItemType.Coin, 1000000);
   }
 
   public void SetMax(ItemType itemType, int amount)
