@@ -208,6 +208,12 @@ public class Building : IAbilityCollection
   // The components that have been completed.
   public HashSet<BuildingComponent> completedComponents { get; private set; } = new HashSet<BuildingComponent>();
 
+  public void ForceComplete()
+  {
+    phase = buildingType.phases.Count;
+    ChangeBuildingAbilities();
+  }
+
   public virtual event AbilitiesChanged? AbilitiesChanged;
 
   // Add a component to the building.
