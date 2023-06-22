@@ -196,12 +196,13 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     return effect.Utility(household, runner, chosenTarget, scale);
   }
 
-  private double _MarginalUtility(UtilityQuantityList desiredStockpile, int have, int delta, UtilityQuantityList valueList, UtilityQuantityList? costPrice)
+  private double _MarginalUtility(UtilityQuantityList? desiredStockpile, int have, int delta, UtilityQuantityList valueList, UtilityQuantityList? costPrice)
   {
+    UtilityQuantityList? allValues = UtilityQuantityList.Merge(desiredStockpile, valueList);
+    if (allValues == null) allValues = new UtilityQuantityList();
     if (delta < 0)
     {
       // Removing items.
-      UtilityQuantityList allValues = desiredStockpile.Clone().Merge(valueList);
 
       double utility = 0;
       for (int i = allValues.Count - 1; i >= 0; i--)
@@ -229,7 +230,6 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     }
     else if (delta > 0)
     {
-      UtilityQuantityList allValues = desiredStockpile.Clone().Merge(valueList);
       // Adding items.
       double utility = 0;
       for (int i = 0; i < allValues.Count; i++)
@@ -254,11 +254,12 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     return 0;
   }
 
-  private UtilityQuantity? _MarginalQuantity(UtilityQuantityList desiredStockpile, int have, bool adding, UtilityQuantityList valueList)
+  private UtilityQuantity? _MarginalQuantity(UtilityQuantityList? desiredStockpile, int have, bool adding, UtilityQuantityList valueList)
   {
     // Note that unlike _MarginalUtility(), we never ignore items that we have from the valueList.
     // This is because we don't want to sell items that we might want to use.
-    UtilityQuantityList allValues = desiredStockpile.Clone().Merge(valueList);
+    UtilityQuantityList? allValues = UtilityQuantityList.Merge(desiredStockpile, valueList);
+    if (allValues == null) return null;
     // Find the interval that includes have.
     for (int i = 0; i < allValues.Count; i++)
     {
@@ -268,8 +269,8 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
         // we're in the next interval for adding, but the current interval for removing.
         if (have < allValues[i].totalQuantity)
         {
-        int toNextInterval = allValues[i].totalQuantity - have;
-        return new UtilityQuantity(toNextInterval, toNextInterval, allValues[i].marginalUtility);
+          int toNextInterval = allValues[i].totalQuantity - have;
+          return new UtilityQuantity(toNextInterval, toNextInterval, allValues[i].marginalUtility);
         }
       }
       else
@@ -328,11 +329,11 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
         {
           return new UtilityQuantity(1, 1, abilityUtility);
         }
-        quantity.marginalUtility += abilityUtility;
-        quantity.totalQuantity = 1;
-        quantity.marginalQuantity = 1;
+          quantity.marginalUtility += abilityUtility;
+          quantity.totalQuantity = 1;
+          quantity.marginalQuantity = 1;
+        }
       }
-    }
     return quantity;
   }
 
@@ -433,12 +434,21 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     }
   }
 
+  public void InvalidateAbilityCaches()
+  {
+    foreach (var person in people)
+    {
+      person.InvalidateAbilityCache();
+    }
+  }
+
   public void ReevaluateCropWorth()
   {
     foreach (var crop in ItemType.fieldCrops)
     {
       InvalidateWorthCaches(crop);
     }
+    InvalidateAbilityCaches();
   }
 
   // The actual price of the item on the local market not
@@ -489,7 +499,7 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
 
   private double _Utility(ItemType itemType, int quantity, int days, UtilityQuantityList? cost, UtilityQuantityList? childStockpile)
   {
-    UtilityQuantityList stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType, days), childStockpile);
+    UtilityQuantityList? stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType, days), childStockpile);
     int have = inventory.Count(itemType);
     UtilityQuantityList valuePrice = quantity >=0 ? ValuePrice(itemType) : ValuePriceExceptAvailable(itemType, have);
     double utility = _MarginalUtility(stockpile, have, quantity, valuePrice, cost);
@@ -563,8 +573,8 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     }
   }
 
-  // Items that cost more than this per item will be considered high value purchases.
-  public const double highValuePurchaseThreshold = 50000;
+  // Items that cost more than this multiplier outside our budget won't even be considered.
+  public const double outsideBudgetThreshold = 10;
   // Items that aren't at least this much as good as the best item we want to buy will be ignored.
   public const double minRelativeValueToPurchase = 0.8;
   public void MakePurchases()
@@ -575,30 +585,41 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     }
     // We are willing to purchase any item that is for sale for less than it's utility value.
     // We'll prioritize items that are most underpriced on a percentage basis.
-    
+
     // Get our budget.
+    var start = Profiler.Start();
     int budget = inventory.Count(ItemType.Coin);
+    start = Profiler.AddSample("MakePurchases.GetBudget", start);
 
     if (budget <= 0) return;
 
     // Store things we are considering buying sorted by priority.
     PurchaseList purchases = new PurchaseList();
+    Dictionary<ItemType, UtilityQuantity> overpriced = new Dictionary<ItemType, UtilityQuantity>();
 
     double bestItemPercentage = 0;
 
     foreach (var ask in market.Asks)
     {
       UtilityQuantity marketUtility = ask.Value.bestPrice;
+      // Early out if this item is way outside our budget.
+      if (-marketUtility.marginalUtility > budget * outsideBudgetThreshold) continue;
       // Get our utility for this item.
       UtilityQuantity? ourUtility = MarginalQuantity(ask.Key, true);
       // Ignore anything that's not worth buying.
       // Asks are negative numbers and ourUtility is positive.
-      if (ourUtility == null || ourUtility.marginalUtility == 0 || ourUtility.marginalUtility < -marketUtility.marginalUtility) continue;
-      if (marketUtility.marginalUtility < highValuePurchaseThreshold)
-      {
-        // Keep track of the best low value item we can buy, even if they are out of our budget.
-        bestItemPercentage = Math.Max(bestItemPercentage, (ourUtility.marginalUtility + marketUtility.marginalUtility) / ourUtility.marginalUtility);
+      if (ourUtility == null || ourUtility.marginalUtility == 0 || ourUtility.totalQuantity == 0) continue;
+      if (ourUtility.marginalUtility < -marketUtility.marginalUtility) {
+        // We want this item, but it's too expensive.
+        if (ourUtility.marginalUtility < budget)
+        {
+          // Track these so we can submit bids for them later.
+          overpriced[ask.Key] = ourUtility;
+        }
+        continue;
       }
+      // Keep track of the best value item we can buy, even if they are out of our budget.
+      bestItemPercentage = Math.Max(bestItemPercentage, (ourUtility.marginalUtility + marketUtility.marginalUtility) / ourUtility.marginalUtility);
       // Ignore anything out of our budget.
       if (-marketUtility.marginalUtility > budget) continue;
       // Add this item to our list of potential purchases.
@@ -608,14 +629,26 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     // Filter out the the lower profitability items so we can save up for the best ones.
     purchases.FilterByPercentage(bestItemPercentage * minRelativeValueToPurchase);
     
-    purchases.MakePurchases(this, market, budget);
+    purchases.MakePurchases(this, market, ref budget);
 
+    // Submit bids for any items we didn't buy.
+    foreach (var purchase in purchases)
+    {
+      if (budget <= 0) break;
+      var ourUtility = purchase.ourUtility;
+      SubmitBid(purchase.itemType, ourUtility, ref budget);
+    }
+
+    // Submit bids for any items we didn't buy.
+    foreach (var overprice in overpriced)
+    {
+      if (budget <= 0) break;
+      SubmitBid(overprice.Key, overprice.Value, ref budget);
+    }
   }
 
-  private void SubmitBid(ItemType itemType, ref int budget)
+  private void SubmitBid(ItemType itemType, UtilityQuantity quantity, ref int budget)
   {
-    var quantity = MarginalQuantity(itemType, true);
-    if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == 0 || quantity.totalQuantity == 0) return;
     // Cap the quantity at our budget, add a small epsilon to avoid fp rounding errors.
     const double epsilon = 0.01;
     quantity.marginalQuantity = Math.Min(quantity.marginalQuantity, (int)Math.Floor(budget / (quantity.marginalUtility + epsilon)));
@@ -626,6 +659,14 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     // Note that we don't actually check to see if the bid is less than the current ask.
     // It shouldn't be unless we were unable to purchase the item for some reason.
     market!.AddBid(itemType, this, price);
+  }
+
+  private void SubmitBid(ItemType itemType, ref int budget)
+  {
+    if (budget <= 0) return;
+    var ourUtility = MarginalQuantity(itemType, true);
+    if (ourUtility == null || ourUtility.marginalUtility == 0 || ourUtility.totalQuantity == 0) return;
+    SubmitBid(itemType, ourUtility, ref budget);
   }
 
   public void SubmitBid(ItemType itemType)
@@ -653,9 +694,11 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     {
       bidItems.UnionWith(person.GetDesiredItems());
     }
-    bidItems.UnionWith(market.Asks.Keys);
     foreach (var itemType in bidItems)
     {
+      // Don't submit bids if the item is in the market.Asks list,
+      // as we already submitted those when making purchases.
+      if (market.Asks.ContainsKey(itemType)) continue;
       SubmitBid(itemType, ref budget);
     }
   }
