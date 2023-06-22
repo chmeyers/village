@@ -197,7 +197,7 @@ public class MarketMaker : IMarketParticipant
       purchases.Add(new PurchasePriority(ask.Key, marketUtility, ourPrice));
     }
 
-    purchases.MakePurchases(this, _market, budget);
+    purchases.MakePurchases(this, _market, ref budget);
   }
 
   public void SubmitAsk(ItemType itemType)

@@ -299,7 +299,7 @@ public class PurchaseList : List<PurchasePriority>
     }
   }
 
-  public void MakePurchases(IMarketParticipant buyer, Market market, int budget)
+  public void MakePurchases(IMarketParticipant buyer, Market market, ref int budget)
   {
     this.Sort();
 
