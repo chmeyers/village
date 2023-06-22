@@ -390,7 +390,7 @@ public class UtilityUnitTest
 
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
-    Assert.AreEqual(18.5, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(20, person.DetermineTimeUtility(), 0.5);
 
     // Check DesiresStockpile functionality.
     var foodStockpile = household.DesiredStockpile(food);
@@ -401,11 +401,11 @@ public class UtilityUnitTest
     var foodValue = household.ValuePrice(food);
     Assert.AreEqual(3, foodValue.Count);
     Assert.AreEqual(1, foodValue[0].totalQuantity);
-    Assert.AreEqual(199900, foodValue[0].marginalUtility);
+    Assert.AreEqual(200000, foodValue[0].marginalUtility);
     Assert.AreEqual(3, foodValue[1].totalQuantity);
-    Assert.AreEqual(69933.3, foodValue[1].marginalUtility, 0.1);
+    Assert.AreEqual(70000, foodValue[1].marginalUtility, 0.1);
     Assert.AreEqual(15, foodValue[2].totalQuantity);
-    Assert.AreEqual(15974.6, foodValue[2].marginalUtility, 0.1);
+    Assert.AreEqual(16008, foodValue[2].marginalUtility, 0.1);
 
     var grainStockpile = household.DesiredStockpile(grain);
     Assert.AreEqual(1, grainStockpile.Count);
@@ -432,26 +432,26 @@ public class UtilityUnitTest
 
     // We don't have any food, so the entire wheat-tricorn chain has high utility.
     // Food is based on just the Value Price
-    Assert.AreEqual(199900, household.Utility(person, food, 1), 1);
-    Assert.AreEqual(-199900, household.Utility(person, food, -1), 1);
+    Assert.AreEqual(200000, household.Utility(person, food, 1), 1);
+    Assert.AreEqual(-200000, household.Utility(person, food, -1), 1);
     // Grain inherits from food, but is unpurchasable.
-    Assert.AreEqual(199901, household.Utility(person, grain, 1), 1);
+    Assert.AreEqual(200001, household.Utility(person, grain, 1), 1);
     Assert.AreEqual(double.MinValue, household.Utility(person, grain, -1), 1);
     // Wheat inherits from grain, but adds in the purchase/sale price.
-    Assert.AreEqual(200061, household.Utility(person, wheat, 1), 1);
-    Assert.AreEqual(-200250, household.Utility(person, wheat, -1), 1);
-    Assert.AreEqual(200064, household.Utility(person, tricorn, 1), 1);
+    Assert.AreEqual(200161, household.Utility(person, wheat, 1), 1);
+    Assert.AreEqual(-200350, household.Utility(person, wheat, -1), 1);
+    Assert.AreEqual(200164, household.Utility(person, tricorn, 1), 1);
     Assert.AreEqual(double.MinValue, household.Utility(person, tricorn, -1), 1);
 
     // Basket's utility is solely based on the market price.
     Assert.AreEqual(45, household.Utility(person, basket, 1), 0.5);
     // Since we don't have any, we would need to buy one or produce one.
     // It's cheaper to produce one, so the utility is based on that.
-    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
+    Assert.AreEqual(-85, household.Utility(person, basket, -1), 0.5);
     household.inventory.AddItem(new Item(basket), 1);
     // Now that we have one, utility is based on sell price.
     Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
-    Assert.AreEqual(-90, household.Utility(person, basket, -2), 0.5);
+    Assert.AreEqual(-130, household.Utility(person, basket, -2), 0.5);
 
     // Unlike baskets, it's cheaper to buy an anvil than to produce one.
     Assert.AreEqual(5000, household.Utility(person, iron_anvil, 1), 0.5);
@@ -668,7 +668,7 @@ public class UtilityUnitTest
 
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
-    Assert.AreEqual(18.5, person.DetermineTimeUtility(), 0.5);
+    Assert.AreEqual(20, person.DetermineTimeUtility(), 0.5);
 
     Household household = households[0];
 
@@ -681,11 +681,11 @@ public class UtilityUnitTest
     var foodValue = household.ValuePrice(food);
     Assert.AreEqual(3, foodValue.Count);
     Assert.AreEqual(1, foodValue[0].totalQuantity);
-    Assert.AreEqual(199900, foodValue[0].marginalUtility);
+    Assert.AreEqual(200000, foodValue[0].marginalUtility);
     Assert.AreEqual(3, foodValue[1].totalQuantity);
-    Assert.AreEqual(69933.3, foodValue[1].marginalUtility, 0.1);
+    Assert.AreEqual(70000, foodValue[1].marginalUtility, 0.1);
     Assert.AreEqual(15, foodValue[2].totalQuantity);
-    Assert.AreEqual(15974.6, foodValue[2].marginalUtility, 0.1);
+    Assert.AreEqual(16008, foodValue[2].marginalUtility, 0.1);
 
     var grainStockpile = household.DesiredStockpile(grain);
     Assert.AreEqual(1, grainStockpile.Count);
@@ -710,36 +710,36 @@ public class UtilityUnitTest
 
     // We don't have any food, so the entire wheat-tricorn chain has high utility.
     // Food is based on just the Value Price
-    Assert.AreEqual(199900, household.Utility(person, food, 1), 1);
-    Assert.AreEqual(-199900, household.Utility(person, food, -1), 1);
+    Assert.AreEqual(200000, household.Utility(person, food, 1), 1);
+    Assert.AreEqual(-200000, household.Utility(person, food, -1), 1);
     // Grain inherits from food, but is unpurchasable.
-    Assert.AreEqual(199901, household.Utility(person, grain, 1), 1);
+    Assert.AreEqual(200001, household.Utility(person, grain, 1), 1);
     Assert.AreEqual(double.MinValue, household.Utility(person, grain, -1), 1);
     // Wheat inherits from grain, but adds in the purchase/sale price.
-    Assert.AreEqual(200061, household.Utility(person, wheat, 1), 1);
+    Assert.AreEqual(200161, household.Utility(person, wheat, 1), 1);
     // They have no money to purchase, so it's impossible to buy.
     Assert.AreEqual(double.MinValue, household.Utility(person, wheat, -1), 1);
-    Assert.AreEqual(200064, household.Utility(person, tricorn, 1), 1);
+    Assert.AreEqual(200164, household.Utility(person, tricorn, 1), 1);
     Assert.AreEqual(double.MinValue, household.Utility(person, tricorn, -1), 1);
 
     // Basket's utility is solely based on the market price.
     Assert.AreEqual(45, household.Utility(person, basket, 1), 0.5);
     // Since we don't have any, we would need to buy one or produce one.
     // It's cheaper to produce one, so the utility is based on that.
-    Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
+    Assert.AreEqual(-85, household.Utility(person, basket, -1), 0.5);
     household.inventory.AddItem(new Item(basket), 1);
     // Now that we have one, utility is based on sell price.
     Assert.AreEqual(-45, household.Utility(person, basket, -1), 0.5);
-    Assert.AreEqual(-90, household.Utility(person, basket, -2), 0.5);
+    Assert.AreEqual(-130, household.Utility(person, basket, -2), 0.5);
 
     // Unlike baskets, it's cheaper to buy an anvil than to produce one,
     // but since they don't have the coin to buy one, they have to make it.
     Assert.AreEqual(5000, household.Utility(person, iron_anvil, 1), 0.5);
-    Assert.AreEqual(-49807.6, household.Utility(person, iron_anvil, -1), 0.5);
+    Assert.AreEqual(-76752, household.Utility(person, iron_anvil, -1), 0.5);
     household.inventory.AddItem(new Item(iron_anvil), 1);
     // Now that we have one, utility is based on sell price.
     Assert.AreEqual(-5000, household.Utility(person, iron_anvil, -1), 0.5);
-    Assert.AreEqual(-54807.6, household.Utility(person, iron_anvil, -2), 0.5);
+    Assert.AreEqual(-81752, household.Utility(person, iron_anvil, -2), 0.5);
 
     IEnumerable<string> nextTasks = Advance(households, market, marketMaker, dailyTasks, 240);
     IEnumerator<string> next = nextTasks.GetEnumerator();
@@ -758,7 +758,7 @@ public class UtilityUnitTest
     Assert.AreEqual(-45, market.Asks[basket].bestPrice.marginalUtility);
     // They'll manage to sell the stuff and buy food, so they'll cook it.
     Assert.AreEqual("cook_meals", GetNext(next));
-    Assert.AreEqual(4, market.totalSales.Count);
+    Assert.AreEqual(5, market.totalSales.Count);
     Assert.AreEqual(1, market.totalSales[iron_anvil]);
     Assert.AreEqual(1, market.totalSales[basket]);
     Assert.AreEqual(3, market.totalSales[wheat]);

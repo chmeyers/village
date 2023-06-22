@@ -472,17 +472,18 @@ public class ToolUtilityUnitTest
     // Check the person's time utility.
     // This will recursively check all the tasks they can do.
     Assert.AreEqual(0, person.DetermineTimeUtility(), 0.5);
+    household.InvalidateAbilityCaches();
     Assert.AreEqual(420, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("axe_1")!}), 0.5);
-    Assert.AreEqual(50, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("shovel_1")!}), 0.5);
+    Assert.AreEqual(222, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("shovel_1")!}), 0.5);
     Assert.AreEqual(70, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("hoe_1")!}), 0.5);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("sickle_1")!}), 0.5);
-    Assert.AreEqual(195, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("pickaxe_1")!}), 0.5);
+    Assert.AreEqual(224, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("pickaxe_1")!}), 0.5);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() {AbilityType.Find("plow_1")!}), 0.5);
 
 
     Assert.AreEqual(42000, household.Utility(person, axe, 1), 0.5);
     Assert.AreEqual(double.MinValue, household.Utility(person, axe, -1), 0.5);
-    Assert.AreEqual(5000, household.Utility(person, shovel, 1), 0.5);
+    Assert.AreEqual(22200, household.Utility(person, shovel, 1), 0.5);
     // Since our time utility is zero, shovels are basically free.
     Assert.AreEqual(0, household.Utility(person, shovel, -1), 0.5);
     Assert.AreEqual(7000, household.Utility(person, hoe, 1), 0.5);
@@ -547,8 +548,8 @@ public class ToolUtilityUnitTest
     household.ReevaluateCropWorth();
 
     // Now that we have the money to buy seeds, plows are very useful.
-    Assert.AreEqual(1700, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("plow_1")! }), 0.5);
-    Assert.AreEqual(170000, household.Utility(person, plow, 1), 0.5);
+    Assert.AreEqual(1699, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("plow_1")! }), 0.5);
+    Assert.AreEqual(169900, household.Utility(person, plow, 1), 0.5);
     Assert.AreEqual(-500, household.Utility(person, plow, -1), 0.5);
 
     Assert.AreEqual("plow_field", GetNext(next));
@@ -580,6 +581,7 @@ public class ToolUtilityUnitTest
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("sickle_1")! }), 0.5);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("plow_1")! }), 0.5);
 
+    household.InvalidateAbilityCaches();
 
     Assert.AreEqual(0, household.Utility(person, axe, 1), 0.5);
     Assert.AreEqual(-500, household.Utility(person, axe, -1), 0.5);

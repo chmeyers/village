@@ -346,6 +346,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, addedProvider, added, removedProvider, removed, AbilitiesChanged);
       _validTasksDirty = true;
       _validBuildingsDirty = true;
+      _abilityUtilityCache.Clear();
     }
   }
 
@@ -680,6 +681,14 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
   }
 
+  public void InvalidateAbilityCache()
+  {
+    lock (_cacheLock)
+    {
+      _abilityUtilityCache.Clear();
+    }
+  }
+
   public IEnumerable<ItemType> GetDesiredItems()
   {
     // Return all the items that we have a non-empty worth cache for.
@@ -704,7 +713,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   private const double salary_buffer = 1.0;
   private const double max_salary_increase = 1000.0;
   private const long salary_cache_duration = Calendar.ticksPerWeek;
-  private KeyValuePair<long, double> _salaryCache = new KeyValuePair<long, double>(-1, 100);
+  private KeyValuePair<long, double> _salaryCache = new KeyValuePair<long, double>(-1, 0);
   public double DetermineTimeUtility(bool forceRefresh = false)
   {
     lock (_cacheLock)
@@ -766,41 +775,80 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     }
   }
 
+  public class AbilityUtilityCacheValue
+  {
+    public AbilityUtilityCacheValue(long expiry, double value)
+    {
+      this.expiry = expiry;
+      this.value = value;
+    }
+
+    public long expiry;
+    public double value;
+
+    public override string ToString()
+    {
+      // For friendly printing, create a comma separated list of the values.
+      return value.ToString();
+    }
+  }
+  private const long ability_util_cache_duration = Calendar.ticksPerWeek;
+  private Dictionary<HashSet<AbilityType>, AbilityUtilityCacheValue> _abilityUtilityCache = new Dictionary<HashSet<AbilityType>, AbilityUtilityCacheValue>();
   public double AbilityUtility(HashSet<AbilityType> abilities)
   {
-    // The utility of an ability is dependent on improvement in salary the person could get
-    // with all the potential tasks that could be run with that ability.
-    if (Abilities.IsSupersetOf(abilities)) return 0;
-
-    double currentSalary = TimeUtility();
-
-    HashSet<AbilityType> newAbilities = new HashSet<AbilityType>(Abilities);
-    newAbilities.UnionWith(abilities);
-    HashSet<WorkTask> newTasks = WorkTask.GetAdditionalTasks(newAbilities, abilities);
-    if (newTasks.Count == 0) return 0;
-
-    double utility = 0;
-    foreach (var task in newTasks)
+    var start = Profiler.Start();
+    // Check the cache.
+    lock (_cacheLock)
     {
-      if (task.compulsory) continue;
-      double rawTime = task.timeCost.GetValue(this);
-      if (rawTime <= 0) continue;
-      // Get the utility score for the task.
-      Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
-      double scale = 1.0;
-      double score = task.PotentialTimeUtility(this, this.household, ref targets, ref scale);
-      int time = (int)Math.Ceiling(rawTime * scale);
-      score -= time * currentSalary;
-      if (score <= 0)
+      if (_abilityUtilityCache.ContainsKey(abilities) && _abilityUtilityCache[abilities].expiry >= Calendar.Ticks)
       {
-        // If the task is not better than the current salary, then we don't care about it.
-        continue;
+        return _abilityUtilityCache[abilities].value;
       }
-      // Note that the utility is per task, not per time since things that grant abilities
-      // will generally degrade once per task.
-      utility = Math.Max(utility, score);
+      // Set the cache to zero for the rest of the tick, to limit recursion.
+      _abilityUtilityCache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks, 0);
+
+      // The utility of an ability is dependent on improvement in salary the person could get
+      // with all the potential tasks that could be run with that ability.
+      if (Abilities.IsSupersetOf(abilities)) 
+      {
+        _abilityUtilityCache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks + ability_util_cache_duration, 0);
+        return 0;
+      }
+
+      double currentSalary = TimeUtility();
+
+      HashSet<AbilityType> newAbilities = new HashSet<AbilityType>(Abilities);
+      newAbilities.UnionWith(abilities);
+      HashSet<WorkTask> newTasks = WorkTask.GetAdditionalTasks(newAbilities, abilities);
+      if (newTasks.Count == 0) {
+        _abilityUtilityCache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks + ability_util_cache_duration, 0);
+        return 0;
+      }
+
+      double utility = 0;
+      foreach (var task in newTasks)
+      {
+        if (task.compulsory) continue;
+        double rawTime = task.timeCost.GetValue(this);
+        if (rawTime <= 0) continue;
+        // Get the utility score for the task.
+        Dictionary<string, Effects.ChosenEffectTarget> targets = new Dictionary<string, Effects.ChosenEffectTarget>();
+        double scale = 1.0;
+        double score = task.PotentialTimeUtility(this, this.household, ref targets, ref scale);
+        int time = (int)Math.Ceiling(rawTime * scale);
+        score -= time * currentSalary;
+        if (score <= 0)
+        {
+          // If the task is not better than the current salary, then we don't care about it.
+          continue;
+        }
+        // Note that the utility is per task, not per time since things that grant abilities
+        // will generally degrade once per task.
+        utility = Math.Max(utility, score);
+      }
+      _abilityUtilityCache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks + ability_util_cache_duration, utility);
+      return utility;
     }
-    return utility;
   }
 
 

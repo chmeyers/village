@@ -26,6 +26,7 @@ namespace Village.Tasks
     public UtilityQuantityList WorthAsInput(ItemType itemType, double minWorth = 0);
     public IEnumerable<ItemType> GetDesiredItems();
     public void InvalidateWorthCache(ItemType itemType);
+    public void InvalidateAbilityCache();
     public double AbilityUtility(HashSet<AbilityType> abilities);
   }
 
