@@ -513,9 +513,10 @@ public class Inventory : IInventoryContext, IAbilityCollection
   {
     int count = 0;
     // Count the passed itemType, then if it has children, count them too.
-    if (items.ContainsKey(itemType))
+    
+    if (items.TryGetValue(itemType, out var itemDict))
     {
-      foreach (var item in items[itemType])
+      foreach (var item in itemDict)
       {
         count += item.Value;
       }
