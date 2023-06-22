@@ -4,7 +4,6 @@
   // For more information, visit: https://go.microsoft.com/fwlink/?linkid=830387
   "version": "0.2.0",
   "configurations": [
-
     {
       "name": "Unittests",
       "type": "coreclr",
@@ -22,6 +21,17 @@
       "preLaunchTask": "build",
       "program": "${workspaceFolder}/bin/Debug/net7.0/village.dll",
       "args": [],
+      "cwd": "${workspaceFolder}",
+      "console": "integratedTerminal",
+      "stopAtEntry": false
+    },
+    {
+      "name": ".NET Core Launch (Release)",
+      "type": "coreclr",
+      "request": "launch",
+      "preLaunchTask": "release-build",
+      "program": "${workspaceFolder}/bin/Release/net7.0/village.dll",
+      "args": ["-c", "Release"],
       "cwd": "${workspaceFolder}",
       "console": "integratedTerminal",
       "stopAtEntry": false
