@@ -164,6 +164,10 @@ public class UtilityQuantityList : List<UtilityQuantity>
   // maintaining the sort order.
   public UtilityQuantityList Merge(UtilityQuantityList from)
   {
+    if (from == null || from.Count == 0)
+    {
+      return this;
+    }
     foreach (var element in from)
     {
       this.Add(element.Clone());
@@ -182,8 +186,16 @@ public class UtilityQuantityList : List<UtilityQuantity>
     return result;
   }
 
-  public static UtilityQuantityList Merge(UtilityQuantityList a, UtilityQuantityList b)
+  public static UtilityQuantityList? Merge(UtilityQuantityList? a, UtilityQuantityList? b)
   {
+    if (a == null || a.Count == 0)
+    {
+      return b;
+    }
+    if (b == null || b.Count == 0)
+    {
+      return a;
+    }
     return a.Clone().Merge(b);
   }
 
@@ -236,15 +248,15 @@ public class UtilityQuantityList : List<UtilityQuantity>
   }
 
   // Stack the two lists, adding the marginal quantities together.
-  public static UtilityQuantityList Stack(UtilityQuantityList? a, UtilityQuantityList? b)
+  public static UtilityQuantityList? Stack(UtilityQuantityList? a, UtilityQuantityList? b)
   {
-    if (a == null)
+    if (a == null || a.Count == 0)
     {
-      return b?.Clone() ?? new UtilityQuantityList();
+      return b;
     }
-    if (b == null)
+    if (b == null || b.Count == 0)
     {
-      return a.Clone();
+      return a;
     }
     var result = new UtilityQuantityList();
     int i = 0;
