@@ -616,8 +616,9 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
   {
     var quantity = MarginalQuantity(itemType, true);
     if (quantity == null || quantity.marginalUtility == 0 || quantity.marginalUtility == 0 || quantity.totalQuantity == 0) return;
-    // Cap the quantity at our budget.
-    quantity.marginalQuantity = Math.Min(quantity.marginalQuantity, (int)Math.Floor(budget / quantity.marginalUtility));
+    // Cap the quantity at our budget, add a small epsilon to avoid fp rounding errors.
+    const double epsilon = 0.01;
+    quantity.marginalQuantity = Math.Min(quantity.marginalQuantity, (int)Math.Floor(budget / (quantity.marginalUtility + epsilon)));
     if (quantity.marginalQuantity <= 0) return;
     quantity.totalQuantity = quantity.marginalQuantity;
     UtilityQuantityList price = new UtilityQuantityList();
@@ -665,6 +666,11 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
+      if (item.Key.itemType == ItemType.Coin) {
+        // Price will be positive.
+        offer += item.Value;
+        continue;
+      }
       offer += Utility(item.Key.itemType, item.Value);
     }
     return offer;
@@ -676,6 +682,12 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     double offer = 0;
     foreach (KeyValuePair<Item, int> item in items)
     {
+      if (item.Key.itemType == ItemType.Coin)
+      {
+        // Price will be positive.
+        offer -= item.Value;
+        continue;
+      }
       // Price will be negative.
       offer += Utility(item.Key.itemType, -item.Value);
     }
