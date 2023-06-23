@@ -496,7 +496,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     // Only pick a task if the person has no tasks.
     if (runningTasks.Count > 0) return null;
     // Pick a task from the set of available tasks.
-    HashSet<WorkTask> available = blacklist != null ? AvailableTasks.Except(blacklist).ToHashSet() : AvailableTasks.ToHashSet();
+    HashSet<WorkTask> available = blacklist != null ? AvailableTasks.Except(blacklist).ToHashSet() : AvailableTasks;
     // Eliminate any tasks that have multiple targets.
     // TODO(chmeyers): Implement multiple target task picking.
     available.ExceptWith(available.Where(t => t.targets.Count > 1));
