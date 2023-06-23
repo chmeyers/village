@@ -289,7 +289,7 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
   // Return the quantity of an item that share the lowest marginal utility.
   public UtilityQuantity? MarginalQuantity(ItemType itemType, bool adding, UtilityQuantityList? childStockpile = null)
   {
-    UtilityQuantityList stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType), childStockpile);
+    UtilityQuantityList? stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType), childStockpile);
     UtilityQuantity? quantity = _MarginalQuantity(stockpile, inventory.Count(itemType), adding, ValuePrice(itemType));
     if (quantity == null && !adding)
     {
