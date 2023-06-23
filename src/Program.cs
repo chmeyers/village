@@ -318,13 +318,61 @@ namespace Village
       //Load configs
       LoadConfig();
 
+      Market market = new Market();
+      MarketMaker maker = new MarketMaker(ConfigPriceList.Default, market);
+      maker.SetDefaults();
+      maker.Refresh();
+
+      // Create 100 households, each with a field and a person.
+      for (int i = 0; i < 100; i++)
+      {
+        Household household = new Household();
+        household.isPlayerHousehold = false;
+        // Create a person.
+        Person person = new Person("bob" + i, "Bob" + i, household, Role.HeadOfHousehold);
+        household.AddField(BuildingType.Find("field")!);
+        household.AddBuilding(BuildingType.Find("smelter")!);
+        household.AddBuilding(BuildingType.Find("kiln")!);
+        household.AddBuilding(BuildingType.Find("forge")!);
+        household.AddBuilding(BuildingType.Find("quarry")!);
+        household.AddBuilding(BuildingType.Find("iron_mine")!);
+        // Force Complete all buildings.
+        foreach (Building building in household.buildings)
+        {
+          building.ForceComplete();
+        }
+        household.JoinMarket(market);
+      }
+
       // Create a new GameLoop
       GameLoop gameLoop = new GameLoop();
       // Start the GameLoop in it's own thread.
       Thread gameLoopThread = new Thread(new ThreadStart(gameLoop.Run));
+      var start = Profiler.Start();
       gameLoopThread.Start();
       // Start the GameServer.
-      GameServer.Start();
+      //GameServer.Start();
+      // Wait for the GameLoop to finish.
+      gameLoopThread.Join();
+
+      var end = Profiler.AddSample("Total", start);
+
+      // Print a sorted version of the market's last price list.
+      // Console.WriteLine("Market Price List:");
+      // foreach (var item in market.lastPrice.OrderBy(x => x.Key.itemType))
+      // {
+      //   Console.WriteLine(item.Key.itemType + $": {item.Value:F2} ({market.totalSales[item.Key]})");
+      // }
+
+      // Print all the Profiler samples.
+      var total = Profiler.samples["Total"].Value;
+
+      foreach (var sample in Profiler.samples.OrderBy(x => x.Value.Value))
+      {
+        Console.WriteLine(sample.Key + ": " + sample.Value.Key + ":" + 100*sample.Value.Value/total);
+      }
+      Console.WriteLine("Total Time: " + total);
+
     }
   }
 }
