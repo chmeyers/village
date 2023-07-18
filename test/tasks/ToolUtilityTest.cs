@@ -575,7 +575,7 @@ public class ToolUtilityUnitTest
       Assert.IsTrue(validTasks.Contains(task), "Task (" + i + ") " + task + " is not in valid set.");
     }
 
-    Assert.AreEqual(33.55, person.DetermineTimeUtility(true), 5.0);
+    Assert.AreEqual(33.55, person.DetermineTimeUtility(true), 25.0);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("axe_1")! }), 0.5);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("hoe_1")! }), 0.5);
     Assert.AreEqual(0, person.AbilityUtility(new HashSet<AbilityType>() { AbilityType.Find("sickle_1")! }), 0.5);

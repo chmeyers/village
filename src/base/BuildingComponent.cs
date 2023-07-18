@@ -1,4 +1,6 @@
 
+using Village.Items;
+
 namespace Village.Base;
 
 // A Building Component is a named object that must be completed
@@ -14,6 +16,18 @@ public class BuildingComponent
 
   // The specific built component.
   public string? builtComponent { get; set; } = null;
+
+  // The specific quality of the built component.
+  public int? builtQuality { get; set; } = null;
+
+  // The current quality of the component. Once this reaches
+  // zero, the component is broken and must be replaced or repaired.
+  // A building with a broken component no longer provides its
+  // benefits.
+  public int? currentQuality { get; set; } = null;
+
+  // Scrap produced when the component is broken.
+  public Dictionary<ItemType, int>? scrapItems;
 
   // Constructor from JSON dictionary.
   public BuildingComponent(string name)

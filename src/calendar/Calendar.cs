@@ -22,6 +22,7 @@ public class Calendar
   public const uint ticksPerMonth = 300;
   public const uint ticksPerYear = 3600;
   public const uint daysPerYear = 360;
+  public const uint weeksPerYear = ticksPerYear / ticksPerWeek;
 
   // Singleton instance of the calendar.
   private static Calendar global_calendar = new Calendar();

@@ -121,6 +121,17 @@ public class BuildingType
         phases.Add(new BuildingPhase(phase.Key, components));
       }
     }
+    if (data.ContainsKey("landarea"))
+    {
+      landArea = (int)data["landarea"];
+    }
+    if (data.ContainsKey("usesPerYear"))
+    {
+      usesPerYear = AbilityValue.FromJson(data["usesPerYear"]);
+    }
+    else {
+      usesPerYear = new AbilityValue(Calendar.weeksPerYear);
+    }
   }
 
   // Loader function to load all the building types from a JSON Dictionary.
@@ -155,6 +166,17 @@ public class BuildingType
     LoadString(json);
   }
 
+  public IEnumerable<string> RequiredComponents()
+  {
+    foreach (var phase in phases)
+    {
+      foreach (var component in phase.Value)
+      {
+        yield return component.name;
+      }
+    }
+  }
+
   // The id of the building type.
   public string name { get; private set; }
   // The abilities that the building type provides once complete.
@@ -167,6 +189,12 @@ public class BuildingType
   // completed before the next phase can be started.
   // If the phases are empty, then the building is built immediately.
   public List<BuildingPhase> phases { get; private set; }
+  // Land area required to build the building type.
+  public int landArea { get; private set; }
+  // The number of times per year the building is expected to be used
+  // per year. This is used to calculate the expected utility of constructing
+  // the building.
+  public AbilityValue usesPerYear { get; private set; }
 }
 
 // A Building is a structure that can be built by a household.
@@ -208,6 +236,8 @@ public class Building : IAbilityCollection
   // The components that have been completed.
   public HashSet<BuildingComponent> completedComponents { get; private set; } = new HashSet<BuildingComponent>();
 
+  public bool broken { get; private set; } = false;
+
   public void ForceComplete()
   {
     phase = buildingType.phases.Count;
@@ -247,6 +277,22 @@ public class Building : IAbilityCollection
     }
     return buildingType.phases[phase].Value.Contains(component) && !completedComponents.Contains(component);
   }
+
+  public IEnumerable<string> MissingComponents()
+  {
+    if (completed)
+    {
+      yield break;
+    }
+    foreach (var component in buildingType.RequiredComponents())
+    {
+      if (!completedComponents.Contains(component))
+      {
+        yield return component;
+      }
+    }
+  }
+
   // Replace a component in the building.
   // For example, a thatch roof can be replaced with a tile roof.
   public bool ReplaceComponent(BuildingComponent newComponent)

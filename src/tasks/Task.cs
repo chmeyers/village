@@ -41,6 +41,9 @@ namespace Village.Tasks
     // super types of those abilities.
     public static Dictionary<AbilityType, List<WorkTask>> tasksByAbility { get; private set; } = new Dictionary<AbilityType, List<WorkTask>>();
 
+    // Index of tasks based on the Building Component type they produce.
+    public static Dictionary<string, List<WorkTask>> tasksByComponent { get; private set; } = new Dictionary<string, List<WorkTask>>();
+
     // Clear the task dictionaries.
     public static void Clear()
     {
@@ -409,6 +412,15 @@ namespace Village.Tasks
           tasksByAbility.Add(AbilityType.NULL, new List<WorkTask>());
         }
         tasksByAbility[AbilityType.NULL].Add(this);
+      }
+      // Add the task to the tasks by component index.
+      foreach (var component in BuildingComponents())
+      {
+        if (!tasksByComponent.ContainsKey(component.name))
+        {
+          tasksByComponent.Add(component.name, new List<WorkTask>());
+        }
+        tasksByComponent[component.name].Add(this);
       }
     }
 

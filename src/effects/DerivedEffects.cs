@@ -281,6 +281,7 @@ public class SkillEffect : Effect
 // Construct a building component.
 public class BuildingComponentEffect : Effect
 {
+  public const uint defaultBuildQuality = Calendar.ticksPerYear * 5;
   public BuildingComponentEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
   {
     // Target must be a building.
@@ -299,6 +300,25 @@ public class BuildingComponentEffect : Effect
     if (data.ContainsKey("type"))
     {
       specificComponent = (string)data["type"];
+    }
+    if (data.ContainsKey("quality"))
+    {
+      // The quality of the component to construct.
+      quality = AbilityValue.FromJson(data["quality"]);
+    }
+    else
+    {
+      // Default quality is 3600*5. i.e. it will last five years.
+      quality = new AbilityValue(defaultBuildQuality);
+    }
+    if (data.ContainsKey("scrapItems"))
+    {
+      scrapItems = new Dictionary<ItemType, int>();
+      foreach (var scrapItem in (Dictionary<string, object>)data["scrapItems"])
+      {
+        var item = ItemType.Find(scrapItem.Key) ?? throw new Exception("Item does not exist: " + scrapItem.Key + " in building component effect " + effect);
+        scrapItems.Add(item, (int)scrapItem.Value);
+      }
     }
   }
 
@@ -321,6 +341,9 @@ public class BuildingComponentEffect : Effect
     }
     BuildingComponent builtComponent = new BuildingComponent(component);
     builtComponent.builtComponent = specificComponent;
+    builtComponent.builtQuality = (int)quality.GetValue(chosenEffectTarget.runningContext);
+    builtComponent.currentQuality = builtComponent.builtQuality;
+    builtComponent.scrapItems = scrapItems;
     // Construct the building component.
     building.AddComponent(builtComponent);
   }
@@ -354,9 +377,38 @@ public class BuildingComponentEffect : Effect
 
   public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
   {
-    // TODO(chmeyers): Choose an appropriate utility value.
     // Finishing buildings should be important, but not override eating, surviving, etc.
-    return 10000.0;
+    // Utility should ignore sunk costs, so we don't consider components that have already
+    // been constructed. Therefore the utility of this component is the full utility of
+    // the building minus the minimum total cost of the components that need to be constructed
+    // afterwards, plus this component's scrap value.
+    Building building = (Building)chosenEffectTarget.target!;
+    if (building == null)
+    {
+      // This effect should never be called without a valid target building.
+      throw new Exception("Building is null in building component effect: " + effect);
+    }
+    // The utility of the building.
+    uint buildQuality = (uint)quality.GetValue(chosenEffectTarget.runningContext);
+    double utility = household.household.Utility(building.buildingType, buildQuality);
+    
+    
+    // The minimum total cost of the components that need to be constructed afterwards.
+    double minCost = 0;
+    foreach (var component in building.MissingComponents())
+    {
+      minCost += household.household.MinComponentCost(component);
+    }
+    // The scrap value of this component.
+    double scrapValue = 0;
+    if (scrapItems != null)
+    {
+      foreach (var scrapItem in scrapItems)
+      {
+        scrapValue += household.household.Utility(scrapItem.Key, scrapItem.Value);
+      }
+    }
+    return utility - minCost + scrapValue;
   }
 
   // The name of the building component to construct.
@@ -364,6 +416,10 @@ public class BuildingComponentEffect : Effect
   // The specific building component to construct.
   // i.e. the material used to construct the component.
   public string? specificComponent;
+  // Scrap items when this component is deconstructed.
+  public Dictionary<ItemType, int>? scrapItems;
+  // The build quality of the component.
+  public AbilityValue quality;
 }
 
 // Propagate skills up and down the skill tree

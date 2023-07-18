@@ -497,6 +497,20 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     return utility * itemType.craftQuality.GetBaseValue();
   }
 
+  private double _AbilityUtility(BuildingType buildingType)
+  {
+    if (buildingType.abilities.Count == 0)
+    {
+      return 0;
+    }
+    double utility = 0;
+    foreach (var person in people)
+    {
+      utility = Math.Max(person.AbilityUtility(buildingType.abilities), utility);
+    }
+    return utility * buildingType.usesPerYear.GetValue(defaultContext);
+  }
+
   private double _Utility(ItemType itemType, int quantity, int days, UtilityQuantityList? cost, UtilityQuantityList? childStockpile)
   {
     UtilityQuantityList? stockpile = UtilityQuantityList.Stack(DesiredStockpile(itemType, days), childStockpile);
@@ -548,6 +562,54 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     // TODO(chmeyers): If the runner isn't a member of this household, then
     // replace this with the cost of hiring them.
     return runner.TimeUtility() * time;
+  }
+
+  // Building Utility
+  public const double buildingQualityDiscountRate = 0.1;
+  public double Utility(BuildingType buildingType, uint ticks = Calendar.ticksPerYear * 5)
+  {
+    // Utility for a building is the sum of the utilities of the abilities it provides
+    // multiplied by the number of times it is expected to be used in a year.
+    double utility = _AbilityUtility(buildingType);
+
+    // Default utility is for one year.
+    // For longer lasting buildings, we calculate the present value using the annuity
+    // formula for continuous compounding: (1-e^-rt / (e^r - 1))
+    double time = ticks / (double)Calendar.ticksPerYear;
+    double rate = buildingQualityDiscountRate;
+    double discountFactor = (1 - Math.Exp(-rate * time)) / (Math.Exp(rate) - 1);
+    utility *= discountFactor;
+    return utility;
+  }
+
+  // The minimum cost to build a particular building component for this household.
+  // Return value is negative.
+  public double MinComponentCost(string component)
+  {
+    double minCost = double.MinValue;
+    // We don't know who will do the work, so choose the person with the lowest
+    // time cost.
+    // TODO(chmeyers): Maybe ensure we aren't choosing someone inappropriate for the task.
+    // i.e. don't assume a child will build a house since they have free time.
+    double timeUtility = double.MaxValue;
+    foreach (var person in people)
+    {
+      timeUtility = Math.Min(timeUtility, TimeUtility(person, 1));
+    }
+    if (timeUtility == double.MaxValue) return double.MinValue;
+    foreach (var task in WorkTask.tasksByComponent[component])
+    {
+      double utility = 0;
+      foreach (var input in task.Inputs(defaultContext))
+      {
+        utility += Utility(input.Key, -input.Value);
+      }
+      // Subtract the utility of the time cost.
+      int timeCost = (int)Math.Ceiling(task.timeCost.GetValue(defaultContext));
+      utility -= timeCost * timeUtility;
+      minCost = Math.Max(minCost, utility);
+    }
+    return minCost;
   }
 
 
