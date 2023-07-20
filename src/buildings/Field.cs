@@ -37,7 +37,7 @@ public class Field : Building, IAbilityContext, IEffectTargetContext, IHousehold
   }
 
   // Advance the current state of the field to the current tick.
-  public void Advance()
+  new public void Advance()
   {
     lock (_lock)
     {

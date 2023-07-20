@@ -27,7 +27,7 @@ namespace Village.Tasks
     public IEnumerable<ItemType> GetDesiredItems();
     public void InvalidateWorthCache(ItemType itemType);
     public void InvalidateAbilityCache();
-    public double AbilityUtility(HashSet<AbilityType> abilities);
+    public double AbilityUtility(HashSet<AbilityType> abilities, bool existing);
   }
 
   // Named WorkTask instead of Task to avoid conflict with System.Task

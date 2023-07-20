@@ -491,13 +491,13 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     double utility = 0;
     foreach (var person in people)
     {
-      utility = Math.Max(person.AbilityUtility(itemType.abilities), utility);
+      utility = Math.Max(person.AbilityUtility(itemType.abilities, false), utility);
     }
     // TODO(chmeyers): Base this on the actual quality of the item.
     return utility * itemType.craftQuality.GetBaseValue();
   }
 
-  private double _AbilityUtility(BuildingType buildingType)
+  private double _AbilityUtility(BuildingType buildingType, bool existing)
   {
     if (buildingType.abilities.Count == 0)
     {
@@ -506,7 +506,7 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
     double utility = 0;
     foreach (var person in people)
     {
-      utility = Math.Max(person.AbilityUtility(buildingType.abilities), utility);
+      utility = Math.Max(person.AbilityUtility(buildingType.abilities, existing), utility);
     }
     return utility * buildingType.usesPerYear.GetValue(defaultContext);
   }
@@ -566,11 +566,11 @@ public class Household : IMarketParticipant, IHouseholdContext, IAbilityCollecti
 
   // Building Utility
   public const double buildingQualityDiscountRate = 0.1;
-  public double Utility(BuildingType buildingType, uint ticks = Calendar.ticksPerYear * 5)
+  public double Utility(BuildingType buildingType, uint ticks = Calendar.ticksPerYear * 5, bool existing = false)
   {
     // Utility for a building is the sum of the utilities of the abilities it provides
     // multiplied by the number of times it is expected to be used in a year.
-    double utility = _AbilityUtility(buildingType);
+    double utility = _AbilityUtility(buildingType, existing);
 
     // Default utility is for one year.
     // For longer lasting buildings, we calculate the present value using the annuity

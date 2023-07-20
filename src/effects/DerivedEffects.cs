@@ -300,6 +300,10 @@ public class BuildingComponentEffect : Effect
     if (data.ContainsKey("type"))
     {
       specificComponent = (string)data["type"];
+      if (AbilityType.Find(BuildingType.BUILDING_REPAIR_ABILITY_PREFIX + specificComponent) == null)
+      {
+        throw new Exception($"No repair ability found for component type {specificComponent} created by effect {effect}");
+      }
     }
     if (data.ContainsKey("quality"))
     {
@@ -420,6 +424,115 @@ public class BuildingComponentEffect : Effect
   public Dictionary<ItemType, int>? scrapItems;
   // The build quality of the component.
   public AbilityValue quality;
+}
+
+// Repair a building component.
+public class RepairComponentEffect : Effect
+{
+  public RepairComponentEffect(string effect, EffectTargetType target, EffectType effectType, Dictionary<string, object>? data) : base(effect, target, effectType)
+  {
+    // Target must be a building.
+    if (target != EffectTargetType.Building)
+    {
+      throw new Exception("Building component effect must target a building: " + effect);
+    }
+    if (data == null)
+    {
+      throw new Exception("Building component effect must have a config dictionary: " + effect);
+    }
+    // The name of the building component to repair.
+    component = (string)data["component"];
+    // The specific building component to repair.
+    // i.e. the material used to construct the component.
+    if (data.ContainsKey("type"))
+    {
+      specificComponent = (string)data["type"];
+    }
+  }
+
+  public override void StartSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
+  {
+    // TODO(chmeyers): Verify that the building component is valid and no other task
+    // is currently constructing it.
+  }
+
+  // Apply the effect to the target.
+  public override void FinishSync(ChosenEffectTarget chosenEffectTarget, double scaler = 1, int batchSize = 1)
+  {
+    // Get the building from the chosen target.
+    Building building = (Building)chosenEffectTarget.target!;
+    // Make sure the building is not null.
+    if (building == null)
+    {
+      // This effect should never be called without a valid target building.
+      throw new Exception("Building is null in building component effect: " + effect);
+    }
+    if (building.completedComponents.TryGetValue(new BuildingComponent(component), out BuildingComponent? builtComponent))
+    {
+      builtComponent.currentQuality = builtComponent.builtQuality;
+    }
+    else
+    {
+      throw new Exception("Building does not contain component to repair: " + component + " in building component effect " + effect);
+    }
+  }
+
+  public override bool IsOptional()
+  {
+    // Building Component effects are not optional.
+    // If you can't apply the effect, then you shouldn't run the task.
+    return false;
+  }
+
+  public override double MinScale(ChosenEffectTarget target)
+  {
+    return 1.0;
+  }
+
+  public override double MaxScale(ChosenEffectTarget target)
+  {
+    return 1.0;
+  }
+
+  public override double Utility(IHouseholdContext household, ITaskRunner runner, ChosenEffectTarget chosenEffectTarget, double scaler = 1)
+  {
+    // Finishing buildings should be important, but not override eating, surviving, etc.
+    // Utility should ignore sunk costs, so we don't consider components that have already
+    // been constructed. Therefore the utility of this component is the full utility of
+    // the building minus the minimum total cost of the components that need to be constructed
+    // afterwards, plus this component's scrap value.
+    Building building = (Building)chosenEffectTarget.target!;
+    if (building == null)
+    {
+      // This effect should never be called without a valid target building.
+      throw new Exception("Building is null in building component effect: " + effect);
+    }
+    if (building.completedComponents.TryGetValue(new BuildingComponent(component), out BuildingComponent? builtComponent) && builtComponent.currentQuality != null && builtComponent.builtQuality != null)
+    {
+      double disrepair = (double)builtComponent.currentQuality / (double)builtComponent.builtQuality;
+      if (disrepair > Building.repairableThreshold)
+      {
+        // Doesn't need repair.
+        return 0;
+      }
+      disrepair = (Building.repairableThreshold - disrepair) / Building.repairableThreshold;
+
+      uint buildQuality = (uint)builtComponent.builtQuality - (uint)builtComponent.currentQuality;
+      // The utility of the building.
+      double utility = household.household.Utility(building.buildingType, buildQuality, true);
+      return utility * disrepair;
+    }
+    else
+    {
+      return 0;
+    }
+  }
+
+  // The name of the building component to construct.
+  public string component;
+  // The specific building component to construct.
+  // i.e. the material used to construct the component.
+  public string? specificComponent;
 }
 
 // Propagate skills up and down the skill tree

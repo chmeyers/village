@@ -16,6 +16,7 @@ using BuildingPhase = KeyValuePair<string,HashSet<BuildingComponent>>;
 public class BuildingType
 {
   public const string BUILDING_PHASE_ABILITY_PREFIX = "construction_phase_";
+  public const string BUILDING_REPAIR_ABILITY_PREFIX = "repair_";
   // The dictionary of all the building types.
   public static Dictionary<string, BuildingType> buildingTypes { get; private set;} = new Dictionary<string, BuildingType>();
 
@@ -104,16 +105,7 @@ public class BuildingType
           }
           components.Add(buildingComponent);
           allComponents.Add(buildingComponent);
-          var found = false;
-          foreach (var task in tasks)
-          {
-            if (task.BuildingComponents().Contains(buildingComponent))
-            {
-              found = true;
-              break;
-            }
-          }
-          if (!found)
+          if (WorkTask.tasksByComponent[buildingComponent.name].Count == 0)
           {
             throw new Exception($"No tasks found that provide component {buildingComponent.name} for building {name} phase {phase.Key}");
           }
@@ -237,6 +229,7 @@ public class Building : IAbilityCollection
   public HashSet<BuildingComponent> completedComponents { get; private set; } = new HashSet<BuildingComponent>();
 
   public bool broken { get; private set; } = false;
+  public bool repairable { get; private set; } = false;
 
   public void ForceComplete()
   {
@@ -250,23 +243,25 @@ public class Building : IAbilityCollection
   // Returns true if the component was added, false if the component was already added.
   public bool AddComponent(BuildingComponent component)
   {
-    // TODO(chmeyers): Add locking to prevent multiple threads from modifying
-    // the building at the same time.
-    if (completed)
+    lock(_lock)
     {
+      Advance();
+      if (completed)
+      {
+        return false;
+      }
+      if (buildingType.phases[phase].Value.Contains(component))
+      {
+        completedComponents.Add(component);
+        if (completedComponents.IsSupersetOf(buildingType.phases[phase].Value))
+        {
+          phase++;
+          ChangeBuildingAbilities();
+        }
+        return true;
+      }
       return false;
     }
-    if (buildingType.phases[phase].Value.Contains(component))
-    {
-      completedComponents.Add(component);
-      if (completedComponents.IsSupersetOf(buildingType.phases[phase].Value))
-      {
-        phase++;
-        ChangeBuildingAbilities();
-      }
-      return true;
-    }
-    return false;
   }
   // Whether the building still needs the given component for the current phase.
   public bool NeedsComponent(BuildingComponent component)
@@ -297,13 +292,17 @@ public class Building : IAbilityCollection
   // For example, a thatch roof can be replaced with a tile roof.
   public bool ReplaceComponent(BuildingComponent newComponent)
   {
-    if (!completedComponents.Contains(newComponent))
+    lock(_lock)
     {
-      return false;
+      Advance();
+      if (!completedComponents.Contains(newComponent))
+      {
+        return false;
+      }
+      // Components with the same name hash the same and are equal.
+      // So to replace a component, we just remove and then re-add the new component.
+      return completedComponents.Remove(newComponent) && completedComponents.Add(newComponent);
     }
-    // Components with the same name hash the same and are equal.
-    // So to replace a component, we just remove and then re-add the new component.
-    return completedComponents.Remove(newComponent) && completedComponents.Add(newComponent);
   }
   // The abilities that the building provides.
   // During construction, the building provides the abilities of the current phase.
@@ -323,29 +322,73 @@ public class Building : IAbilityCollection
     var oldAbilityProviders = new Dictionary<AbilityType, HashSet<IAbilityProvider>>(_abilityProviders);
     _abilities.Clear();
     _abilityProviders.Clear();
-    if (completed)
+    if (completed && !broken)
     {
       Abilities.UnionWith(buildingType.abilities);
-      // The AbilityProvider for all the abilities is the building itself.
-      foreach (var ability in Abilities)
-      {
-        _abilityProviders[ability] = new HashSet<IAbilityProvider>() { this };
-      }
     }
-    else
+    else if (!completed)
     {
       var phaseAbility = AbilityType.Find(BuildingType.BUILDING_PHASE_ABILITY_PREFIX + buildingType.phases[phase].Key)!;
       var abilities = new HashSet<AbilityType>() { phaseAbility };
       abilities.UnionWith(phaseAbility.subTypes);
       Abilities.UnionWith(abilities);
-      // The AbilityProvider for all the abilities is the building itself.
-      foreach (var ability in Abilities)
+    }
+    if (repairable)
+    {
+      foreach (var component in completedComponents)
       {
-        _abilityProviders[ability] = new HashSet<IAbilityProvider>() { this };
+        if (component.currentQuality / component.builtQuality < repairableThreshold)
+        {
+          var repairAbility = AbilityType.Find(BuildingType.BUILDING_REPAIR_ABILITY_PREFIX + component.builtComponent)!;
+          Abilities.Add(repairAbility);
+        }
       }
+    }
+    // The AbilityProvider for all the abilities is the building itself.
+    foreach (var ability in Abilities)
+    {
+      _abilityProviders[ability] = new HashSet<IAbilityProvider>() { this };
     }
     // Notify that the abilities have changed.
     AbilitiesChanged?.Invoke(this, Abilities.Except(oldAbilities), this, oldAbilities.Except(_abilities));
+  }
+
+  private long _lastAdvanceTick = 0;
+  private object _lock = new object();
+  public const double repairableThreshold = 0.2;
+  public void Advance()
+  {
+    lock(_lock)
+    {
+      bool updateAbilities = false;
+      if (Calendar.Ticks == _lastAdvanceTick) return;
+      long ticks = Calendar.Ticks - _lastAdvanceTick;
+      _lastAdvanceTick = Calendar.Ticks;
+      // Degrade each component by the number of ticks since the last advance.
+      foreach (var component in completedComponents)
+      {
+        if (component.currentQuality > 0)
+        {
+          component.currentQuality -= (int)ticks;
+          if (component.currentQuality <= 0)
+          {
+            component.currentQuality = 0;
+            broken = true;
+            repairable = true;
+            updateAbilities = true;
+          }
+          else if (component.currentQuality/component.builtQuality < repairableThreshold)
+          {
+            repairable = true;
+            updateAbilities = true;
+          }
+        }
+      }
+      if (updateAbilities)
+      {
+        ChangeBuildingAbilities();
+      }
+    }
   }
 
   public override string ToString()

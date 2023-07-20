@@ -346,7 +346,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       IAbilityCollection.UpdateAbilities(ref _abilityProviders, ref _abilities, addedProvider, added, removedProvider, removed, AbilitiesChanged);
       _validTasksDirty = true;
       _validBuildingsDirty = true;
-      _abilityUtilityCache.Clear();
+      InvalidateAbilityCache();
     }
   }
 
@@ -686,6 +686,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
     lock (_cacheLock)
     {
       _abilityUtilityCache.Clear();
+      _existingAbilityUtilityCache.Clear();
     }
   }
 
@@ -794,24 +795,27 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
   }
   private const long ability_util_cache_duration = Calendar.ticksPerWeek;
   private Dictionary<HashSet<AbilityType>, AbilityUtilityCacheValue> _abilityUtilityCache = new Dictionary<HashSet<AbilityType>, AbilityUtilityCacheValue>();
-  public double AbilityUtility(HashSet<AbilityType> abilities)
+  private Dictionary<HashSet<AbilityType>, AbilityUtilityCacheValue> _existingAbilityUtilityCache = new Dictionary<HashSet<AbilityType>, AbilityUtilityCacheValue>();
+  public double AbilityUtility(HashSet<AbilityType> abilities, bool existingAbilities = false)
   {
-    var start = Profiler.Start();
     // Check the cache.
     lock (_cacheLock)
     {
-      if (_abilityUtilityCache.ContainsKey(abilities) && _abilityUtilityCache[abilities].expiry >= Calendar.Ticks)
+      var cache = existingAbilities ? _existingAbilityUtilityCache : _abilityUtilityCache;
+      if (cache.ContainsKey(abilities) && cache[abilities].expiry >= Calendar.Ticks)
       {
-        return _abilityUtilityCache[abilities].value;
+        return cache[abilities].value;
       }
       // Set the cache to zero for the rest of the tick, to limit recursion.
-      _abilityUtilityCache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks, 0);
+      cache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks, 0);
 
       // The utility of an ability is dependent on improvement in salary the person could get
       // with all the potential tasks that could be run with that ability.
-      if (Abilities.IsSupersetOf(abilities)) 
+      // If we aren't checking the value of existing abilities, the value is zero if the person
+      // already has all the abilities.
+      if (Abilities.IsSupersetOf(abilities) && !existingAbilities) 
       {
-        _abilityUtilityCache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks + ability_util_cache_duration, 0);
+        cache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks + ability_util_cache_duration, 0);
         return 0;
       }
 
@@ -821,7 +825,7 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
       newAbilities.UnionWith(abilities);
       HashSet<WorkTask> newTasks = WorkTask.GetAdditionalTasks(newAbilities, abilities);
       if (newTasks.Count == 0) {
-        _abilityUtilityCache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks + ability_util_cache_duration, 0);
+        cache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks + ability_util_cache_duration, 0);
         return 0;
       }
 
@@ -840,13 +844,16 @@ public class Person : ITaskRunner, ISkillContext, IAbilityContext, IInventoryCon
         if (score <= 0)
         {
           // If the task is not better than the current salary, then we don't care about it.
+          // TODO(chmeyers): Does this need to change for existing abilities? Perhaps we should
+          // be comparing to the next-best salary.
           continue;
         }
         // Note that the utility is per task, not per time since things that grant abilities
         // will generally degrade once per task.
+        // TODO(chmeyers): This isn't actually true for buildings.
         utility = Math.Max(utility, score);
       }
-      _abilityUtilityCache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks + ability_util_cache_duration, utility);
+      cache[abilities] = new AbilityUtilityCacheValue(Calendar.Ticks + ability_util_cache_duration, utility);
       return utility;
     }
   }
